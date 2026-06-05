@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: leanient-backend
+    runtime: node
+    plan: starter
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /healthz
+    buildCommand: npm install && npm run build -w @leanient/shared && npm run build -w @leanient/backend
+    startCommand: npm run start -w @leanient/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 30d
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: APPLE_CLIENT_ID
+        sync: false
+      - key: APPLE_TEAM_ID
+        sync: false
+      - key: APPLE_KEY_ID
+        sync: false
+      - key: APPLE_PRIVATE_KEY
+        sync: false
+      - key: APPLE_PRIVATE_KEY_BASE64
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: REVENUECAT_WEBHOOK_SECRET
+        sync: false
+      - key: SCHEDULER_TIMEZONE
+        value: America/New_York
+      - key: WEEKLY_VERDICT_CRON
+        value: 0 8 * * 1
