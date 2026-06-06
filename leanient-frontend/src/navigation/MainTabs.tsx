@@ -245,15 +245,16 @@ export function MainTabs() {
       <DoseLogScreen
         visible={doseOpen}
         onClose={() => setDoseOpen(false)}
-        onSave={(draft) =>
-          saveAndClose(
-            async () => {
-              await data.api.createDoseLog(draft);
-              await data.refreshHomeData();
-            },
-            () => setDoseOpen(false),
-          )
-        }
+        onSave={async (draft) => {
+          try {
+            await data.api.createDoseLog(draft);
+            await data.refreshHomeData();
+            setDoseOpen(false);
+          } catch (error) {
+            showLogError(error);
+            throw error;
+          }
+        }}
       />
 
       <WeightLogScreen

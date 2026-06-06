@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
@@ -35,16 +35,46 @@ function GalleryIcon() {
   );
 }
 
-/** Front-body outline the user lines up with. */
-function PoseSilhouette() {
+/**
+ * Body outline the user lines up with, drawn per framing so the guide actually
+ * looks like the pose: Front faces the viewer, Side is a narrower profile with a
+ * nose facing right, Back is the front build with no face and a spine line.
+ */
+function PoseSilhouette({ pose }: { pose: Pose }) {
   return (
     <Svg width={150} height={320} viewBox="0 0 150 320" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.55)" strokeWidth={2}>
-      <Circle cx={75} cy={34} r={24} />
-      <Rect x={42} y={64} width={66} height={120} rx={26} />
-      <Rect x={22} y={72} width={18} height={104} rx={9} />
-      <Rect x={110} y={72} width={18} height={104} rx={9} />
-      <Rect x={52} y={180} width={20} height={120} rx={10} />
-      <Rect x={78} y={180} width={20} height={120} rx={10} />
+      {pose === "Side" ? (
+        <>
+          {/* profile: narrower body, facing right, small nose */}
+          <Circle cx={70} cy={34} r={22} />
+          <Path d="M91 28c6 2 9 5 9 8s-3 6-9 8" fill="none" />
+          <Rect x={54} y={62} width={40} height={124} rx={20} />
+          <Rect x={64} y={74} width={15} height={100} rx={7} />
+          <Rect x={56} y={184} width={18} height={118} rx={9} />
+          <Rect x={74} y={186} width={18} height={116} rx={9} />
+        </>
+      ) : pose === "Back" ? (
+        <>
+          {/* back: front build, broader shoulders, no face, spine line */}
+          <Circle cx={75} cy={34} r={24} />
+          <Rect x={40} y={64} width={70} height={120} rx={26} />
+          <Rect x={20} y={72} width={18} height={104} rx={9} />
+          <Rect x={112} y={72} width={18} height={104} rx={9} />
+          <Rect x={52} y={180} width={20} height={120} rx={10} />
+          <Rect x={78} y={180} width={20} height={120} rx={10} />
+          <Path d="M75 70V178" fill="none" />
+        </>
+      ) : (
+        <>
+          {/* front: faces the viewer */}
+          <Circle cx={75} cy={34} r={24} />
+          <Rect x={42} y={64} width={66} height={120} rx={26} />
+          <Rect x={22} y={72} width={18} height={104} rx={9} />
+          <Rect x={110} y={72} width={18} height={104} rx={9} />
+          <Rect x={52} y={180} width={20} height={120} rx={10} />
+          <Rect x={78} y={180} width={20} height={120} rx={10} />
+        </>
+      )}
     </Svg>
   );
 }
@@ -75,6 +105,36 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
   const [capturing, setCapturing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  // Pose guide does a 3D turn-and-swap when the framing changes: the current
+  // silhouette turns edge-on, we swap to the new pose's shape while it's hidden,
+  // then it turns to face. `spin` runs -1..1, where ±1 is edge-on (90deg). The
+  // turn direction follows the tab order so Front→Side→Back reads as one rotation.
+  const [displayedPose, setDisplayedPose] = useState<Pose>(pose);
+  const spin = useRef(new Animated.Value(0)).current;
+  const prevPoseRef = useRef<Pose>(pose);
+
+  useEffect(() => {
+    if (prevPoseRef.current === pose) return;
+    const dir = POSES.indexOf(pose) > POSES.indexOf(prevPoseRef.current) ? 1 : -1;
+    prevPoseRef.current = pose;
+    Animated.timing(spin, {
+      toValue: dir,
+      duration: 220,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      setDisplayedPose(pose); // swap while edge-on (hidden)
+      spin.setValue(-dir);
+      Animated.timing(spin, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [pose, spin]);
 
   useEffect(() => {
     if (!visible) {
@@ -181,9 +241,23 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
           })}
         </View>
 
-        {/* pose silhouette */}
+        {/* pose silhouette — turns to mirror the selected framing */}
         <View style={styles.silhouette} pointerEvents="none">
-          <PoseSilhouette />
+          <Animated.View
+            style={{
+              transform: [
+                { perspective: 900 },
+                {
+                  rotateY: spin.interpolate({
+                    inputRange: [-1, 0, 1],
+                    outputRange: ["-90deg", "0deg", "90deg"],
+                  }),
+                },
+              ],
+            }}
+          >
+            <PoseSilhouette pose={displayedPose} />
+          </Animated.View>
         </View>
 
         {/* countdown overlay */}

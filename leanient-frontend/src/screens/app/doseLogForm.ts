@@ -40,6 +40,82 @@ export function siteHint(selected: DoseInjectionSite, suggested: DoseInjectionSi
   return last ? `You used ${siteLabel(last)} last week.` : "Pick where you injected.";
 }
 
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export interface DoseCalendarCell {
+  key: string;
+  day: number | null;
+  year: number;
+  month: number;
+  isSelected: boolean;
+  isToday: boolean;
+}
+
+function sameLocalDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatTime(value: Date): string {
+  let h = value.getHours();
+  const m = value.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+export function formatDoseLogWhen(value: Date, now: Date): string {
+  const dateLabel = sameLocalDay(value, now) ? "Today" : `${MONTH_LABELS[value.getMonth()]} ${value.getDate()}`;
+  return `${dateLabel} · ${formatTime(value)}`;
+}
+
+export function formatDoseCalendarMonth(value: Date): string {
+  return `${MONTH_LABELS[value.getMonth()]} ${value.getFullYear()}`;
+}
+
+export function withDoseLogDate(previous: Date, year: number, month: number, day: number): Date {
+  return new Date(
+    year,
+    month,
+    day,
+    previous.getHours(),
+    previous.getMinutes(),
+    previous.getSeconds(),
+    previous.getMilliseconds(),
+  );
+}
+
+export function buildDoseCalendarMonth(monthDate: Date, selectedDate: Date, today: Date): DoseCalendarCell[] {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const day = index - firstDay + 1;
+    if (day < 1 || day > daysInMonth) {
+      return {
+        key: `empty-${year}-${month}-${index}`,
+        day: null,
+        year,
+        month,
+        isSelected: false,
+        isToday: false,
+      };
+    }
+
+    const date = new Date(year, month, day);
+    return {
+      key: `${year}-${month}-${day}`,
+      day,
+      year,
+      month,
+      isSelected: sameLocalDay(date, selectedDate),
+      isToday: sameLocalDay(date, today),
+    };
+  });
+}
+
 export interface DoseLogDraft {
   medicationProtocolId: string;
   doseAmount: number;

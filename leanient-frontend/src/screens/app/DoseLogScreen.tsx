@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,7 +8,19 @@ import type { DoseInjectionSite } from "@leanient/shared";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockMedicationProtocol } from "../../mocks/home";
 import { ScreenGround } from "../../components/layout/ScreenGround";
-import { MAP_SITES, buildDoseLogDraft, siteHint, siteLabel, suggestNextSite, type DoseLogDraft } from "./doseLogForm";
+import {
+  MAP_SITES,
+  buildDoseCalendarMonth,
+  buildDoseLogDraft,
+  formatDoseCalendarMonth,
+  formatDoseLogWhen,
+  siteHint,
+  siteLabel,
+  suggestNextSite,
+  withDoseLogDate,
+  type DoseCalendarCell,
+  type DoseLogDraft,
+} from "./doseLogForm";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -24,13 +36,7 @@ const SITE_POS: Record<DoseInjectionSite, { x: number; y: number }> = {
   buttock_right: { x: 0, y: 0 },
 };
 
-function fmtWhen(now: Date): string {
-  let h = now.getHours();
-  const m = now.getMinutes();
-  const ampm = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
-  return `Today · ${h}:${String(m).padStart(2, "0")} ${ampm}`;
-}
+const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 interface DoseLogScreenProps {
   visible: boolean;
@@ -47,14 +53,65 @@ interface DoseLogScreenProps {
  */
 export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_left" }: DoseLogScreenProps) {
   const data = useLeanientData();
-  const protocol = data.medicationProtocol ?? mockMedicationProtocol;
-  const now = useRef(new Date()).current;
+  const protocol = data.medicationProtocol;
+  const displayProtocol = protocol ?? mockMedicationProtocol;
+  const openedAtRef = useRef(new Date());
+  const [openedAt, setOpenedAt] = useState(openedAtRef.current);
   const suggested = useMemo(() => suggestNextSite(lastSite), [lastSite]);
   const [site, setSite] = useState<DoseInjectionSite>(suggested);
+  const [recordedAt, setRecordedAt] = useState(openedAt);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(openedAt.getFullYear(), openedAt.getMonth(), 1));
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const doseLabel = protocol.doseAmount != null ? `${protocol.doseAmount.toFixed(1)} ${protocol.doseUnit}` : "";
-  const save = () => {
-    void onSave?.(buildDoseLogDraft({ protocol, site, recordedAt: now.toISOString() }));
+  useEffect(() => {
+    if (!visible) return;
+    const nextOpenedAt = new Date();
+    openedAtRef.current = nextOpenedAt;
+    setOpenedAt(nextOpenedAt);
+    setSite(suggested);
+    setRecordedAt(nextOpenedAt);
+    setCalendarMonth(new Date(nextOpenedAt.getFullYear(), nextOpenedAt.getMonth(), 1));
+    setCalendarOpen(false);
+    setSaving(false);
+    setError(null);
+  }, [suggested, visible]);
+
+  const calendarCells = useMemo(
+    () => buildDoseCalendarMonth(calendarMonth, recordedAt, openedAt),
+    [calendarMonth, openedAt, recordedAt],
+  );
+  const canSave = !saving;
+  const doseLabel = displayProtocol.doseAmount != null ? `${displayProtocol.doseAmount.toFixed(1)} ${displayProtocol.doseUnit}` : "";
+
+  const openCalendar = () => {
+    setCalendarMonth(new Date(recordedAt.getFullYear(), recordedAt.getMonth(), 1));
+    setCalendarOpen(true);
+  };
+
+  const chooseDate = (cell: DoseCalendarCell) => {
+    if (!cell.day) return;
+    setRecordedAt(withDoseLogDate(recordedAt, cell.year, cell.month, cell.day));
+    setCalendarOpen(false);
+  };
+
+  const save = async () => {
+    if (saving) return;
+    if (!protocol) {
+      setError("Your medication schedule is still loading. Try again in a moment.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave?.(buildDoseLogDraft({ protocol, site, recordedAt: recordedAt.toISOString() }));
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Couldn't log this dose. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -84,7 +141,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
               </LinearGradient>
               <View style={styles.flex}>
                 <Text style={styles.ftitle}>
-                  {protocol.medicationName} · {doseLabel}
+                  {displayProtocol.medicationName} · {doseLabel}
                 </Text>
                 <Text style={styles.fsub}>From your schedule. Tap to change just this dose.</Text>
               </View>
@@ -134,7 +191,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
             {/* when */}
             <Text style={styles.glabel}>WHEN</Text>
             <View style={styles.group}>
-              <View style={styles.row}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Choose dose date" onPress={openCalendar} style={styles.row}>
                 <View style={styles.icon}>
                   <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <Rect x={3} y={5} width={18} height={16} rx={3} />
@@ -142,17 +199,58 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
                   </Svg>
                 </View>
                 <Text style={styles.rowLabel}>Date</Text>
-                <Text style={styles.rowValue}>{fmtWhen(now)}</Text>
+                <Text style={styles.rowValue}>{formatDoseLogWhen(recordedAt, openedAt)}</Text>
                 <Text style={styles.chevSmall}>›</Text>
-              </View>
+              </Pressable>
             </View>
 
-            <Pressable accessibilityRole="button" accessibilityLabel="Log this dose" onPress={save}>
-              <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
-                <Text style={styles.ctaText}>Log this dose</Text>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <Pressable accessibilityRole="button" accessibilityLabel="Log this dose" onPress={save} disabled={!canSave}>
+              <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={[styles.cta, !canSave && styles.ctaDisabled]}>
+                {saving ? <ActivityIndicator color="#F4FBF7" /> : <Text style={styles.ctaText}>Log this dose</Text>}
               </LinearGradient>
             </Pressable>
           </ScrollView>
+
+          <Modal visible={calendarOpen} transparent animationType="fade" onRequestClose={() => setCalendarOpen(false)}>
+            <View style={styles.calendarOverlay}>
+              <Pressable style={styles.calendarBackdrop} onPress={() => setCalendarOpen(false)} />
+              <View style={styles.calendarCard}>
+                <View style={styles.calendarHeader}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} style={styles.monthButton}>
+                    <Text style={styles.monthButtonText}>‹</Text>
+                  </Pressable>
+                  <Text style={styles.calendarTitle}>{formatDoseCalendarMonth(calendarMonth)}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} style={styles.monthButton}>
+                    <Text style={styles.monthButtonText}>›</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.weekdayRow}>
+                  {WEEKDAY_LABELS.map((label, index) => (
+                    <Text key={`${label}-${index}`} style={styles.weekdayText}>{label}</Text>
+                  ))}
+                </View>
+                <View style={styles.calendarGrid}>
+                  {calendarCells.map((cell) =>
+                    cell.day ? (
+                      <Pressable
+                        key={cell.key}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Choose ${formatDoseCalendarMonth(new Date(cell.year, cell.month, 1))} ${cell.day}`}
+                        onPress={() => chooseDate(cell)}
+                        style={[styles.dayButton, cell.isSelected && styles.dayButtonSelected, cell.isToday && !cell.isSelected && styles.dayButtonToday]}
+                      >
+                        <Text style={[styles.dayText, cell.isSelected && styles.dayTextSelected]}>{cell.day}</Text>
+                      </Pressable>
+                    ) : (
+                      <View key={cell.key} style={styles.dayButton} />
+                    ),
+                  )}
+                </View>
+              </View>
+            </View>
+          </Modal>
         </SafeAreaView>
       </View>
     </Modal>
@@ -184,8 +282,25 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontFamily: font.semibold, fontSize: 15, color: colors.ink },
   rowValue: { fontFamily: font.medium, fontSize: 13, color: colors.muted },
   chevSmall: { fontFamily: font.regular, fontSize: 20, color: colors.faintest, marginLeft: 11 },
+  errorText: { marginHorizontal: 24, marginTop: 14, fontFamily: font.medium, fontSize: 13, lineHeight: 18, color: "#A94B4B" },
   cta: { marginHorizontal: 20, marginTop: 22, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  ctaDisabled: { opacity: 0.55 },
   ctaText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7", letterSpacing: -0.16 },
+  calendarOverlay: { flex: 1, justifyContent: "flex-end" },
+  calendarBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15, 18, 15, 0.28)" },
+  calendarCard: { margin: 16, marginBottom: 26, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, padding: 16 },
+  calendarHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  monthButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
+  monthButtonText: { fontFamily: font.regular, fontSize: 28, color: colors.ink, lineHeight: 30 },
+  calendarTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
+  weekdayRow: { flexDirection: "row", marginTop: 16 },
+  weekdayText: { flex: 1, textAlign: "center", fontFamily: font.bold, fontSize: 11, color: colors.faint },
+  calendarGrid: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
+  dayButton: { width: "14.2857%", aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: 999 },
+  dayButtonSelected: { backgroundColor: colors.emeraldDeep },
+  dayButtonToday: { borderWidth: 1, borderColor: colors.emeraldDeep },
+  dayText: { fontFamily: font.semibold, fontSize: 14, color: colors.ink },
+  dayTextSelected: { color: "#F4FBF7" },
 });
 
 export default DoseLogScreen;
