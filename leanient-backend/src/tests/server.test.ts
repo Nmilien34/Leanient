@@ -17,4 +17,18 @@ describe("health check", () => {
       },
     });
   });
+
+  it("does not return conditional 304 responses for JSON API routes", async () => {
+    const app = createApp({ healthCheck: async () => true });
+
+    const firstResponse = await request(app).get("/healthz");
+    const secondResponse = await request(app)
+      .get("/healthz")
+      .set("If-None-Match", firstResponse.headers.etag ?? "");
+
+    expect(secondResponse.status).toBe(200);
+    expect(secondResponse.body).toEqual(firstResponse.body);
+    expect(secondResponse.headers.etag).toBeUndefined();
+    expect(secondResponse.headers["cache-control"]).toContain("no-store");
+  });
 });

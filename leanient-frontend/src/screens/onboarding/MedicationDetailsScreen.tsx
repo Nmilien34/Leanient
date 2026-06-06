@@ -8,6 +8,7 @@ import { ScreenHeader } from "../../components/layout/ScreenHeader";
 import { Eyebrow } from "../../components/ui/Eyebrow";
 import { Button } from "../../components/ui/Button";
 import { Wheel, type WheelItem } from "../../components/ui/Wheel";
+import { useLeanientData } from "../../context/LeanientDataContext";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { mockMedicationCatalog } from "../../mocks/medications";
 import {
@@ -42,16 +43,24 @@ const MONTH_ITEMS: WheelItem[] = MONTHS_SHORT.map((label, value) => ({ label, va
  */
 export function MedicationDetailsScreen({ onBack, onContinue }: MedicationDetailsScreenProps) {
   const { draft, setMedication } = useOnboarding();
+  const { medicationCatalog, refreshMedicationCatalog } = useLeanientData();
   const now = useRef(new Date()).current;
+  const catalog = medicationCatalog.length ? medicationCatalog : mockMedicationCatalog;
+
+  useEffect(() => {
+    if (!medicationCatalog.length) {
+      void refreshMedicationCatalog();
+    }
+  }, [medicationCatalog.length, refreshMedicationCatalog]);
 
   const view = useMemo(
     () =>
       deriveMedicationDetails({
-        catalog: mockMedicationCatalog,
+        catalog,
         medicationCatalogId: draft.medicationProtocol.medicationCatalogId,
         medicationName: draft.medicationProtocol.medicationName,
       }),
-    [draft.medicationProtocol.medicationCatalogId, draft.medicationProtocol.medicationName],
+    [catalog, draft.medicationProtocol.medicationCatalogId, draft.medicationProtocol.medicationName],
   );
 
   const [parts, setParts] = useState<DateParts>(() => toDateParts(now));

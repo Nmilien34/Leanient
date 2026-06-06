@@ -13,6 +13,7 @@ export const mockUser: User = {
   onboardingComplete: true,
   authProviders: [{ provider: "apple", providerUserId: "apple_demo", linkedAt: STAMP }],
   displayName: "Nickson",
+  hasAvatar: false,
   subscriptionStatus: "active",
   entitlementExpiresAt: "2027-03-03T12:00:00.000Z",
   subscriptionWillRenew: true,

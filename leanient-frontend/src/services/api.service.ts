@@ -26,6 +26,10 @@ import {
   medicationCatalogItemResponseSchema,
   onboardingCompleteRequestSchema,
   onboardingCompleteResponseSchema,
+  avatarConfirmRequestSchema,
+  avatarUploadIntentRequestSchema,
+  avatarUploadIntentResponseSchema,
+  avatarViewUrlResponseSchema,
   patchMeRequestSchema,
   patchUserMedicationProtocolRequestSchema,
   patchUserProfileRequestSchema,
@@ -70,6 +74,10 @@ import {
   type MedicationCatalogItem,
   type OnboardingCompleteRequest,
   type OnboardingCompleteResponse,
+  type AvatarConfirmRequest,
+  type AvatarUploadIntentRequest,
+  type AvatarUploadIntentResponse,
+  type AvatarViewUrlResponse,
   type PatchMeRequest,
   type PatchUserMedicationProtocolRequest,
   type PatchUserProfileRequest,
@@ -307,6 +315,24 @@ export class LeanientApiClient {
 
   public async patchMe(body: PatchMeRequest): Promise<User> {
     return this.patch("/me", patchMeRequestSchema.parse(body), userResponseSchema);
+  }
+
+  public async createAvatarUploadIntent(
+    body: AvatarUploadIntentRequest,
+  ): Promise<AvatarUploadIntentResponse> {
+    return this.post(
+      "/me/avatar/upload-intent",
+      avatarUploadIntentRequestSchema.parse(body),
+      avatarUploadIntentResponseSchema,
+    );
+  }
+
+  public async confirmAvatarUpload(body: AvatarConfirmRequest): Promise<User> {
+    return this.post("/me/avatar", avatarConfirmRequestSchema.parse(body), userResponseSchema);
+  }
+
+  public async getAvatarViewUrl(): Promise<AvatarViewUrlResponse> {
+    return this.get("/me/avatar/view-url", avatarViewUrlResponseSchema);
   }
 
   public async completeOnboarding(body: OnboardingCompleteRequest): Promise<OnboardingCompleteResponse> {

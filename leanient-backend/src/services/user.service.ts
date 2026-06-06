@@ -71,6 +71,7 @@ export function serializeUser(user: UserDocument): SharedUser {
     })),
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    hasAvatar: Boolean(user.avatarKey),
     subscriptionStatus: user.subscriptionStatus,
     entitlementExpiresAt: user.entitlementExpiresAt?.toISOString(),
     subscriptionWillRenew: user.subscriptionWillRenew,

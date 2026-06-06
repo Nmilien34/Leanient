@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path } from "react-native-svg";
 import type { TodaysFocusResponse, UserMedicationProtocol, UserProfile, WeeklyVerdict, WeightLog, Workout } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
@@ -58,6 +59,7 @@ interface HomeViewProps {
 
 function HomeView({ verdict, profile, weightLogs, medication, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
+  const navigation = useNavigation();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
   const [explainerOpen, setExplainerOpen] = useState(false);
@@ -182,7 +184,14 @@ function HomeView({ verdict, profile, weightLogs, medication, focus, recommended
                 </Pressable>
               ))}
             </View>
-            <UserAvatar />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              hitSlop={8}
+              onPress={() => navigation.navigate("Profile" as never)}
+            >
+              <UserAvatar />
+            </Pressable>
           </View>
 
           {scope === "today" ? (

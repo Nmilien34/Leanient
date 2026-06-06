@@ -81,6 +81,7 @@ export const userResponseSchema = z.object({
   authProviders: z.array(linkedAuthProviderSchema),
   displayName: z.string().min(1).optional(),
   avatarUrl: z.string().url().optional(),
+  hasAvatar: z.boolean(),
   subscriptionStatus: subscriptionStatusSchema,
   entitlementExpiresAt: z.string().datetime().optional(),
   subscriptionWillRenew: z.boolean(),
@@ -115,6 +116,43 @@ export const patchMeRequestSchema = z
   .object({
     displayName: z.string().trim().min(1).max(120).optional(),
     avatarUrl: z.string().trim().url().optional(),
+  })
+  .strict();
+
+// Avatar upload mirrors the progress-photo flow: request a presigned PUT URL,
+// upload the bytes directly to S3, then confirm so the key is saved on the user.
+export const avatarImageContentTypeSchema = z.enum([
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/webp",
+]);
+
+export const avatarUploadIntentRequestSchema = z
+  .object({
+    contentType: avatarImageContentTypeSchema,
+    sizeBytes: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export const avatarUploadIntentResponseSchema = z
+  .object({
+    uploadUrl: z.string().url(),
+    key: z.string().min(1),
+    expiresAt: z.string().datetime(),
+  })
+  .strict();
+
+export const avatarConfirmRequestSchema = z
+  .object({
+    key: z.string().min(1),
+  })
+  .strict();
+
+export const avatarViewUrlResponseSchema = z
+  .object({
+    viewUrl: z.string().url().nullable(),
+    expiresAt: z.string().datetime().nullable(),
   })
   .strict();
 
@@ -929,3 +967,7 @@ export type ProgressPhotoUploadIntentRequest = z.infer<
   typeof progressPhotoUploadIntentRequestSchema
 >;
 export type ProgressPhotoConfirmRequest = z.infer<typeof progressPhotoConfirmRequestSchema>;
+export type AvatarUploadIntentRequest = z.infer<typeof avatarUploadIntentRequestSchema>;
+export type AvatarUploadIntentResponse = z.infer<typeof avatarUploadIntentResponseSchema>;
+export type AvatarConfirmRequest = z.infer<typeof avatarConfirmRequestSchema>;
+export type AvatarViewUrlResponse = z.infer<typeof avatarViewUrlResponseSchema>;

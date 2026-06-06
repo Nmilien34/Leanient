@@ -2,10 +2,11 @@ import type { OnboardingCompleteRequest } from "@leanient/shared";
 import { NUTRITION_ENGINE_VERSION } from "@leanient/shared";
 import mongoose from "mongoose";
 import type { ClientSession } from "mongoose";
-import { NotFoundError } from "../lib/errors";
+import { NotFoundError, ValidationError } from "../lib/errors";
 import { computeNutritionTargets, lbFromWeight } from "../lib/nutrition";
 import { normalizeProfileTrainingFields } from "../lib/training";
 import { startOfUtcWeek, toDateOnly } from "../lib/week";
+import { MedicationCatalogItemModel } from "../models/medicationCatalogItem.model";
 import { UserModel } from "../models/user.model";
 import { UserMedicationProtocolModel } from "../models/userMedicationProtocol.model";
 import { UserProfileModel } from "../models/userProfile.model";
@@ -16,6 +17,46 @@ import {
   serializeWeightLog,
 } from "./serializers";
 import { serializeUser } from "./user.service";
+
+const LEGACY_MEDICATION_ID_TO_CATALOG_SLUG: Record<string, string> = {
+  med_ozempic: "semaglutide",
+  med_wegovy: "semaglutide",
+  ozempic: "semaglutide",
+  wegovy: "semaglutide",
+  med_mounjaro: "tirzepatide",
+  med_zepbound: "tirzepatide",
+  mounjaro: "tirzepatide",
+  zepbound: "tirzepatide",
+  med_compounded: "other",
+  compounded: "other",
+};
+
+async function resolveMedicationCatalogId(
+  medicationCatalogId: string | undefined,
+  session: ClientSession,
+) {
+  if (!medicationCatalogId) {
+    return undefined;
+  }
+
+  if (/^[a-f\d]{24}$/i.test(medicationCatalogId)) {
+    return medicationCatalogId;
+  }
+
+  const normalized = medicationCatalogId.trim().toLowerCase();
+  const slug = LEGACY_MEDICATION_ID_TO_CATALOG_SLUG[normalized] ?? normalized.replace(/^med_/, "");
+  const catalogItem = await MedicationCatalogItemModel.findOne({ slug, active: true }).session(
+    session,
+  );
+
+  if (!catalogItem) {
+    throw new ValidationError("Medication catalog item not found", {
+      medicationCatalogId,
+    });
+  }
+
+  return catalogItem._id;
+}
 
 async function findCompletedOnboardingState(userId: string, session: ClientSession | null) {
   const [user, profile, medicationProtocol, weightLog] = await Promise.all([
@@ -73,6 +114,14 @@ export async function completeOnboarding(userId: string, body: OnboardingComplet
       dailyCalorieTarget: targets.dailyCalorieTarget,
       nutritionEngineVersion: NUTRITION_ENGINE_VERSION,
     };
+    const medicationCatalogId = await resolveMedicationCatalogId(
+      body.medicationProtocol.medicationCatalogId,
+      session,
+    );
+    const medicationProtocolFields = {
+      ...body.medicationProtocol,
+      ...(medicationCatalogId ? { medicationCatalogId } : {}),
+    };
 
     const profile = await UserProfileModel.findOneAndUpdate(
       { userId },
@@ -87,7 +136,7 @@ export async function completeOnboarding(userId: string, body: OnboardingComplet
     );
     const medicationProtocol = await UserMedicationProtocolModel.findOneAndUpdate(
       { userId },
-      { $set: body.medicationProtocol },
+      { $set: medicationProtocolFields },
       {
         upsert: true,
         new: true,

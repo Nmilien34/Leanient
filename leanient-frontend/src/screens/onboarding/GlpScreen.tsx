@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { SingleSelectScreen } from "./SingleSelectScreen";
 import { buildGlpOptions, type GlpSelection } from "../../onboarding/options";
 import { mockMedicationCatalog } from "../../mocks/medications";
+import { useLeanientData } from "../../context/LeanientDataContext";
 import { useOnboarding } from "../../context/OnboardingContext";
 
 interface GlpScreenProps {
@@ -12,8 +13,16 @@ interface GlpScreenProps {
 
 export function GlpScreen({ onBack, onAnswer }: GlpScreenProps) {
   const { setMedication, setNotOnGlp } = useOnboarding();
-  // Sourced from the (shared-typed) catalog; swap mock for GET /medications at integration.
-  const options = useMemo(() => buildGlpOptions(mockMedicationCatalog), []);
+  const { medicationCatalog, refreshMedicationCatalog } = useLeanientData();
+
+  useEffect(() => {
+    if (!medicationCatalog.length) {
+      void refreshMedicationCatalog();
+    }
+  }, [medicationCatalog.length, refreshMedicationCatalog]);
+
+  const catalog = medicationCatalog.length ? medicationCatalog : mockMedicationCatalog;
+  const options = useMemo(() => buildGlpOptions(catalog), [catalog]);
 
   const handleAnswer = (sel: GlpSelection) => {
     if (sel.kind === "medication") {

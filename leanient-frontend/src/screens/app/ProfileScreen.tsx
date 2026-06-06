@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import type { SubscriptionStatus, Weekday } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { EditableAvatar } from "../../components/app/EditableAvatar";
 import { SettingGroup } from "../../components/app/SettingsRow";
 import { VerdictStatesScreen } from "./VerdictStatesScreen";
 import { AccountScreen } from "./AccountScreen";
@@ -82,7 +82,6 @@ export function ProfileScreen() {
   const medication = data.medicationProtocol ?? mockMedicationProtocol;
 
   const name = user.displayName ?? "Member";
-  const initial = name.charAt(0).toUpperCase();
   const subscribed = SUBSCRIBED.includes(user.subscriptionStatus);
   const units = profile.goalWeightUnit === "kg" ? "Metric" : "Imperial";
 
@@ -100,9 +99,7 @@ export function ProfileScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* header */}
           <View style={styles.phead}>
-            <LinearGradient colors={["#6FE0A6", "#1F9E63"]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.pavatar}>
-              <Text style={styles.pavatarText}>{initial}</Text>
-            </LinearGradient>
+            <EditableAvatar size={60} />
             <View>
               <Text style={styles.pn}>{name}</Text>
               {user.email ? <Text style={styles.pe}>{user.email}</Text> : null}
@@ -165,8 +162,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingBottom: 120, paddingTop: 6 },
   phead: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8 },
-  pavatar: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center" },
-  pavatarText: { fontFamily: font.extrabold, fontSize: 24, color: "#fff" },
   pn: { fontFamily: font.extrabold, fontSize: 21, letterSpacing: -0.42, color: colors.ink },
   pe: { fontFamily: font.regular, fontSize: 13, color: colors.muted, marginTop: 1 },
   pbadge: { alignSelf: "flex-start", marginTop: 5, backgroundColor: "rgba(47,184,122,0.12)", paddingVertical: 4, paddingHorizontal: 9, borderRadius: 8 },

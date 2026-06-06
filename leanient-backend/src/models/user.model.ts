@@ -14,6 +14,8 @@ export interface UserDocument extends Document<Types.ObjectId> {
   authProviders: LinkedAuthProviderDocument[];
   displayName?: string;
   avatarUrl?: string;
+  /** S3 object key for a user-uploaded avatar (private; served via presigned GET). */
+  avatarKey?: string;
   subscriptionStatus: SubscriptionStatus;
   entitlementExpiresAt?: Date;
   subscriptionWillRenew: boolean;
@@ -66,6 +68,10 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
     },
     avatarUrl: {
+      type: String,
+      trim: true,
+    },
+    avatarKey: {
       type: String,
       trim: true,
     },

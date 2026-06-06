@@ -20,6 +20,7 @@ describe("storage service", () => {
         emailVerified: true,
         onboardingComplete: false,
         authProviders: [],
+        hasAvatar: false,
         subscriptionStatus: "free",
         subscriptionWillRenew: false,
         createdAt: "2026-05-29T12:00:00.000Z",

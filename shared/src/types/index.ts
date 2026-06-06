@@ -75,7 +75,11 @@ export interface User {
   onboardingComplete: boolean;
   authProviders: LinkedAuthProvider[];
   displayName?: string;
+  /** Profile photo from the OAuth provider (Google/Apple), if any. */
   avatarUrl?: string;
+  /** True when the user has uploaded their own avatar to S3. Takes precedence
+   * over avatarUrl; fetch the displayable URL from GET /me/avatar/view-url. */
+  hasAvatar: boolean;
   subscriptionStatus: SubscriptionStatus;
   entitlementExpiresAt?: string;
   subscriptionWillRenew: boolean;

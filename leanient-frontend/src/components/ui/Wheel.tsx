@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useAudioPlayer } from "expo-audio";
+import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -74,6 +74,14 @@ export function Wheel({
     const id = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: false }), 0);
     return () => clearTimeout(id);
     // mount only — re-scrolling mid-fling would interrupt the user
+  }, []);
+
+  // iOS silences app audio when the physical ring/silent switch is on, and
+  // expo-audio respects it by default. The tick is a deliberate UI cue, so allow
+  // it to play even in silent mode (haptics already ignore the switch).
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
   const tick = (idx: number) => {

@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { mockUser } from "../../mocks/user";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { SettingGroup } from "../../components/app/SettingsRow";
-import { UserAvatar } from "../../components/app/UserAvatar";
+import { EditableAvatar } from "../../components/app/EditableAvatar";
 import { Button } from "../../components/ui/Button";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
@@ -115,10 +115,10 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
 
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.phead}>
-              <UserAvatar size={60} />
+              <EditableAvatar size={60} />
               <View>
                 <Text style={styles.pn}>{view.name}</Text>
-                <Text style={styles.changePhoto}>Change photo</Text>
+                <Text style={styles.changePhoto}>Tap your photo to change it</Text>
               </View>
             </View>
 

@@ -300,13 +300,16 @@ export function LeanientDataProvider({
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active" && isAuthenticated) {
+      // Only refresh for users already in the app (profile loaded). Refreshing
+      // mid-onboarding flips isRefreshing, which makes App.tsx flash the splash
+      // on every foreground, and there is no home data to load yet anyway.
+      if (state === "active" && isAuthenticated && profile) {
         void refreshHomeData();
       }
     });
 
     return () => subscription.remove();
-  }, [isAuthenticated, refreshHomeData]);
+  }, [isAuthenticated, profile, refreshHomeData]);
 
   const value = useMemo<LeanientDataContextValue>(
     () => ({

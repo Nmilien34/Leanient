@@ -44,6 +44,7 @@ interface MockProfileDocument {
 interface MockMedicationProtocolDocument {
   _id: MockObjectId;
   userId: string;
+  medicationCatalogId?: MockObjectId;
   medicationName: string;
   customMedicationName?: string;
   doseAmount?: number;
@@ -66,6 +67,12 @@ interface MockWeightLogDocument {
   source: "onboarding";
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface MockMedicationCatalogDocument {
+  _id: MockObjectId;
+  slug: string;
+  active: boolean;
 }
 
 interface MockUserDocument {
@@ -106,6 +113,7 @@ const modelMocks = vi.hoisted(() => {
   let failWeightLogWrite = false;
   const profiles: MockProfileDocument[] = [];
   const medicationProtocols: MockMedicationProtocolDocument[] = [];
+  const medicationCatalogItems: MockMedicationCatalogDocument[] = [];
   const weightLogs: MockWeightLogDocument[] = [];
   const users: MockUserDocument[] = [];
   const writeCalls: string[] = [];
@@ -137,6 +145,15 @@ const modelMocks = vi.hoisted(() => {
   function cloneMedication(
     medication: MockMedicationProtocolDocument,
   ): MockMedicationProtocolDocument {
+    return {
+      ...medication,
+      _id: medication._id,
+    };
+  }
+
+  function cloneMedicationCatalogItem(
+    medication: MockMedicationCatalogDocument,
+  ): MockMedicationCatalogDocument {
     return {
       ...medication,
       _id: medication._id,
@@ -180,6 +197,7 @@ const modelMocks = vi.hoisted(() => {
         const snapshot = {
           profiles: profiles.map(cloneProfile),
           medicationProtocols: medicationProtocols.map(cloneMedication),
+          medicationCatalogItems: medicationCatalogItems.map(cloneMedicationCatalogItem),
           weightLogs: weightLogs.map(cloneWeightLog),
           users: users.map(cloneUser),
         };
@@ -189,6 +207,7 @@ const modelMocks = vi.hoisted(() => {
         } catch (error) {
           restoreCollection(profiles, snapshot.profiles);
           restoreCollection(medicationProtocols, snapshot.medicationProtocols);
+          restoreCollection(medicationCatalogItems, snapshot.medicationCatalogItems);
           restoreCollection(weightLogs, snapshot.weightLogs);
           restoreCollection(users, snapshot.users);
           throw error;
@@ -251,6 +270,18 @@ const modelMocks = vi.hoisted(() => {
         Object.assign(medication, update.$set);
       }
       return medication;
+    }),
+  };
+
+  const MedicationCatalogItemModel = {
+    findOne: vi.fn((filter) => {
+      return query(async () => {
+        return (
+          medicationCatalogItems.find((item) => {
+            return item.slug === filter.slug && item.active === filter.active;
+          }) ?? null
+        );
+      });
     }),
   };
 
@@ -337,18 +368,31 @@ const modelMocks = vi.hoisted(() => {
     return user;
   }
 
+  function createMedicationCatalogItem(slug: string): MockMedicationCatalogDocument {
+    const item: MockMedicationCatalogDocument = {
+      _id: objectId(`catalog_${slug}`),
+      slug,
+      active: true,
+    };
+    medicationCatalogItems.push(item);
+    return item;
+  }
+
   return {
     profiles,
     medicationProtocols,
+    medicationCatalogItems,
     weightLogs,
     users,
     writeCalls,
     mongoose,
     UserProfileModel,
     UserMedicationProtocolModel,
+    MedicationCatalogItemModel,
     WeightLogModel,
     UserModel,
     createUser,
+    createMedicationCatalogItem,
     setFailMedicationWrite: (value: boolean) => {
       failMedicationWrite = value;
     },
@@ -361,6 +405,7 @@ const modelMocks = vi.hoisted(() => {
       failWeightLogWrite = false;
       profiles.splice(0, profiles.length);
       medicationProtocols.splice(0, medicationProtocols.length);
+      medicationCatalogItems.splice(0, medicationCatalogItems.length);
       weightLogs.splice(0, weightLogs.length);
       users.splice(0, users.length);
       writeCalls.splice(0, writeCalls.length);
@@ -369,6 +414,7 @@ const modelMocks = vi.hoisted(() => {
       UserProfileModel.findOneAndUpdate.mockClear();
       UserMedicationProtocolModel.findOne.mockClear();
       UserMedicationProtocolModel.findOneAndUpdate.mockClear();
+      MedicationCatalogItemModel.findOne.mockClear();
       WeightLogModel.findOne.mockClear();
       WeightLogModel.create.mockClear();
       WeightLogModel.findOneAndUpdate.mockClear();
@@ -394,6 +440,10 @@ vi.mock("../../models/userMedicationProtocol.model", () => ({
     }
     return protocol.shotDay ? [protocol.shotDay] : [];
   },
+}));
+
+vi.mock("../../models/medicationCatalogItem.model", () => ({
+  MedicationCatalogItemModel: modelMocks.MedicationCatalogItemModel,
 }));
 
 vi.mock("../../models/weightLog.model", () => ({
@@ -481,6 +531,24 @@ describe("onboarding service", () => {
       "weightLog:session",
       "user:session",
     ]);
+  });
+
+  it("resolves legacy frontend medication ids to seeded catalog ObjectIds before persisting", async () => {
+    const tirzepatide = modelMocks.createMedicationCatalogItem("tirzepatide");
+    const body = makeOnboardingRequest();
+    body.medicationProtocol.medicationCatalogId = "med_mounjaro";
+    body.medicationProtocol.medicationName = "Mounjaro";
+
+    const result = await completeOnboarding("user_1", body);
+
+    expect(modelMocks.MedicationCatalogItemModel.findOne).toHaveBeenCalledWith({
+      slug: "tirzepatide",
+      active: true,
+    });
+    expect(modelMocks.medicationProtocols[0]?.medicationCatalogId?.toString()).toBe(
+      tirzepatide._id.toString(),
+    );
+    expect(result.medicationProtocol.medicationCatalogId).toBe(tirzepatide._id.toString());
   });
 
   it("is idempotent when onboarding is submitted twice", async () => {

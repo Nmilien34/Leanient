@@ -71,8 +71,13 @@ export function createApp(options: CreateAppOptions = {}): Express {
   const healthCheck = options.healthCheck ?? isDatabaseReachable;
 
   app.disable("x-powered-by");
+  app.disable("etag");
   app.use(helmet());
   app.use(cors(corsOptions()));
+  app.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
   app.use(requestLogger);
   app.use("/meal-scans", express.json({ limit: "14mb" }), mealScansRoutes);
   app.use(express.json({ limit: "1mb" }));
