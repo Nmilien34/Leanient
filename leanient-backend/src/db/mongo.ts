@@ -49,25 +49,30 @@ export async function connect(): Promise<void> {
     connectTimeoutMS: 10000,
   });
 
+  // syncIndexes (not createIndexes) so schema index changes reconcile against
+  // what already exists in the database. createIndexes only adds missing indexes
+  // and throws IndexKeySpecsConflict when an index name exists with different
+  // options (e.g. adding `unique` to revenueCatEventId). syncIndexes drops the
+  // stale index and recreates it to match the schema.
   await Promise.all([
-    UserModel.createIndexes(),
-    UserProfileModel.createIndexes(),
-    UserMedicationProtocolModel.createIndexes(),
-    WeightLogModel.createIndexes(),
-    MealLogModel.createIndexes(),
-    MealScanModel.createIndexes(),
-    WorkoutLogModel.createIndexes(),
-    DoseLogModel.createIndexes(),
-    MeasurementLogModel.createIndexes(),
-    SideEffectLogModel.createIndexes(),
-    WeeklyCheckinModel.createIndexes(),
-    WeeklyVerdictModel.createIndexes(),
-    MuscleRetentionSnapshotModel.createIndexes(),
-    TodaysFocusModel.createIndexes(),
-    WorkoutModel.createIndexes(),
-    MedicationCatalogItemModel.createIndexes(),
-    ProgressPhotoModel.createIndexes(),
-    SubscriptionEventModel.createIndexes(),
+    UserModel.syncIndexes(),
+    UserProfileModel.syncIndexes(),
+    UserMedicationProtocolModel.syncIndexes(),
+    WeightLogModel.syncIndexes(),
+    MealLogModel.syncIndexes(),
+    MealScanModel.syncIndexes(),
+    WorkoutLogModel.syncIndexes(),
+    DoseLogModel.syncIndexes(),
+    MeasurementLogModel.syncIndexes(),
+    SideEffectLogModel.syncIndexes(),
+    WeeklyCheckinModel.syncIndexes(),
+    WeeklyVerdictModel.syncIndexes(),
+    MuscleRetentionSnapshotModel.syncIndexes(),
+    TodaysFocusModel.syncIndexes(),
+    WorkoutModel.syncIndexes(),
+    MedicationCatalogItemModel.syncIndexes(),
+    ProgressPhotoModel.syncIndexes(),
+    SubscriptionEventModel.syncIndexes(),
   ]);
   logger.info("[db] Mongo indexes ensured");
 
