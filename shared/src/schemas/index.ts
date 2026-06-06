@@ -207,7 +207,9 @@ export const userMedicationProtocolCoreSchema = z
     customMedicationName: z.string().trim().min(1).optional(),
     doseAmount: z.number().positive().optional(),
     doseUnit: doseUnitSchema,
-    shotDay: weekdaySchema,
+    // Days of the week the user injects. Usually one, but split-dose protocols
+    // take shots on multiple days, so this is an array of at least one weekday.
+    shotDays: z.array(weekdaySchema).min(1),
     startDate: dateOnlySchema,
     notes: z.string().trim().max(1000).optional(),
     active: z.boolean().default(true),

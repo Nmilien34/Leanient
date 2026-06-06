@@ -14,11 +14,11 @@ describe("persistMedicationEdit", () => {
     });
 
     await persistMedicationEdit(
-      { shotDay: "monday", doseAmount: 1 },
+      { shotDays: ["monday"], doseAmount: 1 },
       { patchMedicationProtocol, refresh },
     );
 
-    expect(patchMedicationProtocol).toHaveBeenCalledWith({ shotDay: "monday", doseAmount: 1 });
+    expect(patchMedicationProtocol).toHaveBeenCalledWith({ shotDays: ["monday"], doseAmount: 1 });
     // Refresh (the context update mechanism) runs after a successful patch.
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(calls).toEqual(["patch", "refresh"]);
@@ -31,7 +31,7 @@ describe("persistMedicationEdit", () => {
     const refresh = vi.fn(async () => undefined);
 
     await expect(
-      persistMedicationEdit({ shotDay: "tuesday" }, { patchMedicationProtocol, refresh }),
+      persistMedicationEdit({ shotDays: ["tuesday"] }, { patchMedicationProtocol, refresh }),
     ).rejects.toThrow("boom");
     expect(refresh).not.toHaveBeenCalled();
   });

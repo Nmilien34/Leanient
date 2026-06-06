@@ -9,7 +9,7 @@ import { Eyebrow } from "../../components/ui/Eyebrow";
 import { Button } from "../../components/ui/Button";
 import { CoachPill } from "../../components/ui/CoachPill";
 import { useOnboarding } from "../../context/OnboardingContext";
-import { SHOT_DAY_OPTIONS, shotDayCoachNote } from "../../onboarding/shotDay";
+import { SHOT_DAY_OPTIONS, shotDayCoachNote, sortShotDays } from "../../onboarding/shotDay";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -22,12 +22,19 @@ interface ShotDayScreenProps {
 
 /**
  * Shot Day (onboarding, after Medication Details). Captures the contract's
- * required `shotDay` as a `Weekday`. Days are shown in calendar order; the coach
- * line is dynamic on the selected medication + day.
+ * required `shotDays` as a non-empty `Weekday[]`. Most users pick one day;
+ * split-dose protocols pick several. Days are shown in calendar order; the coach
+ * line is dynamic on the selected medication + days.
  */
 export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
   const { draft, setMedication } = useOnboarding();
-  const [day, setDay] = useState<Weekday | null>(draft.medicationProtocol.shotDay ?? null);
+  const [days, setDays] = useState<Weekday[]>(draft.medicationProtocol.shotDays ?? []);
+
+  const toggleDay = (key: Weekday) => {
+    setDays((current) =>
+      current.includes(key) ? current.filter((d) => d !== key) : sortShotDays([...current, key]),
+    );
+  };
 
   const rise = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -38,11 +45,11 @@ export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
     transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
   };
 
-  const coach = shotDayCoachNote(draft.medicationProtocol.medicationName, day);
+  const coach = shotDayCoachNote(draft.medicationProtocol.medicationName, days);
 
   const handleContinue = () => {
-    if (!day) return;
-    setMedication({ shotDay: day });
+    if (days.length === 0) return;
+    setMedication({ shotDays: sortShotDays(days) });
     onContinue?.();
   };
 
@@ -55,21 +62,23 @@ export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
 
         <Animated.View style={[styles.body, bodyStyle]}>
           <View style={styles.titleBlock}>
-            <Text style={styles.h1}>What day do you take your shot?</Text>
-            <Text style={styles.sub}>We'll use this to time your shot reminders and weekly check-ins.</Text>
+            <Text style={styles.h1}>What days do you take your shot?</Text>
+            <Text style={styles.sub}>
+              Pick every day you inject. Most people take one; choose more if you split your dose.
+            </Text>
           </View>
 
-          <Eyebrow style={styles.eyebrow}>SHOT DAY</Eyebrow>
+          <Eyebrow style={styles.eyebrow}>SHOT DAYS</Eyebrow>
           <View style={styles.chipRow}>
             {SHOT_DAY_OPTIONS.map((o) => {
-              const on = day === o.key;
+              const on = days.includes(o.key);
               return (
                 <Pressable
                   key={o.key}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
                   accessibilityLabel={o.long}
-                  onPress={() => setDay(o.key)}
+                  onPress={() => toggleDay(o.key)}
                   style={[styles.chip, on && styles.chipOn]}
                 >
                   <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.short}</Text>
@@ -86,7 +95,7 @@ export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
 
           <View style={styles.spacer} />
 
-          <Button label="Continue" disabled={day === null} onPress={handleContinue} />
+          <Button label="Continue" disabled={days.length === 0} onPress={handleContinue} />
         </Animated.View>
       </SafeAreaView>
     </View>

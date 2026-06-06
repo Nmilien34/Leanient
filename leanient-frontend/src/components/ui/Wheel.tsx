@@ -147,7 +147,11 @@ export function Wheel({
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         scrollEventThrottle={16}
-        contentOffset={{ x: 0, y: startIndex * ITEM_H }}
+        // NOTE: do NOT set a controlled `contentOffset` here. It's derived from
+        // `value`, which updates on every onChange, so iOS would force the scroll
+        // back to the grid mid-momentum — a feedback loop that makes the wheel
+        // scroll on its own and rate-limits the haptic ticks. Initial position is
+        // set imperatively in the mount effect; re-center via a changing `key`.
         contentContainerStyle={{ paddingVertical: pad }}
         onScroll={onScroll}
       >

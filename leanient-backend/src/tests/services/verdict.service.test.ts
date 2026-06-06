@@ -197,7 +197,7 @@ describe("verdict service", () => {
           medicationName: "Zepbound",
           doseAmount: 5,
           doseUnit: "mg",
-          shotDay: "monday",
+          shotDays: ["monday"],
           startDate: "2026-04-01",
         },
         priorWeight: { value: 186, unit: "lb", measuredAt: "2026-05-22T12:00:00.000Z" },

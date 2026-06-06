@@ -17,7 +17,7 @@ describe("deriveTodayView", () => {
     const medication = {
       ...mockMedicationProtocol,
       medicationName: "Wegovy",
-      shotDay: shotDayNDaysAgo(now, 2),
+      shotDays: [shotDayNDaysAgo(now, 2)],
       startDate: "2026-04-19", // 44 days before now
     };
 
@@ -86,7 +86,7 @@ describe("deriveTodayView", () => {
     const now = new Date(2026, 5, 2);
     const today = deriveTodayView({
       profile: mockProfile,
-      medication: { ...mockMedicationProtocol, shotDay: shotDayNDaysAgo(now, 1) },
+      medication: { ...mockMedicationProtocol, shotDays: [shotDayNDaysAgo(now, 1)] },
       recommendedWorkouts: [],
       dailyLog: mockTodayLog,
       now,

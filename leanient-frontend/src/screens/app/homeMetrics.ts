@@ -27,12 +27,13 @@ const WEEKDAY_INDEX: Record<Weekday, number> = {
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
-function doseLabels(shotDay: Weekday | undefined, now: Date): { lastLabel: string; nextLabel: string } {
-  if (!shotDay) return { lastLabel: "—", nextLabel: "—" };
+function doseLabels(shotDays: Weekday[] | undefined, now: Date): { lastLabel: string; nextLabel: string } {
+  if (!shotDays || shotDays.length === 0) return { lastLabel: "—", nextLabel: "—" };
   const today = now.getDay();
-  const shot = WEEKDAY_INDEX[shotDay];
-  const sinceLast = (today - shot + 7) % 7;
-  const untilNext = ((shot - today + 7) % 7) || 7;
+  // Most recent past shot and soonest upcoming shot across all injection days.
+  const shots = shotDays.map((day) => WEEKDAY_INDEX[day]);
+  const sinceLast = Math.min(...shots.map((shot) => (today - shot + 7) % 7));
+  const untilNext = Math.min(...shots.map((shot) => ((shot - today + 7) % 7) || 7));
   return {
     lastLabel: sinceLast === 0 ? "Today" : `${plural(sinceLast, "day")} ago`,
     nextLabel: untilNext === 0 ? "Today" : `in ${plural(untilNext, "day")}`,
@@ -69,7 +70,7 @@ export function deriveHomeMetrics(args: {
       ratio: clamp01(trainingTarget ? trainingDone / trainingTarget : 0),
     },
     weight: { current, unit, series, delta4wk },
-    dose: doseLabels(medication?.shotDay, now),
+    dose: doseLabels(medication?.shotDays, now),
     measurements: measurements ?? {},
   };
 }

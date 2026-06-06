@@ -4,7 +4,7 @@ import { Types } from "mongoose";
 import { NotFoundError, ValidationError } from "../lib/errors";
 import { computeTargetsForProfile, lbFromWeight } from "../lib/nutrition";
 import { normalizeProfileTrainingFields } from "../lib/training";
-import { UserMedicationProtocolModel } from "../models/userMedicationProtocol.model";
+import { resolveShotDays, UserMedicationProtocolModel } from "../models/userMedicationProtocol.model";
 import { UserProfileModel, type UserProfileDocument } from "../models/userProfile.model";
 import { WeightLogModel } from "../models/weightLog.model";
 import { serializeUserProfile } from "./serializers";
@@ -188,7 +188,7 @@ export async function buildUserContextSnapshot(userId: string): Promise<UserCont
           customMedicationName: protocol.customMedicationName,
           doseAmount: protocol.doseAmount,
           doseUnit: protocol.doseUnit,
-          shotDay: protocol.shotDay,
+          shotDays: resolveShotDays(protocol),
           startDate: protocol.startDate,
         }
       : undefined,

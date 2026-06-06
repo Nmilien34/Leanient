@@ -24,7 +24,7 @@ describe("deriveMedication", () => {
 
   it("computes the next-dose summary from the shot cycle", () => {
     // Wed → Saturday shot is 3 days out.
-    const v = view({ shotDay: "saturday" });
+    const v = view({ shotDays: ["saturday"] });
     expect(v.currentSummary).toBe("Saturdays · next shot in 3 days");
   });
 

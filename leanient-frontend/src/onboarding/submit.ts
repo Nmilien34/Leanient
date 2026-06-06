@@ -46,7 +46,7 @@ export function toOnboardingCompleteRequest(draft: OnboardingDraft): OnboardingC
 
   if (!med.medicationName) throw new IncompleteOnboardingError("medicationProtocol.medicationName");
   if (!med.doseUnit) throw new IncompleteOnboardingError("medicationProtocol.doseUnit");
-  if (!med.shotDay) throw new IncompleteOnboardingError("medicationProtocol.shotDay");
+  if (!med.shotDays?.length) throw new IncompleteOnboardingError("medicationProtocol.shotDays");
   if (!med.startDate) throw new IncompleteOnboardingError("medicationProtocol.startDate");
 
   if (!initialWeight || initialWeight.value == null) {
@@ -90,7 +90,7 @@ export function toOnboardingCompleteRequest(draft: OnboardingDraft): OnboardingC
       customMedicationName: med.customMedicationName,
       doseAmount: med.doseAmount,
       doseUnit: med.doseUnit,
-      shotDay: med.shotDay,
+      shotDays: med.shotDays,
       startDate: med.startDate,
       notes: med.notes,
       active: med.active ?? true,

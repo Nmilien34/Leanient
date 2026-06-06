@@ -13,7 +13,7 @@ const now = new Date(2026, 5, 2); // Tuesday, Jun 2 2026
 function plan(overrides = {}) {
   return deriveTodayPlan({
     profile: mockProfile,
-    medication: { ...mockMedicationProtocol, shotDay: shotDayNDaysAgo(now, 2), startDate: "2026-04-19" },
+    medication: { ...mockMedicationProtocol, shotDays: [shotDayNDaysAgo(now, 2)], startDate: "2026-04-19" },
     recommendedWorkout: mockRecommendedWorkout,
     dailyLog: mockTodayLog,
     now,

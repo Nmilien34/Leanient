@@ -26,7 +26,7 @@ export interface ReminderGroup {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function deriveReminderGroups(args: { medication?: UserMedicationProtocol }): ReminderGroup[] {
-  const shotDayName = args.medication ? cap(args.medication.shotDay) : "shot day";
+  const shotDayName = args.medication ? args.medication.shotDays.map(cap).join(", ") : "shot day";
 
   return [
     {

@@ -202,7 +202,7 @@ describe("product foundation contracts", () => {
         userId: "user_1",
         medicationName: "Wegovy",
         doseUnit: "mg",
-        shotDay: "monday",
+        shotDays: ["monday"],
         startDate: "2026-05-01",
         active: true,
         createdAt: "2026-06-02T15:00:00.000Z",
@@ -260,7 +260,7 @@ describe("product foundation contracts", () => {
           medicationName: "Zepbound",
           doseAmount: 5,
           doseUnit: "mg",
-          shotDay: "monday",
+          shotDays: ["monday"],
           startDate: "2026-04-01",
         },
         priorWeight: {

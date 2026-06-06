@@ -4,7 +4,7 @@ import { mockMedicationProtocol } from "../../mocks/home";
 
 describe("deriveReminderGroups", () => {
   it("names the shot-day reminder after the user's actual shot day", () => {
-    const groups = deriveReminderGroups({ medication: { ...mockMedicationProtocol, shotDay: "saturday" } });
+    const groups = deriveReminderGroups({ medication: { ...mockMedicationProtocol, shotDays: ["saturday"] } });
     const shotDay = groups.flatMap((g) => g.items).find((i) => i.id === "shot_day");
     expect(shotDay?.subtitle).toBe("Saturday morning");
   });

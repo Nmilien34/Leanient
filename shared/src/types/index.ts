@@ -173,7 +173,7 @@ export interface UserMedicationProtocol {
   customMedicationName?: string;
   doseAmount?: number;
   doseUnit: DoseUnit;
-  shotDay: Weekday;
+  shotDays: Weekday[];
   startDate: string;
   notes?: string;
   active: boolean;
@@ -202,7 +202,7 @@ export interface UserContextSnapshot {
     customMedicationName?: string;
     doseAmount?: number;
     doseUnit: DoseUnit;
-    shotDay: Weekday;
+    shotDays: Weekday[];
     startDate: string;
   };
   priorWeight?: WeightMeasurement;

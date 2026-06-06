@@ -15,6 +15,7 @@ import { Button } from "../../components/ui/Button";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { deriveMedication, type TitrationStep } from "./medicationMetrics";
+import { sortShotDays } from "../../onboarding/shotDay";
 import { persistMedicationEdit } from "./medicationSettings";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -70,14 +71,20 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
   // unit stay fixed (changing the medication is a larger flow, and the unit is
   // catalog-bound). Start date editing is intentionally not included here.
   const [editing, setEditing] = React.useState(false);
-  const [shotDayInput, setShotDayInput] = React.useState<Weekday>(protocol.shotDay);
+  const [shotDaysInput, setShotDaysInput] = React.useState<Weekday[]>(protocol.shotDays);
   const [doseInput, setDoseInput] = React.useState(protocol.doseAmount != null ? String(protocol.doseAmount) : "");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const sheet = React.useRef(new Animated.Value(0)).current;
 
+  const toggleShotDay = (day: Weekday) => {
+    setShotDaysInput((current) =>
+      current.includes(day) ? current.filter((d) => d !== day) : sortShotDays([...current, day]),
+    );
+  };
+
   const openEdit = () => {
-    setShotDayInput(protocol.shotDay);
+    setShotDaysInput(protocol.shotDays);
     setDoseInput(protocol.doseAmount != null ? String(protocol.doseAmount) : "");
     setError(null);
     setEditing(true);
@@ -90,7 +97,14 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
   const saveEdit = async () => {
     if (saving) return;
     const updates: PatchUserMedicationProtocolRequest = {};
-    if (shotDayInput !== protocol.shotDay) updates.shotDay = shotDayInput;
+    if (shotDaysInput.length === 0) {
+      setError("Pick at least one shot day.");
+      return;
+    }
+    const sortedInput = sortShotDays(shotDaysInput);
+    if (JSON.stringify(sortedInput) !== JSON.stringify(sortShotDays(protocol.shotDays))) {
+      updates.shotDays = sortedInput;
+    }
     const doseTrim = doseInput.trim();
     if (doseTrim.length) {
       const parsed = Number(doseTrim);
@@ -210,17 +224,17 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
               <View style={styles.grabber} />
               <Text style={styles.sheetTitle}>Edit schedule</Text>
 
-              <Text style={styles.fieldLabel}>SHOT DAY</Text>
+              <Text style={styles.fieldLabel}>SHOT DAYS</Text>
               <View style={styles.dayRow}>
                 {WEEKDAYS.map((d) => {
-                  const on = shotDayInput === d;
+                  const on = shotDaysInput.includes(d);
                   return (
                     <Pressable
                       key={d}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: on }}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on }}
                       accessibilityLabel={d}
-                      onPress={() => setShotDayInput(d)}
+                      onPress={() => toggleShotDay(d)}
                       disabled={saving}
                       style={[styles.dayChip, on && styles.dayChipOn]}
                     >

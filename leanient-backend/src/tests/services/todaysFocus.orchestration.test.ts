@@ -246,6 +246,12 @@ vi.mock("../../models/doseLog.model", () => ({
 
 vi.mock("../../models/userMedicationProtocol.model", () => ({
   UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
+  resolveShotDays: (protocol: { shotDays?: string[]; shotDay?: string }) => {
+    if (Array.isArray(protocol.shotDays) && protocol.shotDays.length > 0) {
+      return protocol.shotDays;
+    }
+    return protocol.shotDay ? [protocol.shotDay] : [];
+  },
 }));
 
 vi.mock("../../models/weeklyCheckin.model", () => ({
@@ -369,7 +375,7 @@ describe("getTodaysFocus", () => {
       active: true,
       medicationName: "Wegovy",
       doseUnit: "mg",
-      shotDay: "thursday",
+      shotDays: ["thursday"],
       startDate: "2026-06-04",
     });
 

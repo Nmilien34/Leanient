@@ -8,7 +8,7 @@ function protocol(overrides: Partial<UserMedicationProtocol> = {}): UserMedicati
     userId: "user_1",
     medicationName: "Zepbound",
     doseUnit: "mg",
-    shotDay: "monday",
+    shotDays: ["monday"],
     startDate: "2026-06-01",
     active: true,
     createdAt: "2026-06-01T00:00:00.000Z",

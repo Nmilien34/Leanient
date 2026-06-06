@@ -48,7 +48,7 @@ interface MockMedicationProtocolDocument {
   customMedicationName?: string;
   doseAmount?: number;
   doseUnit: DoseUnit;
-  shotDay: Weekday;
+  shotDays: Weekday[];
   startDate: string;
   notes?: string;
   active: boolean;
@@ -388,6 +388,12 @@ vi.mock("../../models/userProfile.model", () => ({
 
 vi.mock("../../models/userMedicationProtocol.model", () => ({
   UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
+  resolveShotDays: (protocol: { shotDays?: string[]; shotDay?: string }) => {
+    if (Array.isArray(protocol.shotDays) && protocol.shotDays.length > 0) {
+      return protocol.shotDays;
+    }
+    return protocol.shotDay ? [protocol.shotDay] : [];
+  },
 }));
 
 vi.mock("../../models/weightLog.model", () => ({
@@ -420,7 +426,7 @@ function makeOnboardingRequest() {
       medicationName: "Zepbound",
       doseAmount: 5,
       doseUnit: "mg" as const,
-      shotDay: "monday" as const,
+      shotDays: ["monday"] as const,
       startDate: "2026-05-01",
       active: true,
     },

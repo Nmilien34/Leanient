@@ -11,7 +11,7 @@ const completeDraft: OnboardingDraft = {
     biggestFear: "losing_muscle",
     trainingStatus: "consistent",
   },
-  medicationProtocol: { medicationName: "Wegovy", doseUnit: "mg", shotDay: "sunday", startDate: "2026-04-20" },
+  medicationProtocol: { medicationName: "Wegovy", doseUnit: "mg", shotDays: ["sunday"], startDate: "2026-04-20" },
   initialWeight: { value: 198, unit: "lb" },
   basics: { sexAssignedAtBirth: "female", age: 34, heightValue: 66, heightUnit: "in" },
 };
@@ -40,7 +40,7 @@ describe("toOnboardingCompleteRequest", () => {
     expect(req.medicationProtocol).toMatchObject({
       medicationName: "Wegovy",
       doseUnit: "mg",
-      shotDay: "sunday",
+      shotDays: ["sunday"],
       startDate: "2026-04-20",
       active: true,
     });

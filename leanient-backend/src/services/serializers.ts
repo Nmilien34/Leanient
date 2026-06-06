@@ -24,7 +24,10 @@ import type { MedicationCatalogItemDocument } from "../models/medicationCatalogI
 import type { MuscleRetentionSnapshotDocument } from "../models/muscleRetentionSnapshot.model";
 import type { ProgressPhotoDocument } from "../models/progressPhoto.model";
 import type { SideEffectLogDocument } from "../models/sideEffectLog.model";
-import type { UserMedicationProtocolDocument } from "../models/userMedicationProtocol.model";
+import {
+  resolveShotDays,
+  type UserMedicationProtocolDocument,
+} from "../models/userMedicationProtocol.model";
 import type { UserProfileDocument } from "../models/userProfile.model";
 import type { WeightLogDocument } from "../models/weightLog.model";
 import type { WeeklyCheckinDocument } from "../models/weeklyCheckin.model";
@@ -74,7 +77,7 @@ export function serializeMedicationProtocol(
     customMedicationName: protocol.customMedicationName,
     doseAmount: protocol.doseAmount,
     doseUnit: protocol.doseUnit,
-    shotDay: protocol.shotDay,
+    shotDays: resolveShotDays(protocol),
     startDate: protocol.startDate,
     notes: protocol.notes,
     active: protocol.active,

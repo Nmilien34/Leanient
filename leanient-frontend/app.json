@@ -25,7 +25,12 @@
           "cameraPermission": "Leanient uses your camera to scan meals and estimate protein."
         }
       ],
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.853468832171-aampugttrjlj02a9srkinrt5a5hpdqd6"
+        }
+      ]
     ]
   }
 }

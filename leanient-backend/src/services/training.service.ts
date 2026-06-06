@@ -1,4 +1,4 @@
-import type { DoseLog, TrainingTodayResponse, UserMedicationProtocol } from "@leanient/shared";
+import type { DoseLog, TrainingTodayResponse, UserMedicationProtocol, Weekday } from "@leanient/shared";
 import { ERROR_CODES } from "@leanient/shared";
 import { AppError, NotFoundError } from "../lib/errors";
 import { deriveEnergyFromCheckin } from "../lib/energy";
@@ -6,7 +6,7 @@ import { computeShotDayContext } from "../lib/shotDay";
 import { startOfUtcWeek } from "../lib/week";
 import { DoseLogModel } from "../models/doseLog.model";
 import { UserModel } from "../models/user.model";
-import { UserMedicationProtocolModel } from "../models/userMedicationProtocol.model";
+import { resolveShotDays, UserMedicationProtocolModel } from "../models/userMedicationProtocol.model";
 import { WeeklyCheckinModel } from "../models/weeklyCheckin.model";
 import { WorkoutLogModel } from "../models/workoutLog.model";
 import {
@@ -35,7 +35,8 @@ function toProtocol(protocol: {
   customMedicationName?: string;
   doseAmount?: number;
   doseUnit: UserMedicationProtocol["doseUnit"];
-  shotDay: UserMedicationProtocol["shotDay"];
+  shotDays: UserMedicationProtocol["shotDays"];
+  shotDay?: Weekday;
   startDate: string;
   notes?: string;
   active: boolean;
@@ -50,7 +51,7 @@ function toProtocol(protocol: {
     customMedicationName: protocol.customMedicationName,
     doseAmount: protocol.doseAmount,
     doseUnit: protocol.doseUnit,
-    shotDay: protocol.shotDay,
+    shotDays: resolveShotDays(protocol),
     startDate: protocol.startDate,
     notes: protocol.notes,
     active: protocol.active,

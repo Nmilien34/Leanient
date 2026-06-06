@@ -144,14 +144,24 @@ function shotPhase(daysSinceShot: number): ShotPhase {
 /** Shared shot-cycle math — used by both the daily Home hero and Today's plan. */
 export function computeShotCycle(medication: UserMedicationProtocol, now: Date): ShotCycle {
   const today = now.getDay();
-  const shot = WEEKDAY_INDEX[medication.shotDay];
-  const daysSinceShot = (today - shot + 7) % 7;
-  const daysUntilNext = ((shot - today + 7) % 7) || 7;
+  // Split-dose protocols inject on several days. The cycle keys off the MOST
+  // RECENT past shot (smallest days-since) and the SOONEST upcoming shot.
+  const shots = medication.shotDays.map((day) => WEEKDAY_INDEX[day]);
+  const daysSinceShot = shots.length ? Math.min(...shots.map((shot) => (today - shot + 7) % 7)) : 0;
+  let daysUntilNext = 7;
+  let nextShot = shots[0] ?? today;
+  for (const shot of shots) {
+    const until = ((shot - today + 7) % 7) || 7;
+    if (until <= daysUntilNext) {
+      daysUntilNext = until;
+      nextShot = shot;
+    }
+  }
   return {
     daysSinceShot,
     daysUntilNext,
     dayOnMed: daysSince(medication.startDate, now),
-    nextShotDayName: WEEKDAYS_LONG[shot],
+    nextShotDayName: WEEKDAYS_LONG[nextShot],
     phase: shotPhase(daysSinceShot),
   };
 }

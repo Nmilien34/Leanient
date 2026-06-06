@@ -36,7 +36,7 @@ export const mockMedicationProtocol: UserMedicationProtocol = {
   medicationName: "Wegovy",
   doseAmount: 1,
   doseUnit: "mg",
-  shotDay: "saturday",
+  shotDays: ["saturday"],
   startDate: "2026-04-20",
   active: true,
   createdAt: STAMP,

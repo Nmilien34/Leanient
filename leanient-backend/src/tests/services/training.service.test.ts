@@ -62,6 +62,12 @@ vi.mock("../../services/userProfile.service", () => ({
 
 vi.mock("../../models/userMedicationProtocol.model", () => ({
   UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
+  resolveShotDays: (protocol: { shotDays?: string[]; shotDay?: string }) => {
+    if (Array.isArray(protocol.shotDays) && protocol.shotDays.length > 0) {
+      return protocol.shotDays;
+    }
+    return protocol.shotDay ? [protocol.shotDay] : [];
+  },
 }));
 
 vi.mock("../../models/doseLog.model", () => ({
@@ -147,7 +153,7 @@ function seedHappyPath() {
     active: true,
     medicationName: "Zepbound",
     doseUnit: "mg",
-    shotDay: "monday",
+    shotDays: ["monday"],
     startDate: "2026-06-01",
   });
   modelMocks.DoseLogModel.find.mockReturnValue({

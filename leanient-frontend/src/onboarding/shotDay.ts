@@ -2,9 +2,9 @@ import type { Weekday } from "@leanient/shared";
 
 /**
  * Onboarding shot-day options + coaching copy. The backend medication contract
- * requires `shotDay` (a `Weekday`); this screen captures it. Options are shown in
- * familiar calendar order (Sunday first), while the stored value is the shared
- * `Weekday` enum string.
+ * stores `shotDays` (a non-empty `Weekday[]`); this screen captures one or more
+ * days for split-dose protocols. Options are shown in familiar calendar order
+ * (Sunday first); stored values are the shared `Weekday` enum strings.
  */
 
 export interface ShotDayOption {
@@ -23,13 +23,39 @@ export const SHOT_DAY_OPTIONS: ShotDayOption[] = [
   { key: "saturday", short: "Sat", long: "Saturday" },
 ];
 
+const WEEK_ORDER: Weekday[] = SHOT_DAY_OPTIONS.map((o) => o.key);
+
+/** Sort weekdays into calendar order (Sunday first), de-duplicated. */
+export function sortShotDays(days: Weekday[]): Weekday[] {
+  const set = new Set(days);
+  return WEEK_ORDER.filter((day) => set.has(day));
+}
+
 /**
- * A calm coaching line once a day is chosen, naming the medication when known.
- * Returns null before a day is selected (the screen shows nothing then).
+ * Format a set of shot days for copy, e.g. ["monday"] -> "Mondays",
+ * ["monday","thursday"] -> "Mondays and Thursdays",
+ * ["monday","wednesday","friday"] -> "Mondays, Wednesdays, and Fridays".
+ * `style` picks short ("Mon") or long ("Monday") labels; long is pluralized.
  */
-export function shotDayCoachNote(medName: string | undefined, day: Weekday | null): string | null {
-  if (!day) return null;
-  const long = SHOT_DAY_OPTIONS.find((o) => o.key === day)?.long ?? "that day";
+export function formatShotDays(days: Weekday[], style: "short" | "long" = "long"): string {
+  const labels = sortShotDays(days).map((day) => {
+    const option = SHOT_DAY_OPTIONS.find((o) => o.key === day);
+    const base = option ? option[style] : day;
+    return style === "long" ? `${base}s` : base;
+  });
+  if (labels.length === 0) return "";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+/**
+ * A calm coaching line once at least one day is chosen, naming the medication
+ * when known. Returns null before any day is selected (screen shows nothing).
+ */
+export function shotDayCoachNote(medName: string | undefined, days: Weekday[]): string | null {
+  if (days.length === 0) return null;
   const subject = medName ? `You take ${medName}` : "You take your shot";
-  return `${subject} on ${long}s. We'll keep workouts lighter right around it.`;
+  const around = days.length > 1 ? "them" : "it";
+  return `${subject} on ${formatShotDays(days)}. We'll keep workouts lighter right around ${around}.`;
 }

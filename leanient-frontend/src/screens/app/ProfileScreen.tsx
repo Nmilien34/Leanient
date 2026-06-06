@@ -120,7 +120,7 @@ export function ProfileScreen() {
                 key: "medication",
                 icon: Icons.pill,
                 label: "Medication & schedule",
-                value: `${medication.medicationName} · ${WEEKDAY_ABBR[medication.shotDay]}`,
+                value: `${medication.medicationName} · ${medication.shotDays.map((d) => WEEKDAY_ABBR[d]).join(", ")}`,
                 onPress: () => setMedicationOpen(true),
               },
             ]}

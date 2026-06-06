@@ -1,4 +1,4 @@
-import type { SubscriptionStatus, WeightUnit } from "@leanient/shared";
+import type { SubscriptionStatus, Weekday, WeightUnit } from "@leanient/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "../../lib/errors";
 
@@ -55,7 +55,7 @@ interface MockDoseLog {
 interface MockMedicationProtocol {
   userId: string;
   medicationName: string;
-  shotDay: "monday";
+  shotDays: Weekday[];
   startDate: string;
   active: boolean;
 }
@@ -282,6 +282,12 @@ vi.mock("../../models/doseLog.model", () => ({
 
 vi.mock("../../models/userMedicationProtocol.model", () => ({
   UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
+  resolveShotDays: (protocol: { shotDays?: string[]; shotDay?: string }) => {
+    if (Array.isArray(protocol.shotDays) && protocol.shotDays.length > 0) {
+      return protocol.shotDays;
+    }
+    return protocol.shotDay ? [protocol.shotDay] : [];
+  },
 }));
 
 vi.mock("../../services/coachContent.service", async (importActual) => {
@@ -352,7 +358,7 @@ function seedProtocol(userId = "user_1") {
   modelMocks.protocols.push({
     userId,
     medicationName: "Zepbound",
-    shotDay: "monday",
+    shotDays: ["monday"],
     startDate: "2026-05-01",
     active: true,
   });

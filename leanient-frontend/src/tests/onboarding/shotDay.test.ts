@@ -14,17 +14,17 @@ describe("SHOT_DAY_OPTIONS", () => {
 
 describe("shotDayCoachNote", () => {
   it("returns null until a day is chosen", () => {
-    expect(shotDayCoachNote("Wegovy", null)).toBeNull();
+    expect(shotDayCoachNote("Wegovy", [])).toBeNull();
   });
 
   it("names the medication and the selected day", () => {
-    expect(shotDayCoachNote("Wegovy", "saturday")).toBe(
+    expect(shotDayCoachNote("Wegovy", ["saturday"])).toBe(
       "You take Wegovy on Saturdays. We'll keep workouts lighter right around it.",
     );
   });
 
   it("falls back to a generic subject when the medication is unknown", () => {
-    expect(shotDayCoachNote(undefined, "monday")).toBe(
+    expect(shotDayCoachNote(undefined, ["monday"])).toBe(
       "You take your shot on Mondays. We'll keep workouts lighter right around it.",
     );
   });

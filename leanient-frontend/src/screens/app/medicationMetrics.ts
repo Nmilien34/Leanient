@@ -44,7 +44,7 @@ export function deriveMedication(args: {
   const { protocol, catalog, now } = args;
 
   const doseLabel = protocol.doseAmount != null ? `${protocol.doseAmount.toFixed(1)} ${protocol.doseUnit}` : "Not set";
-  const shotDayName = cap(protocol.shotDay);
+  const shotDayName = protocol.shotDays.map(cap).join(", ");
 
   const cycle = computeShotCycle(protocol, now);
   const nextShot = cycle.daysUntilNext === 0 ? "today" : `in ${plural(cycle.daysUntilNext, "day")}`;

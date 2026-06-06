@@ -118,7 +118,7 @@ export function deriveWeekPlan(args: {
 
   return {
     weekRangeLabel: weekRange(verdict.weekOf),
-    shotDayName: medication ? cap(medication.shotDay) : null,
+    shotDayName: medication ? medication.shotDays.map(cap).join(", ") : null,
     protein: { logged: proteinLogged, target: proteinTarget, dailyTarget, ratio: proteinRatio, pct: proteinPct, subline: proteinSubline },
     training: { done: trainingDone, target: trainingTarget, sessions: planSessions },
     pace: {

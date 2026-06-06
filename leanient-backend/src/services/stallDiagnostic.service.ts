@@ -15,6 +15,7 @@ import { DoseLogModel, type DoseLogDocument } from "../models/doseLog.model";
 import { MealLogModel, type MealLogDocument } from "../models/mealLog.model";
 import { UserModel } from "../models/user.model";
 import {
+  resolveShotDays,
   UserMedicationProtocolModel,
   type UserMedicationProtocolDocument,
 } from "../models/userMedicationProtocol.model";
@@ -225,18 +226,22 @@ function countExpectedWeeklyDoses(input: {
   to: Date;
 }): number {
   const protocolStart = new Date(`${input.protocol.startDate}T00:00:00.000Z`);
-  const cursor = startOfUtcDay(protocolStart > input.from ? protocolStart : input.from);
+  const base = startOfUtcDay(protocolStart > input.from ? protocolStart : input.from);
   const end = startOfUtcDay(input.to);
-  const targetDay = WEEKDAY_INDEX[input.protocol.shotDay];
+  // Split-dose protocols inject on several weekdays, so expected weekly doses is
+  // the sum of occurrences of each shot day in the window.
+  const targetDays = resolveShotDays(input.protocol).map((day) => WEEKDAY_INDEX[day]);
   let expected = 0;
 
-  while (cursor.getUTCDay() !== targetDay) {
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  while (cursor.getTime() <= end.getTime()) {
-    expected += 1;
-    cursor.setUTCDate(cursor.getUTCDate() + 7);
+  for (const targetDay of targetDays) {
+    const cursor = new Date(base);
+    while (cursor.getUTCDay() !== targetDay) {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    while (cursor.getTime() <= end.getTime()) {
+      expected += 1;
+      cursor.setUTCDate(cursor.getUTCDate() + 7);
+    }
   }
 
   return expected;

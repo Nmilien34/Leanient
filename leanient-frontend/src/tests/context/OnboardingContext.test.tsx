@@ -41,7 +41,7 @@ describe("OnboardingContext.submit", () => {
         biggestFear: "losing_muscle",
         trainingStatus: "consistent",
       });
-      ctx().setMedication({ medicationName: "Wegovy", doseUnit: "mg", shotDay: "sunday", startDate: "2026-04-20" });
+      ctx().setMedication({ medicationName: "Wegovy", doseUnit: "mg", shotDays: ["sunday"], startDate: "2026-04-20" });
       ctx().setInitialWeight({ value: 198, unit: "lb" });
       // Biological inputs are required at submit (backend computes targets from them).
       ctx().setBasics({ sexAssignedAtBirth: "female", age: 34, heightValue: 66, heightUnit: "in" });
@@ -55,7 +55,7 @@ describe("OnboardingContext.submit", () => {
     expect(completeOnboarding).toHaveBeenCalledWith(
       expect.objectContaining({
         profile: expect.objectContaining({ journeyStage: "active_loss", goalWeight: 172 }),
-        medicationProtocol: expect.objectContaining({ medicationName: "Wegovy", shotDay: "sunday" }),
+        medicationProtocol: expect.objectContaining({ medicationName: "Wegovy", shotDays: ["sunday"] }),
         initialWeight: expect.objectContaining({ value: 198, unit: "lb" }),
       }),
     );
