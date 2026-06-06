@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Alert, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import type { CreateMealLogRequest, MealScanResponse } from "@leanient/shared";
+import type { CreateMealLogRequest, MealScanResponse, Workout } from "@leanient/shared";
+import { QuickActionsProvider, type QuickActions } from "../context/QuickActionsContext";
 import { TabBar } from "../components/layout/TabBar";
 import { QuickLogSheet } from "../components/app/QuickLogSheet";
 import { MealCameraScreen } from "../screens/app/MealCameraScreen";
@@ -79,6 +80,7 @@ export function MainTabs() {
   const [photoOpen, setPhotoOpen] = useState(false);
   const [sideEffectOpen, setSideEffectOpen] = useState(false);
   const [playerOpen, setPlayerOpen] = useState(false);
+  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState<CompletedWorkout | null>(null);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionSaving, setCompletionSaving] = useState(false);
@@ -96,6 +98,23 @@ export function MainTabs() {
           })
         : null,
     [completedWorkout, data.latestVerdict?.status, data.profile?.weeklyWorkoutTarget, data.trainingToday],
+  );
+
+  // The workout the player runs: an explicitly chosen one (e.g. Train's featured
+  // session) or the day's recommended workout.
+  const playerWorkout = activeWorkout ?? guidedWorkout;
+
+  const quickActions = useMemo<QuickActions>(
+    () => ({
+      openQuickLog: () => setLogOpen(true),
+      openDoseLog: () => setDoseOpen(true),
+      openProgressPhoto: () => setPhotoOpen(true),
+      startWorkout: (workout) => {
+        setActiveWorkout(workout ?? null);
+        setPlayerOpen(true);
+      },
+    }),
+    [setLogOpen, setDoseOpen, setPhotoOpen, setActiveWorkout, setPlayerOpen],
   );
 
   const showLogError = (error: unknown) => {
@@ -132,7 +151,7 @@ export function MainTabs() {
       await data.api.createWorkoutLog(
         buildGuidedWorkoutLogDraft({
           summary: completedWorkout,
-          workout: guidedWorkout,
+          workout: playerWorkout,
           recordedAt: new Date().toISOString(),
         }),
       );
@@ -147,6 +166,7 @@ export function MainTabs() {
   };
 
   return (
+    <QuickActionsProvider value={quickActions}>
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
       <Tab.Navigator
         screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.paper } }}
@@ -298,7 +318,7 @@ export function MainTabs() {
 
       <WorkoutPlayer
         visible={playerOpen}
-        workout={guidedWorkout}
+        workout={playerWorkout}
         onClose={() => setPlayerOpen(false)}
         onComplete={(summary) => {
           setPlayerOpen(false);
@@ -321,6 +341,7 @@ export function MainTabs() {
         />
       ) : null}
     </View>
+    </QuickActionsProvider>
   );
 }
 

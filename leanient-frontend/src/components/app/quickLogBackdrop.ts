@@ -1,0 +1,2 @@
+export const QUICK_LOG_BACKDROP_BLUR_INTENSITY = 28;
+export const QUICK_LOG_BACKDROP_DIM_COLOR = "rgba(12,16,11,0.16)";

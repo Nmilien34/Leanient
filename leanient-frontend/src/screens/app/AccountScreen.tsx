@@ -11,6 +11,7 @@ import { EditableAvatar } from "../../components/app/EditableAvatar";
 import { Button } from "../../components/ui/Button";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
+import { ACCOUNT_HEADER_TOP_PADDING, ACCOUNT_PROFILE_TOP_PADDING } from "./accountLayout";
 import { deriveAccountView } from "./accountMetrics";
 import { persistAccountEdit } from "./accountSettings";
 import { colors } from "../../theme/tokens";
@@ -187,11 +188,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   safe: { flex: 1 },
   scroll: { paddingBottom: 28 },
-  head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 6, paddingBottom: 4 },
+  head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: ACCOUNT_HEADER_TOP_PADDING, paddingBottom: 8 },
   backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
   headSpacer: { width: 34, height: 34 },
   headTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
-  phead: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: 10 },
+  phead: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 20, paddingTop: ACCOUNT_PROFILE_TOP_PADDING },
   pn: { fontFamily: font.extrabold, fontSize: 21, letterSpacing: -0.42, color: colors.ink },
   changePhoto: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep, marginTop: 4 },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },

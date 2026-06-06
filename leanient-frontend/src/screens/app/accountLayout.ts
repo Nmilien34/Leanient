@@ -1,0 +1,2 @@
+export const ACCOUNT_HEADER_TOP_PADDING = 18;
+export const ACCOUNT_PROFILE_TOP_PADDING = 16;

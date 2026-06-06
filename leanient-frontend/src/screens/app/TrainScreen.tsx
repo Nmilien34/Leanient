@@ -3,14 +3,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 import type { WorkoutEnergyPhase } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { UserAvatar } from "../../components/app/UserAvatar";
 import { WorkoutCard } from "../../components/app/WorkoutCard";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
+import { useQuickActions } from "../../context/QuickActionsContext";
 import { resolveSectionState } from "./sectionState";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -25,6 +28,8 @@ const ENERGY_LABEL: Record<WorkoutEnergyPhase, string> = {
 export function TrainScreen() {
   const auth = useAuth();
   const data = useLeanientData();
+  const { startWorkout } = useQuickActions();
+  const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
 
   const trainingToday = data.trainingToday;
@@ -70,9 +75,14 @@ export function TrainScreen() {
                 {trainingToday ? `${done} of ${target} sessions this week` : "Getting your week ready"}
               </Text>
             </View>
-            <LinearGradient colors={["#D9DCD3", "#B9BEB2"]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.avatar}>
-              <Text style={styles.avatarText}>N</Text>
-            </LinearGradient>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              hitSlop={8}
+              onPress={() => navigation.navigate("Profile" as never)}
+            >
+              <UserAvatar />
+            </Pressable>
           </View>
 
           {/* today's session */}
@@ -96,7 +106,7 @@ export function TrainScreen() {
                   </View>
                 ))}
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="Start workout">
+              <Pressable accessibilityRole="button" accessibilityLabel="Start workout" onPress={() => startWorkout(featured ?? undefined)}>
                 <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.startBtn}>
                   <Text style={styles.startText}>Start workout</Text>
                 </LinearGradient>

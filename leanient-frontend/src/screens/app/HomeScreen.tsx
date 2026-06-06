@@ -16,6 +16,7 @@ import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
 import { WorkoutCompleteSheet } from "../../components/app/WorkoutCompleteSheet";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { useLeanientData } from "../../context/LeanientDataContext";
+import { useQuickActions } from "../../context/QuickActionsContext";
 import { EmptyState } from "../../components/app/EmptyState";
 import { ErrorState } from "../../components/app/ErrorState";
 import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
@@ -60,6 +61,7 @@ interface HomeViewProps {
 function HomeView({ verdict, profile, weightLogs, medication, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const navigation = useNavigation();
+  const { openDoseLog } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
   const [explainerOpen, setExplainerOpen] = useState(false);
@@ -314,7 +316,12 @@ function HomeView({ verdict, profile, weightLogs, medication, focus, recommended
                   <Text style={styles.mk}>NEXT DOSE</Text>
                   <Text style={styles.mv}>{dose.nextLabel}</Text>
                 </View>
-                <Pressable style={styles.mlogWrap}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Log dose"
+                  style={styles.mlogWrap}
+                  onPress={openDoseLog}
+                >
                   <Text style={styles.mlog}>Log dose ›</Text>
                 </Pressable>
               </View>

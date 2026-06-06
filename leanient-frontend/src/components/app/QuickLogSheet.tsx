@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
+import { QUICK_LOG_BACKDROP_BLUR_INTENSITY, QUICK_LOG_BACKDROP_DIM_COLOR } from "./quickLogBackdrop";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -47,7 +48,7 @@ export function QuickLogSheet({ visible, onClose, onSelect }: QuickLogSheetProps
   return (
     <View style={styles.overlay}>
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: anim }]}>
-        <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={QUICK_LOG_BACKDROP_BLUR_INTENSITY} tint="light" style={StyleSheet.absoluteFill} />
         <View style={styles.tint} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Dismiss" onPress={onClose} />
       </Animated.View>
@@ -80,7 +81,7 @@ export function QuickLogSheet({ visible, onClose, onSelect }: QuickLogSheetProps
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end", zIndex: 50 },
-  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(243,242,237,0.5)" },
+  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: QUICK_LOG_BACKDROP_DIM_COLOR },
   sheet: {
     backgroundColor: colors.card,
     borderTopLeftRadius: 28,

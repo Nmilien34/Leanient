@@ -5,7 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import type { MuscleRetentionLabel } from "@leanient/shared";
+import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { UserAvatar } from "../../components/app/UserAvatar";
 import { LineChart, type ChartPoint } from "../../components/app/LineChart";
 import { AddPhotoThumb, ProgressPhotoThumb } from "../../components/app/ProgressPhotoThumb";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
@@ -14,6 +16,7 @@ import { EmptyState } from "../../components/app/EmptyState";
 import { StallDiagnosticScreen } from "./StallDiagnosticScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
+import { useQuickActions } from "../../context/QuickActionsContext";
 import { resolveSectionState } from "./sectionState";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -48,6 +51,8 @@ function Spark() {
 export function ProgressScreen() {
   const auth = useAuth();
   const data = useLeanientData();
+  const { openProgressPhoto } = useQuickActions();
+  const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
   const [stallOpen, setStallOpen] = useState(false);
   const now = new Date();
@@ -125,9 +130,14 @@ export function ProgressScreen() {
                 {weeksOnMed != null && medName ? `${weeksOnMed} weeks on ${medName}` : "Tracking your progress"}
               </Text>
             </View>
-            <LinearGradient colors={["#D9DCD3", "#B9BEB2"]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.avatar}>
-              <Text style={styles.avatarText}>N</Text>
-            </LinearGradient>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              hitSlop={8}
+              onPress={() => navigation.navigate("Profile" as never)}
+            >
+              <UserAvatar />
+            </Pressable>
           </View>
 
           {/* muscle retention */}
@@ -218,7 +228,7 @@ export function ProgressScreen() {
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
-                <AddPhotoThumb />
+                <AddPhotoThumb onPress={openProgressPhoto} />
                 {photos.map((p) => {
                   const wk = weekOf(p.captureDate);
                   return (
