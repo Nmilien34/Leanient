@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { buildManualMealLogDraft, initialMealLogForm, type MealLogForm } from "./mealLogForm";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -39,7 +39,7 @@ export function MealLogScreen({ visible, onClose, onSave }: MealLogScreenProps) 
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
               <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
@@ -100,7 +100,7 @@ export function MealLogScreen({ visible, onClose, onSave }: MealLogScreenProps) 
               </LinearGradient>
             </Pressable>
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
       </View>
     </Modal>
   );

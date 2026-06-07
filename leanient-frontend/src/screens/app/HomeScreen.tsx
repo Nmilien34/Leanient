@@ -30,6 +30,7 @@ import { ErrorState } from "../../components/app/ErrorState";
 import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
 import { VerdictRevealScreen } from "./VerdictRevealScreen";
 import { deriveHomeMetrics } from "./homeMetrics";
+import { createOpenProgressPhotoAction } from "./homeActions";
 import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
@@ -151,6 +152,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const previewDoses = recentDoses.slice(0, DOSE_PREVIEW_COUNT);
 
   // Today's Focus CTA → the matching logger/screen for its actionType.
+  const handleOpenBodyPhoto = useMemo(
+    () => createOpenProgressPhotoAction(openProgressPhoto),
+    [openProgressPhoto],
+  );
+
   const handleFocusAction = () => {
     switch (focus?.actionType) {
       case "log_meal":
@@ -412,7 +418,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               <View style={styles.snap}>
                 <Text style={styles.eyebrow}>THIS WEEK'S BODY</Text>
                 <View style={styles.snaprow}>
-                  <Pressable style={[styles.sc, styles.scAdd]}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add this week's photo"
+                    onPress={handleOpenBodyPhoto}
+                    style={({ pressed }) => [styles.sc, styles.scAdd, pressed && styles.scPressed]}
+                  >
                     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
                       <Circle cx={12} cy={13} r={3.2} />
@@ -676,6 +687,7 @@ const styles = StyleSheet.create({
   snaprow: { flexDirection: "row", gap: 10, marginTop: 10 },
   sc: { flex: 1, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, padding: 12, height: 96, justifyContent: "space-between" },
   scAdd: { alignItems: "center", justifyContent: "center", gap: 7, borderStyle: "dashed", borderColor: colors.faintest },
+  scPressed: { opacity: 0.65 },
   scAddText: { fontFamily: font.semibold, fontSize: 11.5, lineHeight: 14, color: colors.muted, textAlign: "center" },
   sk: { fontFamily: font.semibold, fontSize: 10.5, letterSpacing: 0.42, color: colors.faint },
   svRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },

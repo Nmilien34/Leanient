@@ -1,11 +1,11 @@
 import React, { useRef, useState } from "react";
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { useAuth } from "../../context/AuthContext";
 import { mockUser } from "../../mocks/user";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
 import { EditableAvatar } from "../../components/app/EditableAvatar";
 import { Button } from "../../components/ui/Button";
@@ -103,7 +103,7 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Back" onPress={onClose} style={styles.backBtn}>
               <Svg width={10} height={17} viewBox="0 0 10 17" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -148,7 +148,7 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
             </View>
             <Text style={styles.disc}>Deleting your account removes your verdicts, logs, and photos. This cannot be undone.</Text>
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
 
         {editing ? (
           <View style={styles.overlay}>

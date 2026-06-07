@@ -1,11 +1,11 @@
 import React from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { MetricRing } from "./MetricRing";
 import type { WorkoutCompleteView } from "../../screens/app/workoutCompleteMetrics";
 
@@ -45,7 +45,7 @@ export function WorkoutCompleteSheet({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={styles.root}>
         <StatusBar style="dark" />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <View style={styles.closeBtn} />
             <Text style={styles.headTitle}>Workout complete</Text>
@@ -116,7 +116,7 @@ export function WorkoutCompleteSheet({
               <Text style={styles.dismissText}>Log how it felt</Text>
             </Pressable>
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
       </View>
     </Modal>
   );

@@ -1,6 +1,5 @@
 import React from "react";
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -10,6 +9,7 @@ import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockMedicationProtocol } from "../../mocks/home";
 import { mockMedicationCatalog } from "../../mocks/medications";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
 import { Button } from "../../components/ui/Button";
 import apiService from "../../services/api.service";
@@ -151,7 +151,7 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Back" onPress={onClose} style={styles.backBtn}>
               <Svg width={10} height={17} viewBox="0 0 10 17" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -213,7 +213,7 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
             </Pressable>
             <Text style={styles.disc}>Leanient tunes your workouts to this schedule. Talk to your prescriber before changing your dose.</Text>
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
 
         {editing ? (
           <View style={styles.overlay}>

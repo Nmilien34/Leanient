@@ -1,11 +1,11 @@
 import React from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path } from "react-native-svg";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { UserAvatar } from "./UserAvatar";
 import type { SessionStatus, WeekPlan } from "../../screens/app/weekPlanMetrics";
 
@@ -77,7 +77,7 @@ export function WeekPlanSheet({ visible, plan, onClose, onStartWorkout }: WeekPl
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={styles.root}>
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.head}>
           <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
             <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
@@ -177,7 +177,7 @@ export function WeekPlanSheet({ visible, plan, onClose, onStartWorkout }: WeekPl
             <Text style={styles.dismissText}>I've got it</Text>
           </Pressable>
         </ScrollView>
-      </SafeAreaView>
+      </ModalSafeArea>
       </View>
     </Modal>
   );

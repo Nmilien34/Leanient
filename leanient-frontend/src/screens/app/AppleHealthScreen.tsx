@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { Switch } from "../../components/ui/Switch";
 import { HEALTH_DATA_TYPES, defaultHealthSyncState, relativeSyncLabel, type HealthIcon } from "./healthSettings";
 import { colors } from "../../theme/tokens";
@@ -47,7 +47,7 @@ export function AppleHealthScreen({ visible, onClose }: AppleHealthScreenProps) 
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Back" onPress={onClose} style={styles.backBtn}>
               <Svg width={10} height={17} viewBox="0 0 10 17" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -102,7 +102,7 @@ export function AppleHealthScreen({ visible, onClose }: AppleHealthScreenProps) 
               <Text style={styles.disc}>When connected, Leanient reads your weight, workouts, and activity to sharpen your weekly verdict.</Text>
             )}
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
       </View>
     </Modal>
   );

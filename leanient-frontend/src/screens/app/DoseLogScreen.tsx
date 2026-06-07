@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
@@ -8,6 +7,7 @@ import type { DoseInjectionSite } from "@leanient/shared";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockMedicationProtocol } from "../../mocks/home";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import {
   MAP_SITES,
   buildDoseCalendarMonth,
@@ -120,7 +120,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
               <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
@@ -252,7 +252,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
               </View>
             </View>
           </Modal>
-        </SafeAreaView>
+        </ModalSafeArea>
       </View>
     </Modal>
   );

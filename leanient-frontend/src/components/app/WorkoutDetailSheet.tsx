@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
@@ -8,6 +7,7 @@ import type { Workout, WorkoutCategory } from "@leanient/shared";
 import { deriveWorkoutDetail } from "../../screens/app/workoutDetailMetrics";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { UserAvatar } from "./UserAvatar";
 
 const THUMB: Record<WorkoutCategory, readonly [string, string]> = {
@@ -53,7 +53,7 @@ export function WorkoutDetailSheet({
       {workout && detail ? (
         <View style={styles.root}>
           <StatusBar style="dark" />
-          <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
             <View style={styles.head}>
               <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
                 <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
@@ -158,7 +158,7 @@ export function WorkoutDetailSheet({
                 <Text style={styles.dismissText}>Close</Text>
               </Pressable>
             </ScrollView>
-          </SafeAreaView>
+          </ModalSafeArea>
         </View>
       ) : null}
     </Modal>

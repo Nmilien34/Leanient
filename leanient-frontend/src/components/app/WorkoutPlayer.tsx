@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useReducer } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
@@ -78,7 +78,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   return (
     <LinearGradient colors={["#142a1e", "#0b120d"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.root}>
       <StatusBar style="light" />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <ModalSafeArea style={styles.safe}>
         {/* top bar */}
         <View style={styles.top}>
           <Pressable accessibilityLabel="Close workout" onPress={onClose} style={styles.x}>
@@ -163,7 +163,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
             </>
           )}
         </View>
-      </SafeAreaView>
+      </ModalSafeArea>
     </LinearGradient>
   );
 }
@@ -189,17 +189,12 @@ export function WorkoutPlayer({ visible, workout, restCue, onClose, onComplete }
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       {visible && hasExercises ? (
-        // Modals render outside the app's SafeAreaProvider, so insets read as 0
-        // and the top bar tucks under the notch. A provider scoped to the modal
-        // gives SafeAreaView the real top/bottom insets.
-        <SafeAreaProvider>
-          <PlayerInner
-            workout={workout}
-            restCue={restCue ?? "Breathe and shake out the arms. You've got the next set."}
-            onClose={onClose}
-            onComplete={onComplete ?? onClose}
-          />
-        </SafeAreaProvider>
+        <PlayerInner
+          workout={workout}
+          restCue={restCue ?? "Breathe and shake out the arms. You've got the next set."}
+          onClose={onClose}
+          onComplete={onComplete ?? onClose}
+        />
       ) : null}
     </Modal>
   );

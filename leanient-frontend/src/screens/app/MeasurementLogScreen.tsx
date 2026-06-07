@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -10,6 +9,7 @@ import type { MeasurementUnit } from "@leanient/shared";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockProfile } from "../../mocks/home";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import {
   MEASURE_FIELDS,
   MEASURE_STEP,
@@ -139,7 +139,7 @@ export function MeasurementLogScreen({ visible, onClose, onSave }: MeasurementLo
       <View style={styles.root}>
         <StatusBar style="dark" />
         <ScreenGround />
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
           <View style={styles.head}>
             <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
               <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
@@ -200,7 +200,7 @@ export function MeasurementLogScreen({ visible, onClose, onSave }: MeasurementLo
               </LinearGradient>
             </Pressable>
           </ScrollView>
-        </SafeAreaView>
+        </ModalSafeArea>
       </View>
     </Modal>
   );
