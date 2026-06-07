@@ -32,6 +32,9 @@ import { VerdictRevealScreen } from "./VerdictRevealScreen";
 import { deriveHomeMetrics } from "./homeMetrics";
 import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
+import { DoseHistoryScreen } from "./DoseHistoryScreen";
+import { DoseDetailScreen } from "./DoseDetailScreen";
+import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
@@ -43,25 +46,8 @@ import { font } from "../../theme/fonts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// How many recent doses to show before the "Show more" toggle.
-const DOSE_COLLAPSED_COUNT = 4;
-
-const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/**
- * Friendly label for a logged dose: "Today" / "Yesterday" / "N days ago" for the
- * past week, then the absolute date ("Sun, Jun 1") for older entries.
- */
-function formatDoseDate(iso: string, now: Date): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
-  if (days <= 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return `${WEEKDAYS_SHORT[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
-}
+// How many recent doses to preview on Home before "Show all" opens the history.
+const DOSE_PREVIEW_COUNT = 3;
 
 function weekRangeLabel(weekOf: string): string {
   const start = new Date(`${weekOf}T00:00:00`);
@@ -94,7 +80,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const { openDoseLog, openMealLog, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
-  const [showAllDoses, setShowAllDoses] = useState(false);
+  const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
+  const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [todayPlanOpen, setTodayPlanOpen] = useState(false);
@@ -158,17 +145,10 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
 
   const { protein, training, weight, dose, measurements } = metrics;
 
-  // Most-recent-first dose history for the Home dose card. Collapsed to the
-  // latest few with a "Show more" toggle.
-  const recentDoses = useMemo(
-    () =>
-      [...doseLogs]
-        .filter((d) => !d.deletedAt)
-        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()),
-    [doseLogs],
-  );
-  const visibleDoses = showAllDoses ? recentDoses : recentDoses.slice(0, DOSE_COLLAPSED_COUNT);
-  const hiddenDoseCount = recentDoses.length - DOSE_COLLAPSED_COUNT;
+  // Most-recent-first dose history for the Home dose card. Previews the latest
+  // few; the full list lives on the dose history screen.
+  const recentDoses = useMemo(() => sortRecentDoses(doseLogs), [doseLogs]);
+  const previewDoses = recentDoses.slice(0, DOSE_PREVIEW_COUNT);
 
   // Today's Focus CTA → the matching logger/screen for its actionType.
   const handleFocusAction = () => {
@@ -393,29 +373,36 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </Pressable>
               </View>
 
-              {/* dose history — recent logged doses, collapsed to the latest few */}
+              {/* dose history — preview the latest few; full list on its own screen */}
               {recentDoses.length > 0 ? (
                 <View style={styles.doseHist}>
                   <Text style={styles.doseHistTitle}>RECENT DOSES</Text>
-                  {visibleDoses.map((d) => (
-                    <View key={d.id} style={styles.doseRow}>
-                      <Text style={styles.doseDate}>{formatDoseDate(d.recordedAt, now)}</Text>
-                      <Text style={styles.doseMeta} numberOfLines={1}>
-                        {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
-                        {d.doseAmount} {d.doseUnit}
-                      </Text>
-                    </View>
+                  {previewDoses.map((d) => (
+                    <Pressable
+                      key={d.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Dose ${formatDoseRelative(d.recordedAt, now)}`}
+                      onPress={() => setSelectedDose(d)}
+                      style={({ pressed }) => [styles.doseRow, pressed && styles.doseRowPressed]}
+                    >
+                      <Text style={styles.doseDate}>{formatDoseRelative(d.recordedAt, now)}</Text>
+                      <View style={styles.doseRight}>
+                        <Text style={styles.doseMeta} numberOfLines={1}>
+                          {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
+                          {formatDoseAmount(d)}
+                        </Text>
+                        <Text style={styles.doseChev}>›</Text>
+                      </View>
+                    </Pressable>
                   ))}
-                  {hiddenDoseCount > 0 ? (
+                  {recentDoses.length > DOSE_PREVIEW_COUNT ? (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={showAllDoses ? "Show fewer doses" : "Show more doses"}
-                      onPress={() => setShowAllDoses((v) => !v)}
+                      accessibilityLabel="Show all doses"
+                      onPress={() => setDoseHistoryOpen(true)}
                       style={styles.doseMore}
                     >
-                      <Text style={styles.doseMoreText}>
-                        {showAllDoses ? "Show less" : `Show ${hiddenDoseCount} more`}
-                      </Text>
+                      <Text style={styles.doseMoreText}>Show all ({recentDoses.length})</Text>
                     </Pressable>
                   ) : null}
                 </View>
@@ -538,6 +525,19 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           onBackHome={() => setRevealVerdict(null)}
         />
       ) : null}
+
+      <DoseHistoryScreen
+        visible={doseHistoryOpen}
+        doses={recentDoses}
+        onClose={() => setDoseHistoryOpen(false)}
+        onSelectDose={(d) => setSelectedDose(d)}
+      />
+      <DoseDetailScreen
+        visible={selectedDose !== null}
+        dose={selectedDose}
+        medicationName={medication?.medicationName}
+        onClose={() => setSelectedDose(null)}
+      />
     </View>
   );
 }
@@ -663,9 +663,12 @@ const styles = StyleSheet.create({
   // dose history
   doseHist: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassLine, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 16 },
   doseHistTitle: { fontFamily: font.semibold, fontSize: 11, letterSpacing: 0.33, color: colors.faint, paddingTop: 8, paddingBottom: 4 },
-  doseRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9, borderTopWidth: 1, borderTopColor: colors.line },
+  doseRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 11, gap: 12, borderTopWidth: 1, borderTopColor: colors.line },
+  doseRowPressed: { opacity: 0.6 },
   doseDate: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
-  doseMeta: { fontFamily: font.medium, fontSize: 13, color: colors.muted, marginLeft: 12, flexShrink: 1, textAlign: "right" },
+  doseRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
+  doseMeta: { fontFamily: font.medium, fontSize: 13, color: colors.muted, flexShrink: 1, textAlign: "right" },
+  doseChev: { fontFamily: font.semibold, fontSize: 17, color: colors.faint },
   doseMore: { paddingVertical: 11, alignItems: "center", borderTopWidth: 1, borderTopColor: colors.line },
   doseMoreText: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
   // snap

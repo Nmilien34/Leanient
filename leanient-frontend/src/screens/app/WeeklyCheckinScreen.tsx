@@ -23,7 +23,7 @@ import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { SYMPTOMS } from "./sideEffectLogForm";
 import { buildCheckinRequest, deriveCheckinPrefill, runWeeklyCheckinSubmit, weekRange, type CheckinPrefill } from "./weeklyCheckin";
-import { WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING, WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING } from "./weeklyCheckinLayout";
+import { WEEKLY_CHECKIN_FLOATING_CTA_BOTTOM_PADDING, WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING } from "./weeklyCheckinLayout";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -323,7 +323,7 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={styles.floatingCta}>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Button label="Submit check-in" onPress={() => void submit()} loading={submitting} disabled={!canSubmit} style={styles.cta} />
           </View>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   // notes
   notes: { minHeight: 64, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, padding: 14, fontFamily: font.regular, fontSize: 14, color: colors.ink, textAlignVertical: "top" },
   coachWrap: { marginTop: 16 },
-  footer: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING, backgroundColor: colors.paper },
+  floatingCta: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: WEEKLY_CHECKIN_FLOATING_CTA_BOTTOM_PADDING, backgroundColor: "transparent" },
   error: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", textAlign: "center", marginBottom: 10 },
   cta: {},
 });

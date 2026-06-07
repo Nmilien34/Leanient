@@ -10,7 +10,7 @@ import {
   weekStartIso,
 } from "../../screens/app/weeklyCheckin";
 import {
-  WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING,
+  WEEKLY_CHECKIN_FLOATING_CTA_BOTTOM_PADDING,
   WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING,
 } from "../../screens/app/weeklyCheckinLayout";
 
@@ -174,8 +174,10 @@ describe("weekly check-in submit flow", () => {
 });
 
 describe("weekly check-in keyboard-safe layout", () => {
-  it("reserves enough bottom space for the sticky submit footer", () => {
-    expect(WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING).toBeGreaterThanOrEqual(120);
-    expect(WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING).toBeGreaterThanOrEqual(12);
+  it("reserves enough bottom space for the floating submit button", () => {
+    expect(WEEKLY_CHECKIN_FLOATING_CTA_BOTTOM_PADDING).toBeGreaterThanOrEqual(12);
+    expect(WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING).toBeGreaterThanOrEqual(
+      WEEKLY_CHECKIN_FLOATING_CTA_BOTTOM_PADDING + 120,
+    );
   });
 });
