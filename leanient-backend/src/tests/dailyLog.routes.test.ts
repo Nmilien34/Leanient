@@ -130,6 +130,19 @@ const modelMocks = vi.hoisted(() => {
   const dose = createModel("dose");
   const measurement = createModel("measurement");
   const sideEffect = createModel("side_effect");
+  const UserMedicationProtocolModel = {
+    findOne: vi.fn(async (filter: { userId?: string; active?: boolean }) => {
+      if (filter.active !== true || !filter.userId) {
+        return null;
+      }
+
+      return {
+        _id: { toString: () => `active_protocol_${filter.userId}` },
+        userId: filter.userId,
+        active: true,
+      };
+    }),
+  };
 
   return {
     meal,
@@ -137,6 +150,7 @@ const modelMocks = vi.hoisted(() => {
     dose,
     measurement,
     sideEffect,
+    UserMedicationProtocolModel,
     reset: () => {
       nextId = 1;
       for (const model of [meal, workout, dose, measurement, sideEffect]) {
@@ -146,6 +160,7 @@ const modelMocks = vi.hoisted(() => {
         model.findOneAndUpdate.mockClear();
         model.find.mockClear();
       }
+      UserMedicationProtocolModel.findOne.mockClear();
     },
   };
 });
@@ -160,6 +175,10 @@ vi.mock("../models/workoutLog.model", () => ({
 
 vi.mock("../models/doseLog.model", () => ({
   DoseLogModel: modelMocks.dose,
+}));
+
+vi.mock("../models/userMedicationProtocol.model", () => ({
+  UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
 }));
 
 vi.mock("../models/measurementLog.model", () => ({

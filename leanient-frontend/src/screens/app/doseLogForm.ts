@@ -130,9 +130,13 @@ export function buildDoseLogDraft(args: {
   recordedAt: string;
 }): DoseLogDraft {
   const { protocol, site, recordedAt } = args;
+  if (protocol.doseAmount == null || protocol.doseAmount <= 0) {
+    throw new Error("Set your dose amount in Medication settings before logging a dose.");
+  }
+
   return {
     medicationProtocolId: protocol.id,
-    doseAmount: protocol.doseAmount ?? 0,
+    doseAmount: protocol.doseAmount,
     // protocol.doseUnit ("mg" | "units") is a subset of DoseLogUnit.
     doseUnit: protocol.doseUnit as DoseLogUnit,
     injectionSite: site,

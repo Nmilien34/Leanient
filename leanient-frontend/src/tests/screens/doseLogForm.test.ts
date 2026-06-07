@@ -48,6 +48,16 @@ describe("buildDoseLogDraft", () => {
       recordedAt: "2026-06-03T09:14:00.000Z",
     });
   });
+
+  it("rejects protocols without a positive dose amount before API submission", () => {
+    expect(() =>
+      buildDoseLogDraft({
+        protocol: { ...mockMedicationProtocol, doseAmount: undefined },
+        site: "abdomen_right",
+        recordedAt: "2026-06-03T09:14:00.000Z",
+      }),
+    ).toThrow("Set your dose amount in Medication settings before logging a dose.");
+  });
 });
 
 describe("dose log date helpers", () => {

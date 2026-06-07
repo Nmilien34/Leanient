@@ -21,6 +21,7 @@ import {
   type DoseCalendarCell,
   type DoseLogDraft,
 } from "./doseLogForm";
+import { DOSE_LOG_HEADER_TOP_PADDING } from "./doseLogLayout";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   safe: { flex: 1 },
   scroll: { paddingBottom: 28 },
-  head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 6, paddingBottom: 4 },
+  head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: DOSE_LOG_HEADER_TOP_PADDING, paddingBottom: 8 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
   headSpacer: { width: 34, height: 34 },
   headTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },

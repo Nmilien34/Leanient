@@ -145,6 +145,18 @@ const modelMocks = vi.hoisted(() => {
       return null;
     }),
   };
+  const UserMedicationProtocolModel = {
+    findOne: vi.fn(async (filter: { userId?: string; active?: boolean; _id?: string }) => {
+      if (filter.userId === "user_1" && filter.active === true) {
+        return {
+          _id: { toString: () => "active_protocol_1" },
+          userId: "user_1",
+          active: true,
+        };
+      }
+      return null;
+    }),
+  };
 
   return {
     meal,
@@ -181,7 +193,9 @@ const modelMocks = vi.hoisted(() => {
       measurement.find.mockClear();
       sideEffect.find.mockClear();
       WorkoutModel.findById.mockClear();
+      UserMedicationProtocolModel.findOne.mockClear();
     },
+    UserMedicationProtocolModel,
   };
 });
 
@@ -199,6 +213,10 @@ vi.mock("../../models/workout.model", () => ({
 
 vi.mock("../../models/doseLog.model", () => ({
   DoseLogModel: modelMocks.dose,
+}));
+
+vi.mock("../../models/userMedicationProtocol.model", () => ({
+  UserMedicationProtocolModel: modelMocks.UserMedicationProtocolModel,
 }));
 
 vi.mock("../../models/measurementLog.model", () => ({
@@ -495,5 +513,29 @@ describe("workout log countsAsResistance", () => {
 
     expect(modelMocks.WorkoutModel.findById).toHaveBeenCalledWith("cardio_workout");
     expect(result).toMatchObject({ countsAsResistance: false });
+  });
+});
+
+describe("dose log protocol resolution", () => {
+  beforeEach(() => {
+    modelMocks.reset();
+  });
+
+  it("attaches a stale string protocol id to the user's active protocol before saving", async () => {
+    await doseLogService.create("user_1", {
+      recordedAt: "2026-06-01T08:00:00.000Z",
+      medicationProtocolId: "med_demo",
+      doseAmount: 5,
+      doseUnit: "mg",
+      injectionSite: "abdomen_left",
+    });
+
+    expect(modelMocks.UserMedicationProtocolModel.findOne).toHaveBeenCalledWith({
+      userId: "user_1",
+      active: true,
+    });
+    expect(modelMocks.dose.documents[0]?.medicationProtocolId?.toString()).toBe(
+      "active_protocol_1",
+    );
   });
 });

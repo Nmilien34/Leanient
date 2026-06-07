@@ -1,0 +1,1 @@
+export const DOSE_LOG_HEADER_TOP_PADDING = 20;
