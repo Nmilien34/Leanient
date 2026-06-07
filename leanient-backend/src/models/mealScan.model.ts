@@ -106,6 +106,9 @@ const mealScanSchema = new Schema<MealScanDocument>(
 );
 
 mealScanSchema.index({ userId: 1, createdAt: -1 });
-mealScanSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+mealScanSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const MealScanModel = mongoose.model<MealScanDocument>("MealScan", mealScanSchema);

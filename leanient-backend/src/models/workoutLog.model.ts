@@ -135,6 +135,9 @@ const workoutLogSchema = new Schema<WorkoutLogDocument>(
 );
 
 workoutLogSchema.index({ userId: 1, recordedAt: -1 });
-workoutLogSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+workoutLogSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const WorkoutLogModel = mongoose.model<WorkoutLogDocument>("WorkoutLog", workoutLogSchema);

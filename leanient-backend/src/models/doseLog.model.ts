@@ -79,6 +79,9 @@ const doseLogSchema = new Schema<DoseLogDocument>(
 );
 
 doseLogSchema.index({ userId: 1, recordedAt: -1 });
-doseLogSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+doseLogSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const DoseLogModel = mongoose.model<DoseLogDocument>("DoseLog", doseLogSchema);

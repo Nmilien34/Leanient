@@ -83,7 +83,10 @@ const sideEffectLogSchema = new Schema<SideEffectLogDocument>(
 );
 
 sideEffectLogSchema.index({ userId: 1, recordedAt: -1 });
-sideEffectLogSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+sideEffectLogSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const SideEffectLogModel = mongoose.model<SideEffectLogDocument>(
   "SideEffectLog",

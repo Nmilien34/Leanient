@@ -74,7 +74,10 @@ const measurementLogSchema = new Schema<MeasurementLogDocument>(
 );
 
 measurementLogSchema.index({ userId: 1, recordedAt: -1 });
-measurementLogSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+measurementLogSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const MeasurementLogModel = mongoose.model<MeasurementLogDocument>(
   "MeasurementLog",

@@ -97,6 +97,9 @@ const mealLogSchema = new Schema<MealLogDocument>(
 );
 
 mealLogSchema.index({ userId: 1, recordedAt: -1 });
-mealLogSchema.index({ userId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+mealLogSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } },
+);
 
 export const MealLogModel = mongoose.model<MealLogDocument>("MealLog", mealLogSchema);
