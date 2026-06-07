@@ -1,4 +1,11 @@
-import type { UserMedicationProtocol, UserProfile, WeeklyVerdict, WeightLog, Weekday } from "@leanient/shared";
+import type {
+  DoseLog,
+  UserMedicationProtocol,
+  UserProfile,
+  WeeklyVerdict,
+  WeightLog,
+  Weekday,
+} from "@leanient/shared";
 
 /**
  * FRONTEND-ONLY display aggregate for the Home metrics, derived from contract
@@ -27,15 +34,41 @@ const WEEKDAY_INDEX: Record<Weekday, number> = {
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
-function doseLabels(shotDays: Weekday[] | undefined, now: Date): { lastLabel: string; nextLabel: string } {
+function daysSinceDate(date: Date, now: Date): number {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((today.getTime() - start.getTime()) / 86_400_000));
+}
+
+function latestDoseLog(doseLogs: DoseLog[] | undefined): DoseLog | null {
+  if (!doseLogs?.length) return null;
+  return [...doseLogs].sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0] ?? null;
+}
+
+function doseLabels(
+  shotDays: Weekday[] | undefined,
+  now: Date,
+  doseLogs?: DoseLog[],
+): { lastLabel: string; nextLabel: string } {
   if (!shotDays || shotDays.length === 0) return { lastLabel: "—", nextLabel: "—" };
   const today = now.getDay();
   // Most recent past shot and soonest upcoming shot across all injection days.
   const shots = shotDays.map((day) => WEEKDAY_INDEX[day]);
   const sinceLast = Math.min(...shots.map((shot) => (today - shot + 7) % 7));
   const untilNext = Math.min(...shots.map((shot) => ((shot - today + 7) % 7) || 7));
+  const loggedDose = latestDoseLog(doseLogs);
+  let lastLabel = sinceLast === 0 ? "Today" : `${plural(sinceLast, "day")} ago`;
+
+  if (loggedDose) {
+    const loggedAt = new Date(loggedDose.recordedAt);
+    if (!Number.isNaN(loggedAt.getTime())) {
+      const loggedDaysAgo = daysSinceDate(loggedAt, now);
+      lastLabel = loggedDaysAgo === 0 ? "Today" : `${plural(loggedDaysAgo, "day")} ago`;
+    }
+  }
+
   return {
-    lastLabel: sinceLast === 0 ? "Today" : `${plural(sinceLast, "day")} ago`,
+    lastLabel,
     nextLabel: untilNext === 0 ? "Today" : `in ${plural(untilNext, "day")}`,
   };
 }
@@ -45,10 +78,11 @@ export function deriveHomeMetrics(args: {
   profile: UserProfile;
   weightLogs: WeightLog[];
   medication?: UserMedicationProtocol;
+  doseLogs?: DoseLog[];
   measurements?: { waist?: number; arm?: number };
   now: Date;
 }): HomeMetrics {
-  const { verdict, profile, weightLogs, medication, measurements, now } = args;
+  const { verdict, profile, weightLogs, medication, doseLogs, measurements, now } = args;
   const inputs = verdict.inputsUsed;
 
   const proteinTarget = profile.dailyProteinTarget * 7;
@@ -70,7 +104,7 @@ export function deriveHomeMetrics(args: {
       ratio: clamp01(trainingTarget ? trainingDone / trainingTarget : 0),
     },
     weight: { current, unit, series, delta4wk },
-    dose: doseLabels(medication?.shotDays, now),
+    dose: doseLabels(medication?.shotDays, now, doseLogs),
     measurements: measurements ?? {},
   };
 }

@@ -54,6 +54,7 @@ function createMockApi(
     getTrainingToday: vi.fn().mockResolvedValue({ sessionsThisWeek: 1 }),
     getMealLogs: vi.fn().mockResolvedValue([{ id: "meal_1" }]),
     getWorkoutLogs: vi.fn().mockResolvedValue([{ id: "workout_log_1" }]),
+    getDoseLogs: vi.fn().mockResolvedValue([{ id: "dose_log_1" }]),
     createWeightLog: vi.fn(),
     createMealLog: vi.fn(),
     createWorkoutLog: vi.fn(),
@@ -85,11 +86,13 @@ describe("LeanientDataContext", () => {
     expect(harness.value().todaysFocus).toMatchObject({ category: "protein_gap" });
     expect(harness.value().todaysMeals).toHaveLength(1);
     expect(harness.value().todaysWorkouts).toHaveLength(1);
+    expect(harness.value().recentDoseLogs).toHaveLength(1);
     expect(harness.value().progressOverview).toMatchObject({ summary: { targetWeight: 172 } });
     expect(harness.value().trainingToday).toMatchObject({ sessionsThisWeek: 1 });
     expect(api.getTodaysFocus).toHaveBeenCalledTimes(1);
     expect(api.getMealLogs).toHaveBeenCalledWith({ recordedAt: expect.any(String) });
     expect(api.getWorkoutLogs).toHaveBeenCalledWith({ recordedAt: expect.any(String) });
+    expect(api.getDoseLogs).toHaveBeenCalledWith();
     expect(api.getProgressOverview).toHaveBeenCalledTimes(1);
     expect(api.getTrainingToday).toHaveBeenCalledTimes(1);
   });
@@ -107,6 +110,7 @@ describe("LeanientDataContext", () => {
       getTrainingToday: vi.fn().mockResolvedValue(null),
       getMealLogs: vi.fn().mockResolvedValue([]),
       getWorkoutLogs: vi.fn().mockResolvedValue([]),
+      getDoseLogs: vi.fn().mockResolvedValue([]),
     });
     const harness = await renderDataHarness(api);
 
@@ -135,6 +139,7 @@ describe("LeanientDataContext", () => {
     expect(harness.value().profile).toMatchObject({ id: "profile_1" });
     expect(harness.value().todaysMeals).toHaveLength(1);
     expect(harness.value().todaysWorkouts).toHaveLength(1);
+    expect(harness.value().recentDoseLogs).toHaveLength(1);
     expect(harness.value().trainingToday).toMatchObject({ sessionsThisWeek: 1 });
     expect(harness.value().homeError).not.toBeNull();
   });

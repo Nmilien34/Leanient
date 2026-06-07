@@ -161,6 +161,20 @@ describe("api service", () => {
               updatedAt: now,
             },
           ],
+          "/dose-logs": [
+            {
+              id: "dose_log_1",
+              userId: "user_1",
+              recordedAt: now,
+              deletedAt: null,
+              medicationProtocolId: "protocol_1",
+              doseAmount: 1,
+              doseUnit: "mg",
+              injectionSite: "abdomen_left",
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
         };
 
         return {
@@ -184,6 +198,9 @@ describe("api service", () => {
     await expect(
       api.getWorkoutLogs({ recordedAt: "2026-06-04T15:30:00.000Z" }),
     ).resolves.toHaveLength(1);
+    await expect(
+      api.getDoseLogs({ recordedAt: "2026-06-04T15:30:00.000Z" }),
+    ).resolves.toHaveLength(1);
 
     expect(seen).toEqual([
       { url: "/home/focus", method: "get", params: undefined },
@@ -199,6 +216,14 @@ describe("api service", () => {
       },
       {
         url: "/workout-logs",
+        method: "get",
+        params: {
+          from: "2026-06-04T00:00:00.000Z",
+          to: "2026-06-05T00:00:00.000Z",
+        },
+      },
+      {
+        url: "/dose-logs",
         method: "get",
         params: {
           from: "2026-06-04T00:00:00.000Z",

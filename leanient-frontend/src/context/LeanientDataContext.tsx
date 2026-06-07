@@ -54,6 +54,7 @@ export interface LeanientDataApi {
   getTrainingToday(): Promise<TrainingTodayResponse>;
   getMealLogs(query?: { recordedAt?: string }): Promise<MealLog[]>;
   getWorkoutLogs(query?: { recordedAt?: string }): Promise<WorkoutLog[]>;
+  getDoseLogs(query?: { recordedAt?: string; from?: string; to?: string; limit?: number }): Promise<DoseLog[]>;
   createWeightLog(input: CreateWeightLogRequest): Promise<WeightLog>;
   createMealLog(input: CreateMealLogRequest): Promise<MealLog>;
   createWorkoutLog(input: CreateWorkoutLogRequest): Promise<WorkoutLog>;
@@ -80,6 +81,7 @@ export interface LeanientDataContextValue {
   todaysFocus: TodaysFocusResponse | null;
   todaysMeals: MealLog[];
   todaysWorkouts: WorkoutLog[];
+  recentDoseLogs: DoseLog[];
   progressOverview: ProgressOverviewResponse | null;
   trainingToday: TrainingTodayResponse | null;
   workouts: Workout[];
@@ -128,6 +130,7 @@ export function LeanientDataProvider({
   const [todaysFocus, setTodaysFocus] = useState<TodaysFocusResponse | null>(null);
   const [todaysMeals, setTodaysMeals] = useState<MealLog[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutLog[]>([]);
+  const [recentDoseLogs, setRecentDoseLogs] = useState<DoseLog[]>([]);
   const [progressOverview, setProgressOverview] = useState<ProgressOverviewResponse | null>(null);
   const [trainingToday, setTrainingToday] = useState<TrainingTodayResponse | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -172,6 +175,7 @@ export function LeanientDataProvider({
           nextFocus,
           nextMeals,
           nextWorkouts,
+          nextDoses,
           nextProgressOverview,
           nextTrainingToday,
         ] = await Promise.allSettled([
@@ -183,6 +187,7 @@ export function LeanientDataProvider({
           api.getTodaysFocus(),
           api.getMealLogs({ recordedAt: today }),
           api.getWorkoutLogs({ recordedAt: today }),
+          api.getDoseLogs(),
           api.getProgressOverview(),
           api.getTrainingToday(),
         ]);
@@ -196,6 +201,7 @@ export function LeanientDataProvider({
           nextFocus,
           nextMeals,
           nextWorkouts,
+          nextDoses,
           nextProgressOverview,
           nextTrainingToday,
         ].find((result) => result.status === "rejected");
@@ -215,6 +221,7 @@ export function LeanientDataProvider({
         if (nextFocus.status === "fulfilled") setTodaysFocus(nextFocus.value);
         if (nextMeals.status === "fulfilled") setTodaysMeals(nextMeals.value);
         if (nextWorkouts.status === "fulfilled") setTodaysWorkouts(nextWorkouts.value);
+        if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
         if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
         if (nextTrainingToday.status === "fulfilled") setTrainingToday(nextTrainingToday.value);
       }),
@@ -324,6 +331,7 @@ export function LeanientDataProvider({
       todaysFocus,
       todaysMeals,
       todaysWorkouts,
+      recentDoseLogs,
       progressOverview,
       trainingToday,
       workouts,
@@ -355,6 +363,7 @@ export function LeanientDataProvider({
       progressPhotosError,
       progressOverview,
       progressPhotos,
+      recentDoseLogs,
       recommendedWorkouts,
       refreshProgress,
       refreshHomeData,

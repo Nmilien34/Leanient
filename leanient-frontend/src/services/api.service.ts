@@ -121,6 +121,7 @@ interface MealLogQuery {
 }
 
 type WorkoutLogQuery = MealLogQuery;
+type DoseLogQuery = MealLogQuery;
 
 type ResponseSchema<T> = z.ZodType<T, z.ZodTypeDef, unknown>;
 
@@ -409,6 +410,12 @@ export class LeanientApiClient {
 
   public async getWorkoutLogs(query: WorkoutLogQuery = {}): Promise<WorkoutLog[]> {
     return this.get("/workout-logs", workoutLogResponseSchema.array(), {
+      params: mealLogQueryParams(query),
+    });
+  }
+
+  public async getDoseLogs(query: DoseLogQuery = {}): Promise<DoseLog[]> {
+    return this.get("/dose-logs", doseLogResponseSchema.array(), {
       params: mealLogQueryParams(query),
     });
   }

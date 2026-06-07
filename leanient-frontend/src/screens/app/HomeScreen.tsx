@@ -4,7 +4,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path } from "react-native-svg";
-import type { TodaysFocusResponse, UserMedicationProtocol, UserProfile, WeeklyVerdict, WeightLog, Workout } from "@leanient/shared";
+import type {
+  DoseLog,
+  TodaysFocusResponse,
+  UserMedicationProtocol,
+  UserProfile,
+  WeeklyVerdict,
+  WeightLog,
+  Workout,
+} from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
@@ -53,12 +61,13 @@ interface HomeViewProps {
   profile: UserProfile;
   weightLogs: WeightLog[];
   medication?: UserMedicationProtocol;
+  doseLogs: DoseLog[];
   focus: TodaysFocusResponse | null;
   recommendedWorkouts: Workout[];
   todayLog: TodayLog;
 }
 
-function HomeView({ verdict, profile, weightLogs, medication, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
+function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const navigation = useNavigation();
   const { openDoseLog } = useQuickActions();
@@ -89,9 +98,10 @@ function HomeView({ verdict, profile, weightLogs, medication, focus, recommended
         profile,
         weightLogs,
         medication,
+        doseLogs,
         now,
       }),
-    [verdict, profile, weightLogs, medication, now],
+    [verdict, profile, weightLogs, medication, doseLogs, now],
   );
 
   const today = useMemo(
@@ -530,6 +540,7 @@ export function HomeScreen() {
       profile={profile}
       weightLogs={data.weightLogs}
       medication={data.medicationProtocol ?? undefined}
+      doseLogs={data.recentDoseLogs}
       focus={data.todaysFocus}
       recommendedWorkouts={data.recommendedWorkouts}
       todayLog={toTodayLog(data.todaysMeals, data.todaysWorkouts)}
