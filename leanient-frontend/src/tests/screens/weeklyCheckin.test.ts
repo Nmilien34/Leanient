@@ -1,13 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { MealLog, WeightLog, WorkoutLog } from "@leanient/shared";
 import {
   buildCheckinRequest,
   deriveCheckinPrefill,
   proteinAvgPerLoggedDay,
   resistanceCount,
+  runWeeklyCheckinSubmit,
   weekRange,
   weekStartIso,
 } from "../../screens/app/weeklyCheckin";
+import {
+  WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING,
+  WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING,
+} from "../../screens/app/weeklyCheckinLayout";
 
 const STAMP = "2026-06-03T12:00:00.000Z";
 function meal(over: Partial<MealLog>): MealLog {
@@ -126,5 +131,51 @@ describe("buildCheckinRequest", () => {
     });
     expect(req.notes).toBeUndefined();
     expect(req.sideEffects).toEqual([]);
+  });
+});
+
+describe("weekly check-in submit flow", () => {
+  it("does not surface a refresh failure after the check-in was saved", async () => {
+    const onComplete = vi.fn();
+    const onError = vi.fn();
+
+    const saved = await runWeeklyCheckinSubmit({
+      submitRequest: async () => ({
+        id: "verdict_1",
+        userId: "user_1",
+        weekOf: "2026-06-01",
+        checkinId: "checkin_1",
+        source: "checkin",
+        engineVersion: "v1.0",
+        copyVersion: null,
+        explanation: null,
+        status: "on_track",
+        score: 90,
+        estimatedLeanMassRisk: 0.1,
+        nextActionCode: "keep_rhythm",
+        headline: "Keep going",
+        message: "This week is on track.",
+        explanationFactors: [],
+        createdAt: STAMP,
+        updatedAt: STAMP,
+      }),
+      refreshHomeData: async () => {
+        throw new Error("cached 304 refresh miss");
+      },
+      onComplete,
+      onError,
+      errorMessage: () => "Something went wrong. Please try again.",
+    });
+
+    expect(saved).toBe(true);
+    expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ id: "verdict_1" }));
+    expect(onError).not.toHaveBeenCalled();
+  });
+});
+
+describe("weekly check-in keyboard-safe layout", () => {
+  it("reserves enough bottom space for the sticky submit footer", () => {
+    expect(WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING).toBeGreaterThanOrEqual(120);
+    expect(WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING).toBeGreaterThanOrEqual(12);
   });
 });

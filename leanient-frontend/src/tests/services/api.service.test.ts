@@ -63,6 +63,30 @@ describe("api service", () => {
     expect(seenConfig?.headers.Authorization).toBe("Bearer session-token");
   });
 
+  it("prevents conditional cache revalidation on API requests", async () => {
+    let seenConfig: InternalAxiosRequestConfig | undefined;
+    const api = createLeanientApiClient({
+      baseURL: "http://localhost:8080",
+      adapter: async (config) => {
+        seenConfig = config;
+        return {
+          data: { data: user },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        };
+      },
+    });
+
+    await api.getMe();
+
+    expect(seenConfig?.headers["Cache-Control"]).toBe("no-store");
+    expect(seenConfig?.headers.Pragma).toBe("no-cache");
+    expect(seenConfig?.headers["If-None-Match"]).toBeUndefined();
+    expect(seenConfig?.headers["If-Modified-Since"]).toBeUndefined();
+  });
+
   it("clears auth storage when the backend returns 401", async () => {
     await testStorage.setItem(AUTH_STORAGE_KEYS.token, "session-token");
     await testStorage.setItem(AUTH_STORAGE_KEYS.user, "{}");
@@ -418,5 +442,132 @@ describe("api service", () => {
       ["post", "/meal-scans/analyze"],
       ["post", "/diagnostics/stall"],
     ]);
+  });
+
+  it("parses a successful weekly check-in response into the returned verdict", async () => {
+    const now = "2026-06-07T04:17:04.995Z";
+    const api = createLeanientApiClient({
+      baseURL: "http://localhost:8080",
+      adapter: async (config) => ({
+        data: {
+          data: {
+            checkin: {
+              id: "checkin_1",
+              userId: "user_1",
+              weekOf: "2026-06-01",
+              weight: { value: 184, unit: "lb", measuredAt: now },
+              proteinGramsPerDay: 120,
+              resistanceWorkoutsCompleted: 2,
+              sideEffects: [],
+              notes: "Feeling steady",
+              userContextSnapshot: {
+                profile: {
+                  journeyStage: "active_loss",
+                  goalWeight: 172,
+                  goalWeightUnit: "lb",
+                  dailyProteinTarget: 144,
+                  dailyCalorieTarget: 2080,
+                  goalPace: "steady",
+                  biggestFear: "losing_muscle",
+                  trainingStatus: "consistent",
+                  equipmentAccess: "dumbbells",
+                  weeklyWorkoutTarget: 3,
+                  sideEffectBaseline: [],
+                  timezone: "America/New_York",
+                },
+                medicationProtocol: {
+                  medicationCatalogId: "catalog_1",
+                  medicationName: "Mounjaro",
+                  doseAmount: 2.5,
+                  doseUnit: "mg",
+                  shotDays: ["sunday"],
+                  startDate: "2026-06-01",
+                },
+                priorWeight: { value: 186, unit: "lb", measuredAt: "2026-06-01T12:00:00.000Z" },
+              },
+              weightLogId: "weight_1",
+              createdAt: now,
+              updatedAt: now,
+            },
+            verdict: {
+              id: "verdict_1",
+              userId: "user_1",
+              weekOf: "2026-06-01",
+              checkinId: "checkin_1",
+              source: "checkin",
+              engineVersion: "leanient-verdict-2026-05-29",
+              copyVersion: "v1.0-gpt-4o-mini",
+              explanation: "You are keeping your muscle this week. Keep the same rhythm.",
+              status: "on_track",
+              score: 88,
+              estimatedLeanMassRisk: 0.12,
+              nextActionCode: "keep_rhythm",
+              headline: "Keep your rhythm",
+              message: "Protein and training gave this week a strong signal.",
+              explanationFactors: ["Protein intake supported lean-mass retention."],
+              inputsUsed: {
+                profile: {
+                  journeyStage: "active_loss",
+                  goalWeight: 172,
+                  goalWeightUnit: "lb",
+                  dailyProteinTarget: 144,
+                  dailyCalorieTarget: 2080,
+                  goalPace: "steady",
+                  biggestFear: "losing_muscle",
+                  trainingStatus: "consistent",
+                  equipmentAccess: "dumbbells",
+                  weeklyWorkoutTarget: 3,
+                  sideEffectBaseline: [],
+                  timezone: "America/New_York",
+                },
+                medicationProtocol: {
+                  medicationCatalogId: "catalog_1",
+                  medicationName: "Mounjaro",
+                  doseAmount: 2.5,
+                  doseUnit: "mg",
+                  shotDays: ["sunday"],
+                  startDate: "2026-06-01",
+                },
+                priorWeight: { value: 186, unit: "lb", measuredAt: "2026-06-01T12:00:00.000Z" },
+                weight: { value: 184, unit: "lb", measuredAt: now },
+                proteinGramsPerDay: 120,
+                resistanceWorkoutsCompleted: 2,
+                dataSource: {
+                  protein: "logs",
+                  training: "logs",
+                },
+              },
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+        },
+        status: 201,
+        statusText: "Created",
+        headers: {},
+        config,
+      }),
+    });
+
+    await expect(
+      api.submitWeeklyCheckin({
+        weekOf: "2026-06-01",
+        weight: { value: 184, unit: "lb", measuredAt: now },
+        proteinGramsPerDay: 120,
+        resistanceWorkoutsCompleted: 2,
+        sideEffects: [],
+        notes: "Feeling steady",
+      }),
+    ).resolves.toMatchObject({
+      id: "verdict_1",
+      status: "on_track",
+      inputsUsed: {
+        profile: {
+          equipmentAccess: "dumbbells",
+          weeklyWorkoutTarget: 3,
+          timezone: "America/New_York",
+        },
+      },
+    });
   });
 });

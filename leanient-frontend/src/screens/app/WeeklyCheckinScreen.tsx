@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,7 +22,8 @@ import { useLeanientData } from "../../context/LeanientDataContext";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { SYMPTOMS } from "./sideEffectLogForm";
-import { buildCheckinRequest, deriveCheckinPrefill, weekRange, type CheckinPrefill } from "./weeklyCheckin";
+import { buildCheckinRequest, deriveCheckinPrefill, runWeeklyCheckinSubmit, weekRange, type CheckinPrefill } from "./weeklyCheckin";
+import { WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING, WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING } from "./weeklyCheckinLayout";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -157,23 +161,27 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
 
   const submit = async () => {
     if (!canSubmit) return;
+    Keyboard.dismiss();
     setSubmitting(true);
     setError(null);
-    try {
-      const verdict = await apiService.submitWeeklyCheckin(
-        buildCheckinRequest({
-          now,
-          weight: { value: round1(weight), unit },
-          proteinGramsPerDay: Math.round(protein),
-          resistanceWorkoutsCompleted: resistance,
-          sideEffects: [...sideEffects],
-          notes,
-        }),
-      );
-      await data.refreshHomeData();
-      onComplete(verdict);
-    } catch (e) {
-      setError(extractApiError(e).message);
+    const request = buildCheckinRequest({
+      now,
+      weight: { value: round1(weight), unit },
+      proteinGramsPerDay: Math.round(protein),
+      resistanceWorkoutsCompleted: resistance,
+      sideEffects: [...sideEffects],
+      notes,
+    });
+
+    const saved = await runWeeklyCheckinSubmit({
+      submitRequest: () => apiService.submitWeeklyCheckin(request),
+      refreshHomeData: data.refreshHomeData,
+      onComplete,
+      onError: setError,
+      errorMessage: (e) => extractApiError(e).message,
+    });
+
+    if (!saved) {
       setSubmitting(false);
     }
   };
@@ -210,106 +218,116 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
       <StatusBar style="dark" />
       <ScreenGround />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {header}
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <Text style={styles.eyebrow}>{weekLabel(now)}</Text>
-          <Text style={styles.h1}>How was this week?</Text>
-          <Text style={styles.sub}>A calm, honest look at the week. About two minutes.</Text>
+        <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          {header}
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={styles.eyebrow}>{weekLabel(now)}</Text>
+            <Text style={styles.h1}>How was this week?</Text>
+            <Text style={styles.sub}>A calm, honest look at the week. About two minutes.</Text>
 
-          {/* Weight */}
-          <Text style={styles.glabel}>THIS WEEK'S WEIGHT</Text>
-          <View style={styles.weightRow}>
-            <Text style={styles.bignum}>
-              {round1(weight)}
-              <Text style={styles.bigunit}> {unit}</Text>
+            {/* Weight */}
+            <Text style={styles.glabel}>THIS WEEK'S WEIGHT</Text>
+            <View style={styles.weightRow}>
+              <Text style={styles.bignum}>
+                {round1(weight)}
+                <Text style={styles.bigunit}> {unit}</Text>
+              </Text>
+              <Stepper onDec={() => setWeight((w) => round1(Math.max(0, w - weightStep)))} onInc={() => setWeight((w) => round1(w + weightStep))} />
+            </View>
+            <Text style={styles.hint}>
+              {prefill.weightValue != null ? "Pre-filled from your last weigh-in. Adjust if you weighed in today." : "Enter your current weight."}
             </Text>
-            <Stepper onDec={() => setWeight((w) => round1(Math.max(0, w - weightStep)))} onInc={() => setWeight((w) => round1(w + weightStep))} />
-          </View>
-          <Text style={styles.hint}>
-            {prefill.weightValue != null ? "Pre-filled from your last weigh-in. Adjust if you weighed in today." : "Enter your current weight."}
-          </Text>
 
-          {/* Protein */}
-          <Text style={styles.glabel}>PROTEIN</Text>
-          {prefill.proteinFromLogs ? (
-            <DerivedRow
-              value={`${protein} g/day average`}
-              note={`From your ${prefill.mealCount} ${prefill.mealCount === 1 ? "meal" : "meals"} logged this week. We'll use this for your verdict.`}
-            />
-          ) : (
-            <View style={styles.entryRow}>
-              <View style={styles.flex}>
-                <Text style={styles.entryLabel}>Average protein per day</Text>
-                <Text style={styles.entrySub}>You didn't log meals. Enter your best estimate.</Text>
+            {/* Protein */}
+            <Text style={styles.glabel}>PROTEIN</Text>
+            {prefill.proteinFromLogs ? (
+              <DerivedRow
+                value={`${protein} g/day average`}
+                note={`From your ${prefill.mealCount} ${prefill.mealCount === 1 ? "meal" : "meals"} logged this week. We'll use this for your verdict.`}
+              />
+            ) : (
+              <View style={styles.entryRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.entryLabel}>Average protein per day</Text>
+                  <Text style={styles.entrySub}>You didn't log meals. Enter your best estimate.</Text>
+                </View>
+                <View style={styles.entryValueWrap}>
+                  <Text style={styles.entryValue}>{protein}</Text>
+                  <Text style={styles.entryUnit}>g</Text>
+                  <Stepper onDec={() => setProtein((p) => Math.max(0, p - 5))} onInc={() => setProtein((p) => Math.min(400, p + 5))} />
+                </View>
               </View>
-              <View style={styles.entryValueWrap}>
-                <Text style={styles.entryValue}>{protein}</Text>
-                <Text style={styles.entryUnit}>g</Text>
-                <Stepper onDec={() => setProtein((p) => Math.max(0, p - 5))} onInc={() => setProtein((p) => Math.min(400, p + 5))} />
+            )}
+
+            {/* Resistance training */}
+            <Text style={styles.glabel}>RESISTANCE TRAINING</Text>
+            {prefill.workoutsFromLogs ? (
+              <DerivedRow
+                value={`${resistance} ${resistance === 1 ? "session" : "sessions"}`}
+                note="From your workout logs this week. We'll use this for your verdict."
+              />
+            ) : (
+              <View style={styles.entryRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.entryLabel}>Sessions this week</Text>
+                  <Text style={styles.entrySub}>You didn't log workouts. Enter what you did.</Text>
+                </View>
+                <View style={styles.entryValueWrap}>
+                  <Text style={styles.entryValue}>{resistance}</Text>
+                  <Stepper onDec={() => setResistance((r) => Math.max(0, r - 1))} onInc={() => setResistance((r) => Math.min(14, r + 1))} />
+                </View>
               </View>
+            )}
+
+            {/* Side effects */}
+            <Text style={styles.glabel}>ANY SIDE EFFECTS THIS WEEK?</Text>
+            <View style={styles.chipRow}>
+              {SYMPTOMS.map((s) => {
+                const on = sideEffects.has(s.id);
+                return (
+                  <Pressable
+                    key={s.id}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={s.label}
+                    onPress={() => toggleSymptom(s.id)}
+                    style={[styles.chip, on && styles.chipOn]}
+                  >
+                    <Text style={[styles.chipText, on && styles.chipTextOn]}>{s.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          )}
 
-          {/* Resistance training */}
-          <Text style={styles.glabel}>RESISTANCE TRAINING</Text>
-          {prefill.workoutsFromLogs ? (
-            <DerivedRow
-              value={`${resistance} ${resistance === 1 ? "session" : "sessions"}`}
-              note="From your workout logs this week. We'll use this for your verdict."
+            {/* Notes */}
+            <Text style={styles.glabel}>ANYTHING ELSE?</Text>
+            <TextInput
+              style={styles.notes}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Add a note about your week (optional)"
+              placeholderTextColor={colors.faint}
+              multiline
+              maxLength={2000}
+              accessibilityLabel="Notes"
+              returnKeyType="done"
+              blurOnSubmit
+              onSubmitEditing={() => {
+                Keyboard.dismiss();
+                if (canSubmit) void submit();
+              }}
             />
-          ) : (
-            <View style={styles.entryRow}>
-              <View style={styles.flex}>
-                <Text style={styles.entryLabel}>Sessions this week</Text>
-                <Text style={styles.entrySub}>You didn't log workouts. Enter what you did.</Text>
-              </View>
-              <View style={styles.entryValueWrap}>
-                <Text style={styles.entryValue}>{resistance}</Text>
-                <Stepper onDec={() => setResistance((r) => Math.max(0, r - 1))} onInc={() => setResistance((r) => Math.min(14, r + 1))} />
-              </View>
+
+            <View style={styles.coachWrap}>
+              <CoachPill>No wrong answers here. This is a checkpoint, not a test, so just tell us how the week actually went.</CoachPill>
             </View>
-          )}
+          </ScrollView>
 
-          {/* Side effects */}
-          <Text style={styles.glabel}>ANY SIDE EFFECTS THIS WEEK?</Text>
-          <View style={styles.chipRow}>
-            {SYMPTOMS.map((s) => {
-              const on = sideEffects.has(s.id);
-              return (
-                <Pressable
-                  key={s.id}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={s.label}
-                  onPress={() => toggleSymptom(s.id)}
-                  style={[styles.chip, on && styles.chipOn]}
-                >
-                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{s.label}</Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.footer}>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Button label="Submit check-in" onPress={() => void submit()} loading={submitting} disabled={!canSubmit} style={styles.cta} />
           </View>
-
-          {/* Notes */}
-          <Text style={styles.glabel}>ANYTHING ELSE?</Text>
-          <TextInput
-            style={styles.notes}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Add a note about your week (optional)"
-            placeholderTextColor={colors.faint}
-            multiline
-            maxLength={2000}
-            accessibilityLabel="Notes"
-          />
-
-          <View style={styles.coachWrap}>
-            <CoachPill>No wrong answers here. This is a checkpoint, not a test, so just tell us how the week actually went.</CoachPill>
-          </View>
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Button label="Submit check-in" onPress={() => void submit()} loading={submitting} disabled={!canSubmit} style={styles.cta} />
-        </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
@@ -318,8 +336,9 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
 const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.paper, zIndex: 80 },
   safe: { flex: 1 },
+  keyboard: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { paddingHorizontal: 24, paddingBottom: 36 },
+  scroll: { paddingHorizontal: 24, paddingBottom: WEEKLY_CHECKIN_SCROLL_BOTTOM_PADDING },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 6, paddingBottom: 8 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
   headTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
@@ -359,8 +378,9 @@ const styles = StyleSheet.create({
   // notes
   notes: { minHeight: 64, borderRadius: 14, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, padding: 14, fontFamily: font.regular, fontSize: 14, color: colors.ink, textAlignVertical: "top" },
   coachWrap: { marginTop: 16 },
-  error: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", textAlign: "center", marginTop: 14 },
-  cta: { marginTop: 18 },
+  footer: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: WEEKLY_CHECKIN_FOOTER_BOTTOM_PADDING, backgroundColor: colors.paper },
+  error: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", textAlign: "center", marginBottom: 10 },
+  cta: {},
 });
 
 export default WeeklyCheckinScreen;

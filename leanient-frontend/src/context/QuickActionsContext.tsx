@@ -9,6 +9,7 @@ import type { Workout } from "@leanient/shared";
  */
 export interface QuickActions {
   openQuickLog: () => void;
+  openMealLog: () => void;
   openDoseLog: () => void;
   openProgressPhoto: () => void;
   /** Open the guided workout player. Pass a workout to play it; omit to use the

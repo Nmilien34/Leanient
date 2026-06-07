@@ -91,7 +91,7 @@ interface HomeViewProps {
 function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const navigation = useNavigation();
-  const { openDoseLog } = useQuickActions();
+  const { openDoseLog, openMealLog, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
   const [showAllDoses, setShowAllDoses] = useState(false);
@@ -169,6 +169,29 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   );
   const visibleDoses = showAllDoses ? recentDoses : recentDoses.slice(0, DOSE_COLLAPSED_COUNT);
   const hiddenDoseCount = recentDoses.length - DOSE_COLLAPSED_COUNT;
+
+  // Today's Focus CTA → the matching logger/screen for its actionType.
+  const handleFocusAction = () => {
+    switch (focus?.actionType) {
+      case "log_meal":
+        openMealLog();
+        break;
+      case "log_workout":
+        startWorkout();
+        break;
+      case "log_dose":
+        openDoseLog();
+        break;
+      case "take_photo":
+        openProgressPhoto();
+        break;
+      case "view_progress":
+        navigation.navigate("Progress" as never);
+        break;
+      default:
+        break;
+    }
+  };
 
   // Completion summary (screen 21): fold the just-finished session into the
   // week's training + verdict. Null until a session completes.
@@ -281,7 +304,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               </View>
 
               {focus ? (
-                <TodaysFocusCard focus={focus} eyebrow="DO THIS NEXT" />
+                <TodaysFocusCard focus={focus} eyebrow="DO THIS NEXT" onAction={handleFocusAction} />
               ) : (
                 <EmptyState message="Your next move shows up here once you start logging meals and workouts." />
               )}
@@ -347,7 +370,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               ) : null}
 
               {/* today's focus — hides itself when there's nothing actionable yet */}
-              {focus ? <TodaysFocusCard focus={focus} /> : null}
+              {focus ? <TodaysFocusCard focus={focus} onAction={handleFocusAction} /> : null}
 
               {/* dose */}
               <View style={styles.med}>

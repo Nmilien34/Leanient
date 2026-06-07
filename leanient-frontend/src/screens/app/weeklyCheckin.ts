@@ -2,6 +2,7 @@ import type {
   MealLog,
   SideEffectSymptom,
   WeeklyCheckinRequest,
+  WeeklyVerdict,
   WeightLog,
   WeightUnit,
   WorkoutLog,
@@ -99,4 +100,31 @@ export function buildCheckinRequest(args: {
     sideEffects: args.sideEffects,
     ...(trimmedNotes ? { notes: trimmedNotes } : {}),
   };
+}
+
+export async function runWeeklyCheckinSubmit(args: {
+  submitRequest: () => Promise<WeeklyVerdict>;
+  refreshHomeData: () => Promise<void>;
+  onComplete: (verdict: WeeklyVerdict) => void;
+  onError: (message: string) => void;
+  errorMessage: (error: unknown) => string;
+}): Promise<boolean> {
+  let verdict: WeeklyVerdict;
+
+  try {
+    verdict = await args.submitRequest();
+  } catch (error) {
+    args.onError(args.errorMessage(error));
+    return false;
+  }
+
+  try {
+    await args.refreshHomeData();
+  } catch {
+    // The check-in is already persisted. A home refresh miss should not turn a
+    // successful submission into a failed form state.
+  }
+
+  args.onComplete(verdict);
+  return true;
 }

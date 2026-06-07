@@ -249,6 +249,15 @@ export class LeanientApiClient {
     this.client.interceptors.request.use(async (config) => {
       const token = await getStoredAuthToken();
 
+      config.headers.set?.("Cache-Control", "no-store");
+      config.headers.set?.("Pragma", "no-cache");
+      config.headers["Cache-Control"] = "no-store";
+      config.headers.Pragma = "no-cache";
+      config.headers.delete?.("If-None-Match");
+      config.headers.delete?.("If-Modified-Since");
+      delete config.headers["If-None-Match"];
+      delete config.headers["If-Modified-Since"];
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
