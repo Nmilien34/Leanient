@@ -31,6 +31,7 @@ import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
 import { VerdictRevealScreen } from "./VerdictRevealScreen";
 import { deriveHomeMetrics } from "./homeMetrics";
 import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
+import { siteLabel } from "./doseLogForm";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
@@ -41,6 +42,18 @@ import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// How many recent doses to show before the "Show more" toggle.
+const DOSE_COLLAPSED_COUNT = 4;
+
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Short label for a logged dose, e.g. "Sun, Jun 1". */
+function formatDoseDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${WEEKDAYS_SHORT[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
 
 function weekRangeLabel(weekOf: string): string {
   const start = new Date(`${weekOf}T00:00:00`);
@@ -73,6 +86,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const { openDoseLog } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
+  const [showAllDoses, setShowAllDoses] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [todayPlanOpen, setTodayPlanOpen] = useState(false);
@@ -135,6 +149,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   }, [verdict.weekOf, medication, now]);
 
   const { protein, training, weight, dose, measurements } = metrics;
+
+  // Most-recent-first dose history for the Home dose card. Collapsed to the
+  // latest few with a "Show more" toggle.
+  const recentDoses = useMemo(
+    () =>
+      [...doseLogs]
+        .filter((d) => !d.deletedAt)
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()),
+    [doseLogs],
+  );
+  const visibleDoses = showAllDoses ? recentDoses : recentDoses.slice(0, DOSE_COLLAPSED_COUNT);
+  const hiddenDoseCount = recentDoses.length - DOSE_COLLAPSED_COUNT;
 
   // Completion summary (screen 21): fold the just-finished session into the
   // week's training + verdict. Null until a session completes.
@@ -335,6 +361,34 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   <Text style={styles.mlog}>Log dose ›</Text>
                 </Pressable>
               </View>
+
+              {/* dose history — recent logged doses, collapsed to the latest few */}
+              {recentDoses.length > 0 ? (
+                <View style={styles.doseHist}>
+                  <Text style={styles.doseHistTitle}>RECENT DOSES</Text>
+                  {visibleDoses.map((d) => (
+                    <View key={d.id} style={styles.doseRow}>
+                      <Text style={styles.doseDate}>{formatDoseDate(d.recordedAt)}</Text>
+                      <Text style={styles.doseMeta} numberOfLines={1}>
+                        {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
+                        {d.doseAmount} {d.doseUnit}
+                      </Text>
+                    </View>
+                  ))}
+                  {hiddenDoseCount > 0 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={showAllDoses ? "Show fewer doses" : "Show more doses"}
+                      onPress={() => setShowAllDoses((v) => !v)}
+                      style={styles.doseMore}
+                    >
+                      <Text style={styles.doseMoreText}>
+                        {showAllDoses ? "Show less" : `Show ${hiddenDoseCount} more`}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
 
               {/* this week's body */}
               <View style={styles.snap}>
@@ -575,6 +629,14 @@ const styles = StyleSheet.create({
   mdiv: { width: 1, height: 26, backgroundColor: colors.line },
   mlogWrap: { marginLeft: "auto" },
   mlog: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
+  // dose history
+  doseHist: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassLine, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 16 },
+  doseHistTitle: { fontFamily: font.semibold, fontSize: 11, letterSpacing: 0.33, color: colors.faint, paddingTop: 8, paddingBottom: 4 },
+  doseRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9, borderTopWidth: 1, borderTopColor: colors.line },
+  doseDate: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
+  doseMeta: { fontFamily: font.medium, fontSize: 13, color: colors.muted, marginLeft: 12, flexShrink: 1, textAlign: "right" },
+  doseMore: { paddingVertical: 11, alignItems: "center", borderTopWidth: 1, borderTopColor: colors.line },
+  doseMoreText: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
   // snap
   snap: { paddingHorizontal: 20, paddingTop: 18 },
   snaprow: { flexDirection: "row", gap: 10, marginTop: 10 },

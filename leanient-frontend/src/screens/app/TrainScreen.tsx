@@ -1,13 +1,16 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import type { WorkoutEnergyPhase } from "@leanient/shared";
+import type { Workout, WorkoutEnergyPhase } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { WorkoutCard } from "../../components/app/WorkoutCard";
+import { WorkoutDetailSheet } from "../../components/app/WorkoutDetailSheet";
+import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
+import { WorkoutCompleteSheet } from "../../components/app/WorkoutCompleteSheet";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
@@ -15,6 +18,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import { resolveSectionState } from "./sectionState";
+import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
+import type { CompletedWorkout } from "./workoutSession";
+import { extractApiError } from "../../services/apiError";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -31,12 +37,30 @@ export function TrainScreen() {
   const { startWorkout } = useQuickActions();
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
+  const [detailWorkout, setDetailWorkout] = useState<Workout | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+  const [completed, setCompleted] = useState<CompletedWorkout | null>(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeSaving, setCompleteSaving] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   const trainingToday = data.trainingToday;
   const featured = trainingToday?.featuredWorkout?.workout ?? null;
   const library = data.workouts;
   const done = trainingToday?.sessionsThisWeek ?? 0;
   const target = trainingToday?.weeklyTarget ?? 0;
+  const completeView = useMemo(
+    () =>
+      completed
+        ? deriveWorkoutComplete({
+            summary: completed,
+            trainingDone: done,
+            trainingTarget: target,
+            verdictStatus: data.latestVerdict?.status ?? "no_data",
+          })
+        : null,
+    [completed, data.latestVerdict?.status, done, target],
+  );
 
   // Train refreshes the library and today's composite together on mount.
   const todayState = resolveSectionState({
@@ -60,6 +84,40 @@ export function TrainScreen() {
     refreshedForUserRef.current = userId;
     void data.refreshWorkouts();
   }, [auth.user?.id, data.refreshWorkouts]);
+
+  const startLibraryWorkout = (workout: Workout) => {
+    if (!workout.exercises.length) {
+      return;
+    }
+
+    setDetailWorkout(null);
+    setActiveWorkout(workout);
+  };
+
+  const confirmWorkoutComplete = async () => {
+    if (!completed || !activeWorkout) return;
+
+    setCompleteSaving(true);
+    setCompleteError(null);
+    try {
+      await data.api.createWorkoutLog(
+        buildGuidedWorkoutLogDraft({
+          summary: completed,
+          workout: activeWorkout,
+          recordedAt: new Date().toISOString(),
+        }),
+      );
+      await data.refreshHomeData();
+      await data.refreshWorkouts();
+      setCompleteOpen(false);
+      setCompleted(null);
+      setActiveWorkout(null);
+    } catch (error) {
+      setCompleteError(extractApiError(error).message);
+    } finally {
+      setCompleteSaving(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -127,12 +185,44 @@ export function TrainScreen() {
           ) : (
             <View style={styles.wlist}>
               {library.map((wk) => (
-                <WorkoutCard key={wk.id} workout={wk} />
+                <WorkoutCard key={wk.id} workout={wk} onPress={() => setDetailWorkout(wk)} />
               ))}
             </View>
           )}
         </ScrollView>
       </SafeAreaView>
+      <WorkoutDetailSheet
+        visible={Boolean(detailWorkout)}
+        workout={detailWorkout}
+        onClose={() => setDetailWorkout(null)}
+        onStartWorkout={startLibraryWorkout}
+      />
+      {activeWorkout ? (
+        <WorkoutPlayer
+          visible={Boolean(activeWorkout) && !completeOpen && !completed}
+          workout={activeWorkout}
+          onClose={() => setActiveWorkout(null)}
+          onComplete={(summary) => {
+            setCompleted(summary);
+            setCompleteOpen(true);
+          }}
+        />
+      ) : null}
+      {completeView ? (
+        <WorkoutCompleteSheet
+          visible={completeOpen}
+          view={completeView}
+          onClose={() => {
+            setCompleteOpen(false);
+            setCompleteError(null);
+            setCompleted(null);
+            setActiveWorkout(null);
+          }}
+          onBackHome={() => void confirmWorkoutComplete()}
+          isSaving={completeSaving}
+          errorMessage={completeError}
+        />
+      ) : null}
     </View>
   );
 }
