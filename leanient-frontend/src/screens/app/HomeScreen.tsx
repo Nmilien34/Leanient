@@ -48,10 +48,18 @@ const DOSE_COLLAPSED_COUNT = 4;
 
 const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** Short label for a logged dose, e.g. "Sun, Jun 1". */
-function formatDoseDate(iso: string): string {
+/**
+ * Friendly label for a logged dose: "Today" / "Yesterday" / "N days ago" for the
+ * past week, then the absolute date ("Sun, Jun 1") for older entries.
+ */
+function formatDoseDate(iso: string, now: Date): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
   return `${WEEKDAYS_SHORT[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
@@ -368,7 +376,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   <Text style={styles.doseHistTitle}>RECENT DOSES</Text>
                   {visibleDoses.map((d) => (
                     <View key={d.id} style={styles.doseRow}>
-                      <Text style={styles.doseDate}>{formatDoseDate(d.recordedAt)}</Text>
+                      <Text style={styles.doseDate}>{formatDoseDate(d.recordedAt, now)}</Text>
                       <Text style={styles.doseMeta} numberOfLines={1}>
                         {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
                         {d.doseAmount} {d.doseUnit}
