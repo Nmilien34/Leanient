@@ -1,11 +1,19 @@
 import React, { useEffect, useRef, useState, useReducer } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, Modal } from "react-native";
 import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
+import * as Haptics from "expo-haptics";
+import Svg, { Circle, G, Path } from "react-native-svg";
 import type { Workout } from "@leanient/shared";
+import { ExerciseIcon } from "./ExerciseIcon";
 import { font } from "../../theme/fonts";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// Hold-to-complete: hold the dumbbell this long and the set logs itself.
+const HOLD_MS = 2000;
+const RING_RADIUS = 96;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 import { completedExerciseCount, initSession, selectView, sessionReducer, type CompletedWorkout } from "../../screens/app/workoutSession";
 
 function Dumbbell() {
@@ -71,6 +79,40 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
     });
   }, [state, workout, onComplete]);
 
+  // Hold-to-complete the dumbbell: a ring fills over HOLD_MS, then the set logs.
+  const hold = useRef(new Animated.Value(0)).current;
+  const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const [holding, setHolding] = useState(false);
+
+  const startHold = () => {
+    setHolding(true);
+    hold.setValue(0);
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    const anim = Animated.timing(hold, {
+      toValue: 1,
+      duration: HOLD_MS,
+      easing: Easing.linear,
+      useNativeDriver: false, // animating SVG strokeDashoffset
+    });
+    holdAnim.current = anim;
+    anim.start(({ finished }) => {
+      setHolding(false);
+      if (finished) {
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        }
+        hold.setValue(0);
+        dispatch({ type: "DONE" });
+      }
+    });
+  };
+
+  const cancelHold = () => {
+    holdAnim.current?.stop();
+    setHolding(false);
+    Animated.timing(hold, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+  };
+
   if (state.phase === "complete") return null;
 
   const resting = state.phase === "resting";
@@ -110,11 +152,45 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
             </>
           ) : (
             <>
-              <View style={styles.disc}>
-                <LinearGradient colors={["#6FE0A6", "#23A869"]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={styles.discIcon}>
-                  <Dumbbell />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={view.isFinalSet ? "Hold to finish workout" : "Hold to complete set"}
+                onPressIn={startHold}
+                onPressOut={cancelHold}
+                style={styles.disc}
+              >
+                {/* progress ring that fills while held */}
+                <Svg width={200} height={200} style={StyleSheet.absoluteFill}>
+                  <Circle cx={100} cy={100} r={RING_RADIUS} stroke="rgba(127,227,171,0.18)" strokeWidth={5} fill="none" />
+                  <G rotation={-90} origin="100, 100">
+                    <AnimatedCircle
+                      cx={100}
+                      cy={100}
+                      r={RING_RADIUS}
+                      stroke="#7FE3AB"
+                      strokeWidth={5}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={RING_CIRCUMFERENCE}
+                      strokeDashoffset={hold.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [RING_CIRCUMFERENCE, 0],
+                      })}
+                    />
+                  </G>
+                </Svg>
+                <LinearGradient
+                  colors={holding ? ["#8FF0BC", "#1F9E63"] : ["#6FE0A6", "#23A869"]}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                  style={[styles.discIcon, holding && styles.discIconHolding]}
+                >
+                  <ExerciseIcon name={view.current.name} muscleGroups={view.current.muscleGroups} size={40} />
                 </LinearGradient>
-              </View>
+                <Text style={styles.holdCaption}>
+                  {holding ? "Keep holding…" : view.isFinalSet ? "Hold to finish" : "Hold to log set"}
+                </Text>
+              </Pressable>
               <Text style={[styles.eyebrow, styles.eyebrowSpace]}>{view.current.eyebrow}</Text>
               <Text style={styles.name}>{view.current.name}</Text>
               <Text style={styles.reps}>{view.current.reps}</Text>
@@ -151,16 +227,9 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
               </Pressable>
             </>
           ) : (
-            <>
-              <Pressable accessibilityRole="button" accessibilityLabel={view.isFinalSet ? "Done, finish workout" : "Done, start rest"} onPress={() => dispatch({ type: "DONE" })}>
-                <LinearGradient colors={["#7FE3AB", "#2FB87A", "#1F9E63"]} locations={[0, 0.6, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
-                  <Text style={styles.ctaText}>{view.isFinalSet ? "Done · finish workout" : "Done · start rest"}</Text>
-                </LinearGradient>
-              </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="End workout" onPress={() => dispatch({ type: "END" })} style={styles.subRowCenter}>
-                <Text style={styles.end}>End workout</Text>
-              </Pressable>
-            </>
+            <Pressable accessibilityRole="button" accessibilityLabel="End workout" onPress={() => dispatch({ type: "END" })} style={styles.subRowCenter}>
+              <Text style={styles.end}>End workout</Text>
+            </Pressable>
           )}
         </View>
       </ModalSafeArea>
@@ -215,8 +284,9 @@ const styles = StyleSheet.create({
   segDone: { backgroundColor: "#2FB87A" },
   segNow: { backgroundColor: "rgba(127,227,171,0.5)" },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
-  disc: { width: 200, height: 200, borderRadius: 100, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(127,227,171,0.22)", backgroundColor: "rgba(127,227,171,0.06)" },
+  disc: { width: 200, height: 200, borderRadius: 100, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(127,227,171,0.06)" },
   discIcon: { width: 96, height: 96, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  discIconHolding: { transform: [{ scale: 1.06 }] },
   eyebrow: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 1.4, color: ACCENT },
   eyebrowSpace: { marginTop: 26 },
   name: { fontFamily: font.extrabold, fontSize: 27, letterSpacing: -0.54, color: "#F4FBF6", marginTop: 10, textAlign: "center" },
@@ -229,8 +299,7 @@ const styles = StyleSheet.create({
   nextLabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.8, color: ACCENT },
   nextText: { fontFamily: font.bold, fontSize: 14.5, color: LIGHT, marginTop: 2 },
   foot: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 },
-  cta: { height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center" },
-  ctaText: { fontFamily: font.bold, fontSize: 16, color: "#06210F" },
+  holdCaption: { fontFamily: font.semibold, fontSize: 11.5, letterSpacing: 0.4, color: "rgba(244,251,246,0.72)", marginTop: 10 },
   subRowCenter: { alignItems: "center", paddingVertical: 14 },
   end: { fontFamily: font.semibold, fontSize: 14, color: "#D8A0A0" },
   restRow: { flexDirection: "row", gap: 11 },

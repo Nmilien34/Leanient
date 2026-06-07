@@ -103,7 +103,7 @@ describe("workout service", () => {
 
     const slugs = modelMocks.workouts.map((workout) => workout.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
-    expect(modelMocks.workouts.filter((workout) => workout.active)).toHaveLength(8);
+    expect(modelMocks.workouts.filter((workout) => workout.active)).toHaveLength(11);
     expect(modelMocks.workouts.find((workout) => workout.slug === "shot-day-reset")).toMatchObject({
       active: false,
     });
@@ -120,18 +120,42 @@ describe("workout service", () => {
         "push-day-dumbbell",
         "pull-day-dumbbell",
         "bodyweight-basics",
+        "outdoor-muscle-walk",
+        "apartment-strength-reset",
+        "dumbbell-muscle-base",
       ]),
     );
   });
 
   it.each<[EquipmentAccess, string[]]>([
-    ["none", ["bodyweight-basics", "core-and-posture", "shot-day-mobility"]],
-    ["bodyweight_only", ["bodyweight-basics", "core-and-posture", "shot-day-mobility"]],
+    [
+      "none",
+      [
+        "apartment-strength-reset",
+        "bodyweight-basics",
+        "core-and-posture",
+        "outdoor-muscle-walk",
+        "shot-day-mobility",
+      ],
+    ],
+    [
+      "bodyweight_only",
+      [
+        "apartment-strength-reset",
+        "bodyweight-basics",
+        "core-and-posture",
+        "outdoor-muscle-walk",
+        "shot-day-mobility",
+      ],
+    ],
     [
       "dumbbells",
       [
+        "apartment-strength-reset",
         "bodyweight-basics",
         "core-and-posture",
+        "dumbbell-muscle-base",
+        "outdoor-muscle-walk",
         "shot-day-mobility",
         "upper-body-dumbbell",
         "lower-body-strength",
