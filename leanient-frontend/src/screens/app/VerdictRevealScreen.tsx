@@ -42,7 +42,7 @@ export function VerdictRevealScreen({ verdict, onSeeChanges, onBackHome }: Verdi
         <View style={styles.body}>
           <Text style={styles.eyebrow}>{weekLabel(verdict.weekOf)}</Text>
           <View style={styles.cardWrap}>
-            <VerdictCard verdict={verdict} mini />
+            <VerdictCard verdict={verdict} />
           </View>
           <Button label="See what changed" onPress={onSeeChanges} style={styles.cta} />
           <Button label="Back to home" variant="ghost" onPress={onBackHome} style={styles.ghost} />

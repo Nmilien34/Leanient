@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
 import { useLeanientData } from "../../context/LeanientDataContext";
-import { mockProgressPhotos } from "../../mocks/progress";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
 import { Switch } from "../../components/ui/Switch";
+import { ProgressPhotoDownloadScreen } from "./ProgressPhotoDownloadScreen";
+import { buildPrivacyDataExportPayload, buildPrivacyDataExportShareContent } from "./privacyDataExport";
 import { SHARING_TOGGLES, defaultSharingState, photosLabel, type SharingIcon } from "./privacySettings";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -50,10 +51,37 @@ interface PrivacyScreenProps {
  */
 export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, onDeleteAll }: PrivacyScreenProps) {
   const data = useLeanientData();
-  const photoCount = (data.progressPhotos.length ? data.progressPhotos : mockProgressPhotos).length;
+  const photoCount = data.progressPhotos.length;
   const [sharing, setSharing] = useState<Record<string, boolean>>(() => defaultSharingState());
+  const [photosOpen, setPhotosOpen] = useState(false);
 
   const toggle = (id: string) => setSharing((s) => ({ ...s, [id]: !s[id] }));
+  const exportData = async () => {
+    const payload = buildPrivacyDataExportPayload({
+      profile: data.profile,
+      medicationProtocol: data.medicationProtocol,
+      latestVerdictStatus: data.latestVerdictStatus,
+      latestVerdictMessage: data.latestVerdictMessage,
+      latestVerdict: data.latestVerdict,
+      weightLogs: data.weightLogs,
+      recentDoseLogs: data.recentDoseLogs,
+      todaysMeals: data.todaysMeals,
+      todaysWorkouts: data.todaysWorkouts,
+      progressOverview: data.progressOverview,
+      trainingToday: data.trainingToday,
+      progressPhotos: data.progressPhotos,
+    });
+
+    try {
+      await Share.share(buildPrivacyDataExportShareContent(payload));
+    } catch {
+      Alert.alert("Export could not start", "Try again in a moment.");
+    }
+  };
+  const openPhotos = () => {
+    setPhotosOpen(true);
+    void data.refreshProgressPhotos();
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
@@ -75,8 +103,8 @@ export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, on
             <Text style={styles.glabel}>YOUR DATA</Text>
             <SettingGroup
               rows={[
-                { key: "export", icon: Icons.shield, label: "Export my data", onPress: onExport },
-                { key: "photos", icon: Icons.download, label: "Download progress photos", value: photosLabel(photoCount), onPress: onDownloadPhotos },
+                { key: "export", icon: Icons.shield, label: "Export my data", onPress: onExport ?? exportData },
+                { key: "photos", icon: Icons.download, label: "Download progress photos", value: photosLabel(photoCount), onPress: onDownloadPhotos ?? openPhotos },
               ]}
             />
 
@@ -111,6 +139,12 @@ export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, on
             </View>
           </ScrollView>
         </ModalSafeArea>
+        <ProgressPhotoDownloadScreen
+          visible={photosOpen}
+          photos={data.progressPhotos}
+          onClose={() => setPhotosOpen(false)}
+          onRefresh={data.refreshProgressPhotos}
+        />
       </View>
     </Modal>
   );

@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import type { VerdictStatus, WeeklyVerdict } from "@leanient/shared";
 import { RadialGlow } from "../layout/RadialGlow";
+import { shouldShowVerdictCardAction } from "./verdictCardBehavior";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -92,6 +93,7 @@ export function VerdictCard({ verdict, contextLabel, onAction, mini, override }:
   const headline = override?.headline ?? verdict.headline;
   const message = override?.message ?? verdict.message;
   const actionLabel = override?.actionLabel ?? ACTION_LABELS[verdict.nextActionCode] ?? "See this week's plan";
+  const showAction = shouldShowVerdictCardAction({ mini, onAction });
 
   return (
     <View style={[styles.card, mini && styles.cardMini]}>
@@ -118,7 +120,7 @@ export function VerdictCard({ verdict, contextLabel, onAction, mini, override }:
         {message}
       </Text>
 
-      {!mini ? (
+      {showAction ? (
         <Animated.View style={{ transform: [{ scale }], marginTop: 20 }}>
           <Pressable
             accessibilityRole="button"
