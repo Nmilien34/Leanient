@@ -5,6 +5,7 @@ export const APP_NAME = "Leanient";
 export const APP_VERSION = "0.1.0";
 
 export const SUPPORT_EMAIL = "support@leanient.app";
+export const REPORT_PROBLEM_EMAIL = "dev@boltzman.ai";
 
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??

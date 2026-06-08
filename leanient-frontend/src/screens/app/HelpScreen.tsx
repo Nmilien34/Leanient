@@ -5,9 +5,10 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
-import { APP_NAME, APP_VERSION, SUPPORT_EMAIL } from "../../config";
+import { APP_NAME, APP_VERSION } from "../../config";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+import { coachHelpMailto, reportProblemMailto } from "./helpLinks";
 
 const FAQ_URL = "https://leanient.app/faq";
 const GUIDE_URL = "https://leanient.app/getting-started";
@@ -45,8 +46,8 @@ interface HelpScreenProps {
  * and the app version (config-driven). Links open via `Linking`.
  */
 export function HelpScreen({ visible, onClose }: HelpScreenProps) {
-  const mailCoach = () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Help with Leanient")}`);
-  const reportProblem = () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Problem report")}`);
+  const mailCoach = () => Linking.openURL(coachHelpMailto());
+  const reportProblem = () => Linking.openURL(reportProblemMailto());
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>

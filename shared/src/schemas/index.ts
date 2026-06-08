@@ -240,16 +240,20 @@ export const medicationCatalogItemResponseSchema = z
 
 export const userMedicationProtocolCoreSchema = z
   .object({
-    medicationCatalogId: z.string().min(1).optional(),
+    // Optional fields accept null and normalize it to undefined: Mongoose stores
+    // unset optional fields as null in embedded snapshots, so a strict optional()
+    // would reject reading them back (e.g. customMedicationName: null). The
+    // transform keeps the output type `string | undefined` (no contract change).
+    medicationCatalogId: z.string().min(1).nullish().transform((v) => v ?? undefined),
     medicationName: z.string().trim().min(1),
-    customMedicationName: z.string().trim().min(1).optional(),
-    doseAmount: z.number().positive().optional(),
+    customMedicationName: z.string().trim().min(1).nullish().transform((v) => v ?? undefined),
+    doseAmount: z.number().positive().nullish().transform((v) => v ?? undefined),
     doseUnit: doseUnitSchema,
     // Days of the week the user injects. Usually one, but split-dose protocols
     // take shots on multiple days, so this is an array of at least one weekday.
     shotDays: z.array(weekdaySchema).min(1),
     startDate: dateOnlySchema,
-    notes: z.string().trim().max(1000).optional(),
+    notes: z.string().trim().max(1000).nullish().transform((v) => v ?? undefined),
     active: z.boolean().default(true),
   })
   .strict();
