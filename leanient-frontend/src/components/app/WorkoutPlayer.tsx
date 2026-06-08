@@ -14,7 +14,14 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const HOLD_MS = 2000;
 const RING_RADIUS = 96;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-import { completedExerciseCount, initSession, selectView, sessionReducer, type CompletedWorkout } from "../../screens/app/workoutSession";
+import {
+  completedExerciseCount,
+  initSession,
+  selectExerciseSegmentFills,
+  selectView,
+  sessionReducer,
+  type CompletedWorkout,
+} from "../../screens/app/workoutSession";
 
 function Dumbbell() {
   return (
@@ -30,6 +37,10 @@ function Spark() {
       <Path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z" />
     </Svg>
   );
+}
+
+function percentWidth(value: number): `${number}%` {
+  return `${Math.min(100, Math.max(0, value * 100))}%` as `${number}%`;
 }
 
 interface PlayerInnerProps {
@@ -84,6 +95,12 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const [holding, setHolding] = useState(false);
 
+  useEffect(() => {
+    holdAnim.current?.stop();
+    hold.setValue(0);
+    setHolding(false);
+  }, [state.exerciseIndex, state.phase, state.set, hold]);
+
   const startHold = () => {
     setHolding(true);
     hold.setValue(0);
@@ -101,7 +118,6 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         }
-        hold.setValue(0);
         dispatch({ type: "DONE" });
       }
     });
@@ -116,6 +132,17 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   if (state.phase === "complete") return null;
 
   const resting = state.phase === "resting";
+  const segmentFills = selectExerciseSegmentFills(state, workout, 0);
+  const activeExercise = workout.exercises[view.exerciseIndex];
+  const activeSegmentBase = segmentFills[view.exerciseIndex] ?? 0;
+  const activeSegmentTarget =
+    state.phase === "active" && activeExercise
+      ? Math.min(1, state.set / Math.max(1, activeExercise.sets))
+      : activeSegmentBase;
+  const activeSegmentWidth = hold.interpolate({
+    inputRange: [0, 1],
+    outputRange: [percentWidth(activeSegmentBase), percentWidth(activeSegmentTarget)],
+  });
 
   return (
     <LinearGradient colors={["#142a1e", "#0b120d"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.root}>
@@ -134,12 +161,19 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
 
         {/* exercise progress segments */}
         <View style={styles.seg}>
-          {Array.from({ length: view.total }, (_, i) => (
-            <View
-              key={i}
-              style={[styles.segItem, i < view.exerciseIndex ? styles.segDone : i === view.exerciseIndex ? styles.segNow : null]}
-            />
-          ))}
+          {Array.from({ length: view.total }, (_, i) => {
+            const isCurrent = i === view.exerciseIndex;
+            const fillWidth =
+              isCurrent && state.phase === "active"
+                ? activeSegmentWidth
+                : percentWidth(segmentFills[i] ?? 0);
+
+            return (
+              <View key={i} style={[styles.segItem, isCurrent && styles.segCurrentTrack]}>
+                <Animated.View style={[styles.segFill, { width: fillWidth }]} />
+              </View>
+            );
+          })}
         </View>
 
         {/* stage */}
@@ -280,9 +314,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: font.bold, fontSize: 13, color: LIGHT },
   count: { fontFamily: font.bold, fontSize: 13, color: ACCENT, minWidth: 36, textAlign: "right" },
   seg: { flexDirection: "row", gap: 5, paddingHorizontal: 20, paddingTop: 16 },
-  segItem: { flex: 1, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)" },
-  segDone: { backgroundColor: "#2FB87A" },
-  segNow: { backgroundColor: "rgba(127,227,171,0.5)" },
+  segItem: { flex: 1, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
+  segCurrentTrack: { backgroundColor: "rgba(127,227,171,0.22)" },
+  segFill: { height: "100%", borderRadius: 3, backgroundColor: "#2FB87A" },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
   disc: { width: 200, height: 200, borderRadius: 100, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(127,227,171,0.06)" },
   discIcon: { width: 96, height: 96, borderRadius: 28, alignItems: "center", justifyContent: "center" },

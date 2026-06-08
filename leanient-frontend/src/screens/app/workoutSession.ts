@@ -117,6 +117,35 @@ export interface CompletedWorkout {
   elapsedSeconds: number;
 }
 
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * Per-exercise top-bar fill. Prior exercises are full, future exercises are
+ * empty, and the active exercise fills by set completion plus the current hold.
+ */
+export function selectExerciseSegmentFills(
+  state: SessionState,
+  workout: Workout,
+  activeHoldProgress = 0,
+): number[] {
+  const completedCount =
+    state.phase === "complete" ? completedExerciseCount(state, workout) : state.exerciseIndex;
+
+  return workout.exercises.map((exercise, index) => {
+    if (index < completedCount) return 1;
+    if (index > state.exerciseIndex || state.phase === "complete") return 0;
+
+    const sets = Math.max(1, exercise.sets);
+    if (state.phase === "resting") {
+      return clamp01(state.set / sets);
+    }
+
+    return clamp01((state.set - 1 + clamp01(activeHoldProgress)) / sets);
+  });
+}
+
 export function selectView(state: SessionState, workout: Workout): SessionView {
   const total = workout.exercises.length;
   const exercise = workout.exercises[state.exerciseIndex];

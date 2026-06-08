@@ -1,5 +1,8 @@
+import * as ImagePicker from "expo-image-picker";
 import type { ProgressPhoto, ProgressPhotoUploadIntentRequest } from "@leanient/shared";
 import apiService from "./api.service";
+
+type ProgressPhotoContentType = ProgressPhotoUploadIntentRequest["contentType"];
 
 interface ProgressPhotoApi {
   createProgressPhotoUploadIntent: typeof apiService.createProgressPhotoUploadIntent;
@@ -13,6 +16,50 @@ interface ProgressPhotoServiceOptions {
 
 export interface UploadProgressPhotoInput extends ProgressPhotoUploadIntentRequest {
   bytes: BodyInit;
+}
+
+export interface PickedProgressPhoto {
+  uri: string;
+  contentType: ProgressPhotoContentType;
+}
+
+const LIBRARY_PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ["images"],
+  allowsEditing: false,
+  quality: 0.9,
+};
+
+export function detectProgressPhotoContentType(
+  mimeType: string | undefined,
+  uri: string,
+): ProgressPhotoContentType {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (mime === "image/png") return "image/png";
+  if (mime === "image/webp") return "image/webp";
+  if (mime === "image/heic") return "image/heic";
+  if (mime === "image/jpeg" || mime === "image/jpg") return "image/jpeg";
+
+  const normalized = uri.split(/[?#]/)[0]?.toLowerCase() ?? "";
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".heic")) return "image/heic";
+  return "image/jpeg";
+}
+
+export async function pickProgressPhotoFromLibrary(): Promise<PickedProgressPhoto | null> {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    throw new Error("Photo access is needed to choose a progress photo. Enable it in Settings.");
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync(LIBRARY_PICKER_OPTIONS);
+  if (result.canceled || !result.assets?.[0]) return null;
+
+  const asset = result.assets[0];
+  return {
+    uri: asset.uri,
+    contentType: detectProgressPhotoContentType(asset.mimeType, asset.uri),
+  };
 }
 
 function resolveUploadSizeBytes(input: UploadProgressPhotoInput, photo: ProgressPhoto): number {

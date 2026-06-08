@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Alert, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import type { CreateMealLogRequest, MealScanResponse, Workout } from "@leanient/shared";
+import type { CreateMealLogRequest, MealScanResponse, ProgressPhotoUploadIntentRequest, Workout } from "@leanient/shared";
 import { QuickActionsProvider, type QuickActions } from "../context/QuickActionsContext";
 import { TabBar } from "../components/layout/TabBar";
 import { QuickLogSheet } from "../components/app/QuickLogSheet";
@@ -25,7 +25,7 @@ import { mockRecommendedWorkout } from "../mocks/workouts";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "../screens/app/workoutCompleteMetrics";
 import type { CompletedWorkout } from "../screens/app/workoutSession";
 import { extractApiError } from "../services/apiError";
-import progressPhotoService from "../services/progressPhoto.service";
+import progressPhotoService, { pickProgressPhotoFromLibrary } from "../services/progressPhoto.service";
 import { colors } from "../theme/tokens";
 
 const Tab = createBottomTabNavigator();
@@ -43,6 +43,8 @@ async function blobFromUri(uri: string): Promise<Blob> {
 
   return response.blob();
 }
+
+type ProgressPhotoContentType = ProgressPhotoUploadIntentRequest["contentType"];
 
 function buildMealLogFromScan(
   mode: "as_is" | "swap",
@@ -126,6 +128,32 @@ export function MainTabs() {
     try {
       await task();
       close();
+    } catch (error) {
+      showLogError(error);
+    }
+  };
+
+  const uploadProgressPhotoFromUri = async (
+    uri: string,
+    contentType: ProgressPhotoContentType,
+  ) => {
+    const blob = await blobFromUri(uri);
+    await progressPhotoService.uploadProgressPhoto({
+      captureDate: todayDateOnly(),
+      contentType,
+      bytes: blob,
+      sizeBytes: blob.size || undefined,
+    });
+    await data.refreshProgress();
+  };
+
+  const pickAndUploadProgressPhoto = async () => {
+    try {
+      const picked = await pickProgressPhotoFromLibrary();
+      if (!picked) return;
+
+      await uploadProgressPhotoFromUri(picked.uri, picked.contentType);
+      setPhotoOpen(false);
     } catch (error) {
       showLogError(error);
     }
@@ -291,18 +319,12 @@ export function MainTabs() {
         onCaptured={(uri) =>
           saveAndClose(
             async () => {
-              const blob = await blobFromUri(uri);
-              await progressPhotoService.uploadProgressPhoto({
-                captureDate: todayDateOnly(),
-                contentType: "image/jpeg",
-                bytes: blob,
-                sizeBytes: blob.size || undefined,
-              });
-              await data.refreshProgress();
+              await uploadProgressPhotoFromUri(uri, "image/jpeg");
             },
             () => setPhotoOpen(false),
           )
         }
+        onGallery={() => void pickAndUploadProgressPhoto()}
       />
 
       <SideEffectLogScreen

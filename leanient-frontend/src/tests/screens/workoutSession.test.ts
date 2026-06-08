@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { completedExerciseCount, initSession, selectView, sessionReducer, type SessionAction, type SessionState } from "../../screens/app/workoutSession";
+import {
+  completedExerciseCount,
+  initSession,
+  selectExerciseSegmentFills,
+  selectView,
+  sessionReducer,
+  type SessionAction,
+  type SessionState,
+} from "../../screens/app/workoutSession";
 import { mockRecommendedWorkout as W } from "../../mocks/workouts";
 
 const step = (state: SessionState, action: SessionAction) => sessionReducer(state, action, W);
@@ -86,6 +94,29 @@ describe("workoutSession selectView", () => {
     expect(v.isFinalSet).toBe(true);
     expect(v.nextUp).toBeNull();
     expect(v.progressLabel).toBe("8 / 8");
+  });
+});
+
+describe("workoutSession exercise segment fills", () => {
+  it("fills the active exercise segment from the hold progress within the current set", () => {
+    expect(selectExerciseSegmentFills(initSession(), W, 0).slice(0, 3)).toEqual([0, 0, 0]);
+    expect(selectExerciseSegmentFills(initSession(), W, 0.5).slice(0, 3)).toEqual([1 / 6, 0, 0]);
+    expect(selectExerciseSegmentFills(initSession(), W, 1).slice(0, 3)).toEqual([1 / 3, 0, 0]);
+  });
+
+  it("keeps completed set progress through rest and continues filling the next active set", () => {
+    const resting = step(initSession(), { type: "DONE" });
+    expect(selectExerciseSegmentFills(resting, W).slice(0, 3)).toEqual([1 / 3, 0, 0]);
+
+    const secondSet: SessionState = { exerciseIndex: 0, set: 2, phase: "active", restRemaining: 0 };
+    expect(selectExerciseSegmentFills(secondSet, W, 0).slice(0, 3)).toEqual([1 / 3, 0, 0]);
+    expect(selectExerciseSegmentFills(secondSet, W, 0.5).slice(0, 3)).toEqual([0.5, 0, 0]);
+  });
+
+  it("marks prior exercises full and starts the next exercise segment at zero", () => {
+    const nextExercise: SessionState = { exerciseIndex: 1, set: 1, phase: "active", restRemaining: 0 };
+    expect(selectExerciseSegmentFills(nextExercise, W, 0).slice(0, 3)).toEqual([1, 0, 0]);
+    expect(selectExerciseSegmentFills(nextExercise, W, 1).slice(0, 3)).toEqual([1, 1 / 3, 0]);
   });
 });
 

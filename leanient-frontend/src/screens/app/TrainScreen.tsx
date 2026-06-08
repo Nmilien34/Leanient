@@ -4,13 +4,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import type { Workout, WorkoutEnergyPhase } from "@leanient/shared";
+import type { Workout, WorkoutEnergyPhase, WorkoutLog } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { WorkoutCard } from "../../components/app/WorkoutCard";
 import { WorkoutDetailSheet } from "../../components/app/WorkoutDetailSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
 import { WorkoutCompleteSheet } from "../../components/app/WorkoutCompleteSheet";
+import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
+import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
@@ -43,6 +45,8 @@ export function TrainScreen() {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completeSaving, setCompleteSaving] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
 
   const trainingToday = data.trainingToday;
   const featured = trainingToday?.featuredWorkout?.workout ?? null;
@@ -175,6 +179,9 @@ export function TrainScreen() {
           {/* library */}
           <View style={styles.libHead}>
             <Text style={styles.libTitle}>Your library</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Workout history" hitSlop={8} onPress={() => setHistoryOpen(true)}>
+              <Text style={styles.libLink}>History ›</Text>
+            </Pressable>
           </View>
           {libraryState === "loading" ? (
             <SkeletonCard lines={3} />
@@ -223,6 +230,19 @@ export function TrainScreen() {
           errorMessage={completeError}
         />
       ) : null}
+
+      <WorkoutHistoryScreen
+        visible={historyOpen}
+        workouts={library}
+        onClose={() => setHistoryOpen(false)}
+        onSelectLog={(log) => setSelectedLog(log)}
+      />
+      <WorkoutDetailScreen
+        visible={selectedLog !== null}
+        log={selectedLog}
+        workouts={library}
+        onClose={() => setSelectedLog(null)}
+      />
     </View>
   );
 }
@@ -247,8 +267,9 @@ const styles = StyleSheet.create({
   startBtn: { marginTop: 16, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
   startText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7" },
   // library
-  libHead: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
+  libHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
   libTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
+  libLink: { fontFamily: font.semibold, fontSize: 13.5, color: colors.emeraldDeep },
   wlist: { gap: 10, paddingHorizontal: 20, paddingTop: 6 },
 });
 
