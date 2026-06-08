@@ -35,6 +35,7 @@ import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
 import { DoseDetailScreen } from "./DoseDetailScreen";
+import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { deriveWeekPlan } from "./weekPlanMetrics";
@@ -83,6 +84,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const [scope, setScope] = useState<"week" | "today">("week");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
+  const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [todayPlanOpen, setTodayPlanOpen] = useState(false);
@@ -524,6 +526,9 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         onComplete={(newVerdict) => {
           setCheckinOpen(false);
           setRevealVerdict(newVerdict);
+          // Refresh Home so the verdict card + the "See the breakdown" explainer
+          // reflect the just-generated verdict, not the prior week's.
+          void data.refreshHomeData();
         }}
       />
       {revealVerdict ? (
@@ -531,11 +536,17 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           verdict={revealVerdict}
           onSeeChanges={() => {
             setRevealVerdict(null);
-            setExplainerOpen(true);
+            setWhatChangedOpen(true);
           }}
           onBackHome={() => setRevealVerdict(null)}
         />
       ) : null}
+
+      <WhatChangedScreen
+        visible={whatChangedOpen}
+        snapshots={data.progressOverview?.chart.snapshots ?? []}
+        onClose={() => setWhatChangedOpen(false)}
+      />
 
       <DoseHistoryScreen
         visible={doseHistoryOpen}

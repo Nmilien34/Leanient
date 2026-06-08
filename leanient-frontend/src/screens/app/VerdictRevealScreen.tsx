@@ -31,21 +31,40 @@ interface VerdictRevealScreenProps {
  * "See what changed" opens the verdict explainer on Home; "Back to home" dismisses.
  */
 export function VerdictRevealScreen({ verdict, onSeeChanges, onBackHome }: VerdictRevealScreenProps) {
+  // First check-ins (and weeks without enough data) come back "no_data": the
+  // muscle-retention verdict needs a prior week to compare against. Frame that as
+  // progress ("check-in saved, verdict unlocks next week") instead of a flat
+  // "still gathering", and hide the breakdown CTA since there's nothing to break
+  // down yet.
+  const gathering = verdict.status === "no_data";
+
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
       <ScreenGround />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.head}>
-          <Text style={styles.headTitle}>Your verdict</Text>
+          <Text style={styles.headTitle}>{gathering ? "Check-in saved" : "Your verdict"}</Text>
         </View>
         <View style={styles.body}>
           <Text style={styles.eyebrow}>{weekLabel(verdict.weekOf)}</Text>
           <View style={styles.cardWrap}>
             <VerdictCard verdict={verdict} />
           </View>
-          <Button label="See what changed" onPress={onSeeChanges} style={styles.cta} />
-          <Button label="Back to home" variant="ghost" onPress={onBackHome} style={styles.ghost} />
+          {gathering ? (
+            <>
+              <Text style={styles.note}>
+                Your full muscle verdict needs one more weekly check-in to compare against. Keep logging your
+                protein and workouts, and it unlocks next week.
+              </Text>
+              <Button label="Got it" onPress={onBackHome} style={styles.cta} />
+            </>
+          ) : (
+            <>
+              <Button label="See what changed" onPress={onSeeChanges} style={styles.cta} />
+              <Button label="Back to home" variant="ghost" onPress={onBackHome} style={styles.ghost} />
+            </>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -59,7 +78,8 @@ const styles = StyleSheet.create({
   headTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
   body: { flex: 1, justifyContent: "center", paddingHorizontal: 22, paddingBottom: 30 },
   eyebrow: { fontFamily: font.semibold, fontSize: 12, letterSpacing: 1.0, color: colors.muted, textAlign: "center", marginBottom: 16 },
-  cardWrap: { marginBottom: 26 },
+  cardWrap: { marginBottom: 22 },
+  note: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: colors.muted, textAlign: "center", marginBottom: 22, paddingHorizontal: 6 },
   cta: {},
   ghost: { marginTop: 8 },
 });

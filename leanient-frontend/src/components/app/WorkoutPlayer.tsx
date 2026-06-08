@@ -10,7 +10,7 @@ import { ExerciseIcon } from "./ExerciseIcon";
 import { font } from "../../theme/fonts";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-// Hold-to-complete: hold the dumbbell this long and the exercise logs itself.
+// Hold-to-start: hold the dumbbell this long, then the exercise timer begins.
 const HOLD_MS = 2000;
 const RING_RADIUS = 96;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -70,9 +70,9 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
     return () => clearInterval(id);
   }, [state.phase]);
 
-  // Rest countdown: tick once a second while resting; the reducer auto-advances at 0.
+  // Exercise and rest countdowns tick once a second; the reducer advances at 0.
   useEffect(() => {
-    if (state.phase !== "resting") return;
+    if (state.phase !== "active" && state.phase !== "resting") return;
     const id = setInterval(() => dispatch({ type: "TICK" }), 1000);
     return () => clearInterval(id);
   }, [state.phase]);
@@ -90,7 +90,8 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
     });
   }, [state, workout, onComplete]);
 
-  // Hold-to-complete the dumbbell: the ring and top segment fill over HOLD_MS, then the exercise logs.
+  // Hold-to-start the dumbbell. The ring fills during the gesture; the top segment
+  // waits until START moves the exercise into its real countdown.
   const hold = useRef(new Animated.Value(0)).current;
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const [holding, setHolding] = useState(false);
@@ -102,6 +103,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   }, [state.exerciseIndex, state.phase, state.set, hold]);
 
   const startHold = () => {
+    if (state.phase !== "ready") return;
     setHolding(true);
     hold.setValue(0);
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -118,7 +120,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         }
-        dispatch({ type: "DONE" });
+        dispatch({ type: "START" });
       }
     });
   };
@@ -132,16 +134,8 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   if (state.phase === "complete") return null;
 
   const resting = state.phase === "resting";
-  const segmentFills = selectExerciseSegmentFills(state, workout, 0);
-  const activeSegmentBase = segmentFills[view.exerciseIndex] ?? 0;
-  const activeSegmentTarget =
-    state.phase === "active"
-      ? (selectExerciseSegmentFills(state, workout, 1)[view.exerciseIndex] ?? activeSegmentBase)
-      : activeSegmentBase;
-  const activeSegmentWidth = hold.interpolate({
-    inputRange: [0, 1],
-    outputRange: [percentWidth(activeSegmentBase), percentWidth(activeSegmentTarget)],
-  });
+  const running = state.phase === "active";
+  const segmentFills = selectExerciseSegmentFills(state, workout);
 
   return (
     <LinearGradient colors={["#142a1e", "#0b120d"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.root}>
@@ -162,14 +156,11 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
         <View style={styles.seg}>
           {Array.from({ length: view.total }, (_, i) => {
             const isCurrent = i === view.exerciseIndex;
-            const fillWidth =
-              isCurrent && state.phase === "active"
-                ? activeSegmentWidth
-                : percentWidth(segmentFills[i] ?? 0);
+            const fillWidth = percentWidth(segmentFills[i] ?? 0);
 
             return (
               <View key={i} style={[styles.segItem, isCurrent && styles.segCurrentTrack]}>
-                <Animated.View style={[styles.segFill, { width: fillWidth }]} />
+                <View style={[styles.segFill, { width: fillWidth }]} />
               </View>
             );
           })}
@@ -185,45 +176,50 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
             </>
           ) : (
             <>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={view.isFinalSet ? "Hold to finish workout" : "Hold to complete exercise"}
-                onPressIn={startHold}
-                onPressOut={cancelHold}
-                style={styles.disc}
-              >
-                {/* progress ring that fills while held */}
-                <Svg width={200} height={200} style={StyleSheet.absoluteFill}>
-                  <Circle cx={100} cy={100} r={RING_RADIUS} stroke="rgba(127,227,171,0.18)" strokeWidth={5} fill="none" />
-                  <G rotation={-90} origin="100, 100">
-                    <AnimatedCircle
-                      cx={100}
-                      cy={100}
-                      r={RING_RADIUS}
-                      stroke="#7FE3AB"
-                      strokeWidth={5}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeDasharray={RING_CIRCUMFERENCE}
-                      strokeDashoffset={hold.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [RING_CIRCUMFERENCE, 0],
-                      })}
-                    />
-                  </G>
-                </Svg>
-                <LinearGradient
-                  colors={holding ? ["#8FF0BC", "#1F9E63"] : ["#6FE0A6", "#23A869"]}
-                  start={{ x: 0.2, y: 0 }}
-                  end={{ x: 0.8, y: 1 }}
-                  style={[styles.discIcon, holding && styles.discIconHolding]}
+              {running ? (
+                <View style={[styles.disc, styles.runningDisc]}>
+                  <Text style={styles.exerciseTimer}>{view.exerciseLabel}</Text>
+                  <Text style={styles.runningCaption}>Exercise running</Text>
+                </View>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Hold to start exercise"
+                  onPressIn={startHold}
+                  onPressOut={cancelHold}
+                  style={styles.disc}
                 >
-                  <ExerciseIcon name={view.current.name} muscleGroups={view.current.muscleGroups} size={40} />
-                </LinearGradient>
-                <Text style={styles.holdCaption}>
-                  {holding ? "Keep holding..." : view.isFinalSet ? "Hold to finish" : "Hold to complete"}
-                </Text>
-              </Pressable>
+                  {/* progress ring that fills while held */}
+                  <Svg width={200} height={200} style={StyleSheet.absoluteFill}>
+                    <Circle cx={100} cy={100} r={RING_RADIUS} stroke="rgba(127,227,171,0.18)" strokeWidth={5} fill="none" />
+                    <G rotation={-90} origin="100, 100">
+                      <AnimatedCircle
+                        cx={100}
+                        cy={100}
+                        r={RING_RADIUS}
+                        stroke="#7FE3AB"
+                        strokeWidth={5}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray={RING_CIRCUMFERENCE}
+                        strokeDashoffset={hold.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [RING_CIRCUMFERENCE, 0],
+                        })}
+                      />
+                    </G>
+                  </Svg>
+                  <LinearGradient
+                    colors={holding ? ["#8FF0BC", "#1F9E63"] : ["#6FE0A6", "#23A869"]}
+                    start={{ x: 0.2, y: 0 }}
+                    end={{ x: 0.8, y: 1 }}
+                    style={[styles.discIcon, holding && styles.discIconHolding]}
+                  >
+                    <ExerciseIcon name={view.current.name} muscleGroups={view.current.muscleGroups} size={40} />
+                  </LinearGradient>
+                  <Text style={styles.holdCaption}>{holding ? "Keep holding..." : "Hold to start"}</Text>
+                </Pressable>
+              )}
               <Text style={[styles.eyebrow, styles.eyebrowSpace]}>{view.current.eyebrow}</Text>
               <Text style={styles.name}>{view.current.name}</Text>
               <Text style={styles.reps}>{view.current.reps}</Text>
@@ -318,8 +314,11 @@ const styles = StyleSheet.create({
   segFill: { height: "100%", borderRadius: 3, backgroundColor: "#2FB87A" },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
   disc: { width: 200, height: 200, borderRadius: 100, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(127,227,171,0.06)" },
+  runningDisc: { borderWidth: 1, borderColor: "rgba(127,227,171,0.28)", backgroundColor: "rgba(127,227,171,0.10)" },
   discIcon: { width: 96, height: 96, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   discIconHolding: { transform: [{ scale: 1.06 }] },
+  exerciseTimer: { fontFamily: font.extrabold, fontSize: 52, letterSpacing: -1, color: "#F4FBF6" },
+  runningCaption: { fontFamily: font.semibold, fontSize: 12, letterSpacing: 0.4, color: "rgba(244,251,246,0.72)", marginTop: 6 },
   eyebrow: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 1.4, color: ACCENT },
   eyebrowSpace: { marginTop: 26 },
   name: { fontFamily: font.extrabold, fontSize: 27, letterSpacing: -0.54, color: "#F4FBF6", marginTop: 10, textAlign: "center" },
