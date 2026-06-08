@@ -14,7 +14,7 @@ import { AddPhotoThumb, ProgressPhotoThumb } from "../../components/app/Progress
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
-import { StallDiagnosticScreen } from "./StallDiagnosticScreen";
+import { CoachChatScreen } from "./CoachChatScreen";
 import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
 import { CheckinDetailScreen } from "./CheckinDetailScreen";
 import { useAuth } from "../../context/AuthContext";
@@ -57,7 +57,7 @@ export function ProgressScreen() {
   const { openProgressPhoto } = useQuickActions();
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
-  const [stallOpen, setStallOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinHistoryItem | null>(null);
   const now = new Date();
@@ -227,7 +227,7 @@ export function ProgressScreen() {
 
           {/* coach prompt */}
           <View style={styles.aiWrap}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={() => setStallOpen(true)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={() => setCoachOpen(true)}>
               <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
                 <View style={styles.coachdot}>
                   <Spark />
@@ -272,7 +272,7 @@ export function ProgressScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <StallDiagnosticScreen visible={stallOpen} onClose={() => setStallOpen(false)} />
+      <CoachChatScreen visible={coachOpen} onClose={() => setCoachOpen(false)} />
       <CheckinHistoryScreen
         visible={checkinHistoryOpen}
         onClose={() => setCheckinHistoryOpen(false)}

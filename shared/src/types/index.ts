@@ -449,6 +449,18 @@ export interface StallDiagnosticResponse {
   engineVersion: string;
 }
 
+export type CoachChatRole = "user" | "assistant";
+
+export interface CoachChatMessage {
+  role: CoachChatRole;
+  content: string;
+}
+
+export interface CoachChatResponse {
+  reply: string;
+  refused: boolean;
+}
+
 export interface WorkoutExercise {
   name: string;
   sets: number;

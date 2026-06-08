@@ -19,6 +19,8 @@ import {
   inferEquipmentAccessFromTrainingStatus,
   latestWeeklyVerdictResponseSchema,
   mealLogResponseSchema,
+  coachChatRequestSchema,
+  coachChatResponseSchema,
   mealScanRequestSchema,
   mealScanResponseSchema,
   measurementLogResponseSchema,
@@ -74,6 +76,8 @@ import {
   type ProgressOverviewResponse,
   type SideEffectLog,
   type StallDiagnosticResponse,
+  type CoachChatMessage,
+  type CoachChatResponse,
   type MedicationCatalogItem,
   type OnboardingCompleteRequest,
   type OnboardingCompleteResponse,
@@ -411,6 +415,14 @@ export class LeanientApiClient {
 
   public async getStallDiagnostic(): Promise<StallDiagnosticResponse> {
     return this.post("/diagnostics/stall", undefined, stallDiagnosticResponseSchema);
+  }
+
+  public async coachChat(messages: CoachChatMessage[]): Promise<CoachChatResponse> {
+    return this.post(
+      "/coach/chat",
+      coachChatRequestSchema.parse({ messages }),
+      coachChatResponseSchema,
+    );
   }
 
   public async getProfile(): Promise<UserProfile> {

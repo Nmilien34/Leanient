@@ -8,6 +8,7 @@ import { AppError } from "./lib/errors";
 import { logger } from "./lib/logger";
 import { createHealthRouter } from "./routes/health.routes";
 import authRoutes from "./routes/auth.routes";
+import coachChatRoutes from "./routes/coachChat.routes";
 import diagnosticsRoutes from "./routes/diagnostics.routes";
 import doseLogRoutes from "./routes/doseLog.routes";
 import homeRoutes from "./routes/home.routes";
@@ -97,6 +98,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/weekly-checkins", weeklyCheckinRoutes);
   app.use("/weekly-verdicts", weeklyVerdictRoutes);
   app.use("/diagnostics", diagnosticsRoutes);
+  app.use(
+    "/coach",
+    createInMemoryRateLimiter({ windowMs: 60 * 1000, maxRequests: 12 }),
+    coachChatRoutes,
+  );
   app.use("/progress", progressRoutes);
   app.use("/training", trainingRoutes);
   app.use("/workouts", workoutRoutes);

@@ -691,6 +691,35 @@ export const stallDiagnosticResponseSchema = z
   })
   .strict();
 
+export const COACH_CHAT_MAX_MESSAGES = 16;
+export const COACH_CHAT_MAX_CONTENT_LENGTH = 600;
+
+export const coachChatMessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().trim().min(1).max(COACH_CHAT_MAX_CONTENT_LENGTH),
+  })
+  .strict();
+
+export const coachChatRequestSchema = z
+  .object({
+    messages: z
+      .array(coachChatMessageSchema)
+      .min(1)
+      .max(COACH_CHAT_MAX_MESSAGES)
+      .refine((messages) => messages[messages.length - 1]?.role === "user", {
+        message: "The final message must come from the user",
+      }),
+  })
+  .strict();
+
+export const coachChatResponseSchema = z
+  .object({
+    reply: z.string().min(1),
+    refused: z.boolean(),
+  })
+  .strict();
+
 export const onboardingCompleteRequestSchema = z
   .object({
     profile: userProfileInputSchema,
@@ -977,6 +1006,8 @@ export type WeeklyCheckinRequest = z.infer<typeof weeklyCheckinRequestSchema>;
 export type LatestWeeklyVerdictResponseBody = z.infer<
   typeof latestWeeklyVerdictResponseSchema
 >;
+export type CoachChatRequestBody = z.infer<typeof coachChatRequestSchema>;
+export type CoachChatResponseBody = z.infer<typeof coachChatResponseSchema>;
 export type OnboardingCompleteRequest = z.infer<typeof onboardingCompleteRequestSchema>;
 export type ProgressPhotoUploadIntentRequest = z.infer<
   typeof progressPhotoUploadIntentRequestSchema

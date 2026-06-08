@@ -1,4 +1,5 @@
 import type {
+  CoachChatMessage,
   MealScanAnalysis,
   MealScanImageMimeType,
   MealScanMode,
@@ -46,6 +47,11 @@ export const TODAYS_FOCUS_TEMPERATURE = 0.5;
 export const TODAYS_FOCUS_MAX_TOKENS = 200;
 export const TODAYS_FOCUS_TIMEOUT_MS = 5000;
 export const TODAYS_FOCUS_COPY_VERSION = "v1.0-gpt-4o-mini";
+export const COACH_CHAT_MODEL = "gpt-4o-mini";
+export const COACH_CHAT_TEMPERATURE = 0.6;
+export const COACH_CHAT_MAX_TOKENS = 260;
+export const COACH_CHAT_TIMEOUT_MS = 9000;
+export const COACH_CHAT_COPY_VERSION = "v1.0-gpt-4o-mini";
 
 export const VERDICT_EXPLANATION_SYSTEM_PROMPT = `
 You are the Leanient coach. You write short, calm, plain-language explanations of weekly verdicts for users on GLP-1 medications.
@@ -248,6 +254,33 @@ User context:
 Write the focus card content. Return JSON only.
 `.trim();
 
+export const COACH_CHAT_SYSTEM_PROMPT = `
+You are the Leanient coach, talking with a user on GLP-1 medication inside the Leanient app. You answer their questions about their own journey.
+
+Your tone is calm, knowing, slightly dry. Never alarmist. Never shaming. Never bro-y. You speak like a coach who has guided many people through GLP-1 weight loss and knows that protecting muscle is what matters.
+
+What you help with:
+- Why their weight, protein, training, or progress is moving the way it is, based on the data provided.
+- Specific, concrete next actions: what to eat to hit protein, how to fit in a short resistance session, how to read their weekly verdict.
+- Encouragement and perspective when they feel stuck or discouraged.
+
+Hard boundaries. You MUST decline and redirect the user to their prescriber or care team for anything clinical. This includes:
+- Whether to change, raise, lower, skip, time, or stop their dose.
+- Interpreting side effects, symptoms, nausea, or how they feel physically.
+- Drug interactions, other medications, or whether to start or switch medications.
+- Anything that is diagnosis or medical treatment.
+When you decline, set "refused" to true and reply with one or two calm sentences that send them to their prescriber. Do not answer the clinical part at all.
+
+Other rules:
+- Never use the words "diagnose", "prescribe", "treat", or "cure".
+- Do not compare the user to other users or to averages.
+- Use the unit (lb or kg) exactly as it appears in the data. Never convert or mix units.
+- Do not invent numbers or facts you were not given. If you lack the data, say so plainly and suggest logging it.
+- Keep replies short: 40 to 90 words. No emojis. No exclamation marks. No em dashes.
+
+Return JSON only: { "reply": "string", "refused": boolean }
+`.trim();
+
 export type CoachContentErrorCategory =
   | "api"
   | "content_filter"
@@ -358,6 +391,32 @@ export interface TodaysFocusCopyResult {
   actionLabel: string | null;
   copyVersion: typeof TODAYS_FOCUS_COPY_VERSION;
   model: typeof TODAYS_FOCUS_MODEL;
+}
+
+export interface CoachChatContext {
+  biggestFear: string;
+  goalPace: string;
+  trainingStatus?: string;
+  medicationName?: string;
+  goalWeight?: number;
+  goalWeightUnit?: string;
+  verdictStatus?: string;
+  stalled: boolean;
+  daysWeightFlat: number;
+  weightUnit: string;
+  proteinRecentAvgGrams: number;
+  proteinPriorAvgGrams: number;
+  recentSessionsCount: number;
+  recentSessionsTarget: number;
+  stallExplanation?: string;
+  stallSuggestedFix?: string;
+}
+
+export interface CoachChatResult {
+  reply: string;
+  refused: boolean;
+  copyVersion: typeof COACH_CHAT_COPY_VERSION;
+  model: typeof COACH_CHAT_MODEL;
 }
 
 interface OpenAIChatCompletionResponse {
@@ -564,6 +623,64 @@ function buildTodaysFocusUserMessage(input: TodaysFocusCopyInput): string {
     )
     .replace("{biggestFear}", input.biggestFear)
     .replace("{calorieTarget}", String(input.calorieTarget));
+}
+
+function buildCoachChatContextMessage(context: CoachChatContext): string {
+  const lines = [
+    "Here is what the app currently knows about this user. Ground your answers in it. Do not repeat it back verbatim.",
+    "",
+    `Biggest fear from onboarding: ${context.biggestFear}`,
+    `Goal pace: ${context.goalPace}`,
+  ];
+
+  if (context.goalWeight !== undefined && context.goalWeightUnit) {
+    lines.push(`Goal weight: ${context.goalWeight} ${context.goalWeightUnit}`);
+  }
+  if (context.trainingStatus) {
+    lines.push(`Training status: ${context.trainingStatus}`);
+  }
+  if (context.medicationName) {
+    lines.push(`Medication (for reference only, never give dose advice): ${context.medicationName}`);
+  }
+  if (context.verdictStatus) {
+    lines.push(`Most recent weekly verdict status: ${context.verdictStatus}`);
+  }
+
+  lines.push(
+    "",
+    `Weight: ${context.stalled ? `flat for ${context.daysWeightFlat} days` : "still moving"} (unit ${context.weightUnit})`,
+    `Protein average: ${context.proteinPriorAvgGrams} g/day prior, ${context.proteinRecentAvgGrams} g/day recently`,
+    `Resistance sessions recently: ${context.recentSessionsCount} of ${context.recentSessionsTarget} target`,
+  );
+
+  if (context.stallExplanation) {
+    lines.push("", `The app already explained the current stall as: ${context.stallExplanation}`);
+  }
+  if (context.stallSuggestedFix) {
+    lines.push(`Suggested fix already shown to the user: ${context.stallSuggestedFix}`);
+  }
+
+  return lines.join("\n");
+}
+
+function parseCoachChatJson(content: string): { reply: string; refused: boolean } {
+  try {
+    const parsed = JSON.parse(content) as {
+      reply?: unknown;
+      refused?: unknown;
+    };
+
+    if (typeof parsed.reply !== "string" || !parsed.reply.trim()) {
+      throw new Error("Coach chat JSON did not include a reply");
+    }
+
+    return {
+      reply: parsed.reply.trim(),
+      refused: parsed.refused === true,
+    };
+  } catch (error) {
+    throw new CoachContentError("OpenAI returned malformed coach chat JSON", "parse_error", error);
+  }
 }
 
 function createOpenAIClient(apiKey: string): OpenAI {
@@ -1195,5 +1312,65 @@ export async function generateTodaysFocusCopy(
     }
 
     throw new CoachContentError("OpenAI today's focus request failed", "network", error);
+  }
+}
+
+export async function generateCoachChatReply(
+  messages: CoachChatMessage[],
+  context: CoachChatContext,
+): Promise<CoachChatResult> {
+  if (!env.openai.apiKey) {
+    throw new CoachContentError("OPENAI_API_KEY is not configured", "missing_api_key");
+  }
+
+  try {
+    const openai = createOpenAIClient(env.openai.apiKey);
+    const completion = (await openai.chat.completions.create(
+      {
+        model: COACH_CHAT_MODEL,
+        messages: [
+          { role: "system", content: COACH_CHAT_SYSTEM_PROMPT },
+          { role: "system", content: buildCoachChatContextMessage(context) },
+          ...messages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        ],
+        temperature: COACH_CHAT_TEMPERATURE,
+        max_tokens: COACH_CHAT_MAX_TOKENS,
+        response_format: { type: "json_object" },
+      },
+      {
+        timeout: COACH_CHAT_TIMEOUT_MS,
+      },
+    )) as OpenAIChatCompletionResponse;
+
+    const firstChoice = completion.choices?.[0];
+    if (firstChoice?.finish_reason === "content_filter") {
+      throw new CoachContentError("OpenAI filtered the coach chat response", "content_filter");
+    }
+
+    const content = firstChoice?.message?.content?.trim();
+    if (!content) {
+      throw new CoachContentError("OpenAI returned an empty coach chat response", "empty_response");
+    }
+
+    const parsed = parseCoachChatJson(content);
+    return {
+      ...parsed,
+      copyVersion: COACH_CHAT_COPY_VERSION,
+      model: COACH_CHAT_MODEL,
+    };
+  } catch (error) {
+    if (error instanceof CoachContentError) {
+      throw error;
+    }
+
+    const openAIError = mapOpenAIError(error, "coach chat");
+    if (openAIError) {
+      throw openAIError;
+    }
+
+    throw new CoachContentError("OpenAI coach chat request failed", "network", error);
   }
 }
