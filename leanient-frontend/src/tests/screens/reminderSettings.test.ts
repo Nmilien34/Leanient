@@ -7,6 +7,7 @@ describe("deriveReminderGroups", () => {
     const groups = deriveReminderGroups({ medication: { ...mockMedicationProtocol, shotDays: ["saturday"] } });
     const shotDay = groups.flatMap((g) => g.items).find((i) => i.id === "shot_day");
     expect(shotDay?.subtitle).toBe("Saturday morning");
+    expect(shotDay?.schedule).toEqual({ kind: "weekly", weekdays: [7], hour: 9, minute: 0 });
   });
 
   it("falls back to a generic shot-day label off-protocol", () => {
@@ -27,5 +28,11 @@ describe("deriveReminderGroups", () => {
     expect(state.weekly === undefined).toBe(true); // no such id
     expect(state.verdict).toBe(true);
     expect(state.quiet_hours).toBe(true);
+  });
+
+  it("marks quiet hours as a preference, not a scheduled notification", () => {
+    const groups = deriveReminderGroups({ medication: mockMedicationProtocol });
+    const quietHours = groups.flatMap((g) => g.items).find((i) => i.id === "quiet_hours");
+    expect(quietHours?.schedule).toEqual({ kind: "none" });
   });
 });

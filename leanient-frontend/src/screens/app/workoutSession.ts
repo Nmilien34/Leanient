@@ -5,26 +5,27 @@ import type { Workout } from "@leanient/shared";
  * state, screen 20). Keeping it pure and contract-driven means the player UI
  * stays presentational and every transition is unit-testable:
  *
- *   active --DONE--> resting --(TICK to 0 | SKIP_REST)--> active (next set/exercise)
- *   active --DONE (last set, last exercise)--> complete
+ *   active --DONE--> resting --(TICK to 0 | SKIP_REST)--> active (next exercise)
+ *   active --DONE (last exercise)--> complete
  *   any   --END--> complete
  *
- * The session walks the workout's `exercises[]` (each with `sets`), resting for
- * `restSeconds` between sets. Nothing here is hardcoded to a specific workout.
+ * The session walks the workout's `exercises[]`, resting between exercises.
+ * The set count is presented as exercise detail, while completion happens once
+ * per exercise so the top progress segments match the visible 1/N workout count.
  */
 
 export type SessionPhase = "active" | "resting" | "complete";
 
 export interface SessionState {
   exerciseIndex: number; // 0-based index into workout.exercises
-  set: number; // 1-based current set within the exercise
+  set: number; // 1-based display marker; completed exercises store their full set count
   phase: SessionPhase;
   restRemaining: number; // seconds left when resting
 }
 
 export type SessionAction =
   | { type: "RESET" }
-  | { type: "DONE" } // finished the current set
+  | { type: "DONE" } // finished the current exercise
   | { type: "TICK" } // one second of rest elapsed
   | { type: "ADD_REST" } // "+20s"
   | { type: "SKIP_REST" }
@@ -36,12 +37,8 @@ export function initSession(): SessionState {
   return { exerciseIndex: 0, set: 1, phase: "active", restRemaining: 0 };
 }
 
-/** Move to the next set, or next exercise, or complete — the shared advance. */
+/** Move to the next exercise, or complete — the shared advance. */
 function advance(state: SessionState, workout: Workout): SessionState {
-  const exercise = workout.exercises[state.exerciseIndex];
-  if (state.set < exercise.sets) {
-    return { exerciseIndex: state.exerciseIndex, set: state.set + 1, phase: "active", restRemaining: 0 };
-  }
   if (state.exerciseIndex + 1 < workout.exercises.length) {
     return { exerciseIndex: state.exerciseIndex + 1, set: 1, phase: "active", restRemaining: 0 };
   }
@@ -58,10 +55,10 @@ export function sessionReducer(state: SessionState, action: SessionAction, worko
   switch (action.type) {
     case "DONE": {
       if (state.phase !== "active") return state;
-      const isLastSet = state.set >= exercise.sets;
+      const completedSet = Math.max(1, exercise.sets);
       const isLastExercise = state.exerciseIndex + 1 >= workout.exercises.length;
-      if (isLastSet && isLastExercise) return { ...state, phase: "complete", restRemaining: 0 };
-      return { ...state, phase: "resting", restRemaining: exercise.restSeconds };
+      if (isLastExercise) return { ...state, set: completedSet, phase: "complete", restRemaining: 0 };
+      return { ...state, set: completedSet, phase: "resting", restRemaining: exercise.restSeconds };
     }
     case "TICK": {
       if (state.phase !== "resting") return state;
@@ -87,7 +84,7 @@ export interface SessionView {
   total: number;
   exerciseIndex: number;
   phase: SessionPhase;
-  isFinalSet: boolean; // last set of the last exercise (CTA copy)
+  isFinalSet: boolean; // last exercise (CTA copy)
   current: { name: string; eyebrow: string; reps: string; cue: string | null; muscleGroups: string[] };
   nextUp: { label: string; text: string } | null;
   restLabel: string; // "0:32"
@@ -123,7 +120,7 @@ function clamp01(value: number): number {
 
 /**
  * Per-exercise top-bar fill. Prior exercises are full, future exercises are
- * empty, and the active exercise fills by set completion plus the current hold.
+ * empty, and the active exercise fills directly with the current hold.
  */
 export function selectExerciseSegmentFills(
   state: SessionState,
@@ -137,12 +134,11 @@ export function selectExerciseSegmentFills(
     if (index < completedCount) return 1;
     if (index > state.exerciseIndex || state.phase === "complete") return 0;
 
-    const sets = Math.max(1, exercise.sets);
     if (state.phase === "resting") {
-      return clamp01(state.set / sets);
+      return 1;
     }
 
-    return clamp01((state.set - 1 + clamp01(activeHoldProgress)) / sets);
+    return clamp01(activeHoldProgress);
   });
 }
 
@@ -165,20 +161,18 @@ export function selectView(state: SessionState, workout: Workout): SessionView {
     };
   }
 
-  const isFinalSet = state.set >= exercise.sets && state.exerciseIndex + 1 >= total;
+  const isFinalSet = state.exerciseIndex + 1 >= total;
   const nextExercise = workout.exercises[state.exerciseIndex + 1];
 
-  // Active: preview the next exercise. Resting: the immediate next set/exercise.
+  // Active: preview the next exercise. Resting: the immediate next exercise.
   let nextUp: SessionView["nextUp"] = null;
   if (state.phase === "active") {
     if (nextExercise) {
       nextUp = { label: "NEXT UP", text: `${nextExercise.name} · ${nextExercise.sets} × ${nextExercise.reps}` };
     }
   } else if (state.phase === "resting") {
-    if (state.set < exercise.sets) {
-      nextUp = { label: `UP NEXT · SET ${state.set + 1} OF ${exercise.sets}`, text: `${exercise.name} · ${exercise.reps} reps` };
-    } else if (nextExercise) {
-      nextUp = { label: `UP NEXT · SET 1 OF ${nextExercise.sets}`, text: `${nextExercise.name} · ${nextExercise.reps} reps` };
+    if (nextExercise) {
+      nextUp = { label: `UP NEXT · EXERCISE ${state.exerciseIndex + 2} OF ${total}`, text: `${nextExercise.name} · ${nextExercise.sets} × ${nextExercise.reps}` };
     }
   }
 
@@ -191,8 +185,8 @@ export function selectView(state: SessionState, workout: Workout): SessionView {
     isFinalSet,
     current: {
       name: exercise.name,
-      eyebrow: `EXERCISE ${state.exerciseIndex + 1} · SET ${state.set} OF ${exercise.sets}`,
-      reps: `${exercise.reps} reps`,
+      eyebrow: `EXERCISE ${state.exerciseIndex + 1} OF ${total}`,
+      reps: `${exercise.sets} sets · ${exercise.reps}`,
       cue: exercise.notes,
       muscleGroups: exercise.muscleGroups,
     },

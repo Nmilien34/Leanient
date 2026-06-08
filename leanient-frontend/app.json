@@ -38,7 +38,8 @@
           "photosPermission": "Leanient uses your photos so you can set a profile picture.",
           "cameraPermission": "Leanient uses your camera so you can take a profile picture."
         }
-      ]
+      ],
+      "expo-notifications"
     ]
   }
 }

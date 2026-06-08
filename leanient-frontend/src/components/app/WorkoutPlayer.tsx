@@ -10,7 +10,7 @@ import { ExerciseIcon } from "./ExerciseIcon";
 import { font } from "../../theme/fonts";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-// Hold-to-complete: hold the dumbbell this long and the set logs itself.
+// Hold-to-complete: hold the dumbbell this long and the exercise logs itself.
 const HOLD_MS = 2000;
 const RING_RADIUS = 96;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -90,7 +90,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
     });
   }, [state, workout, onComplete]);
 
-  // Hold-to-complete the dumbbell: a ring fills over HOLD_MS, then the set logs.
+  // Hold-to-complete the dumbbell: the ring and top segment fill over HOLD_MS, then the exercise logs.
   const hold = useRef(new Animated.Value(0)).current;
   const holdAnim = useRef<Animated.CompositeAnimation | null>(null);
   const [holding, setHolding] = useState(false);
@@ -133,11 +133,10 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
 
   const resting = state.phase === "resting";
   const segmentFills = selectExerciseSegmentFills(state, workout, 0);
-  const activeExercise = workout.exercises[view.exerciseIndex];
   const activeSegmentBase = segmentFills[view.exerciseIndex] ?? 0;
   const activeSegmentTarget =
-    state.phase === "active" && activeExercise
-      ? Math.min(1, state.set / Math.max(1, activeExercise.sets))
+    state.phase === "active"
+      ? (selectExerciseSegmentFills(state, workout, 1)[view.exerciseIndex] ?? activeSegmentBase)
       : activeSegmentBase;
   const activeSegmentWidth = hold.interpolate({
     inputRange: [0, 1],
@@ -188,7 +187,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
             <>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={view.isFinalSet ? "Hold to finish workout" : "Hold to complete set"}
+                accessibilityLabel={view.isFinalSet ? "Hold to finish workout" : "Hold to complete exercise"}
                 onPressIn={startHold}
                 onPressOut={cancelHold}
                 style={styles.disc}
@@ -222,7 +221,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
                   <ExerciseIcon name={view.current.name} muscleGroups={view.current.muscleGroups} size={40} />
                 </LinearGradient>
                 <Text style={styles.holdCaption}>
-                  {holding ? "Keep holding…" : view.isFinalSet ? "Hold to finish" : "Hold to log set"}
+                  {holding ? "Keep holding..." : view.isFinalSet ? "Hold to finish" : "Hold to complete"}
                 </Text>
               </Pressable>
               <Text style={[styles.eyebrow, styles.eyebrowSpace]}>{view.current.eyebrow}</Text>

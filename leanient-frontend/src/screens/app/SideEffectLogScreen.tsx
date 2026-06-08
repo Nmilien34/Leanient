@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -17,6 +17,10 @@ import {
   sideEffectCoachLine,
   type SideEffectLogDraft,
 } from "./sideEffectLogForm";
+import {
+  SIDE_EFFECT_FLOATING_CTA_BOTTOM_PADDING,
+  SIDE_EFFECT_SCROLL_BOTTOM_PADDING,
+} from "./sideEffectLogLayout";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -50,6 +54,7 @@ export function SideEffectLogScreen({ visible, onClose, onSave }: SideEffectLogS
   const setNote = (note: string) => setForm((f) => ({ ...f, note }));
 
   const save = () => {
+    Keyboard.dismiss();
     void onSave?.(buildSideEffectLogDraft(form, daysSinceShot, now.toISOString()));
   };
 
@@ -59,82 +64,93 @@ export function SideEffectLogScreen({ visible, onClose, onSave }: SideEffectLogS
         <StatusBar style="dark" />
         <ScreenGround />
         <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
-          <View style={styles.head}>
-            <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
-              <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
-                <Path d="M6 6l12 12M18 6L6 18" />
-              </Svg>
-            </Pressable>
-            <Text style={styles.headTitle}>Side effect</Text>
-            <View style={styles.headSpacer} />
-          </View>
-
-          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <Text style={styles.glabel}>WHAT ARE YOU FEELING?</Text>
-            <View style={styles.chiprow}>
-              {SYMPTOMS.map((s) => {
-                const on = form.symptom === s.id;
-                return (
-                  <Pressable key={s.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={s.label} onPress={() => setSymptom(s.id)} style={[styles.chip, on && styles.chipSel]}>
-                    <Text style={[styles.chipText, on && styles.chipTextSel]}>{s.label}</Text>
-                  </Pressable>
-                );
-              })}
+          <KeyboardAvoidingView
+            style={styles.keyboard}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={0}
+          >
+            <View style={styles.head}>
+              <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.closeBtn}>
+                <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round">
+                  <Path d="M6 6l12 12M18 6L6 18" />
+                </Svg>
+              </Pressable>
+              <Text style={styles.headTitle}>Side effect</Text>
+              <View style={styles.headSpacer} />
             </View>
 
-            <Text style={styles.glabel}>HOW STRONG?</Text>
-            <View style={styles.seg}>
-              {SEVERITIES.map((sv) => {
-                const on = form.severity === sv.level;
-                return (
-                  <Pressable key={sv.level} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={sv.label} onPress={() => setSeverity(sv.level)} style={[styles.segItem, on && styles.segItemOn]}>
-                    <Text style={[styles.segText, on && styles.segTextOn]}>{sv.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Text style={styles.glabel}>WHEN</Text>
-            <View style={styles.group}>
-              <View style={styles.row}>
-                <View style={styles.icon}>
-                  <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <Rect x={3} y={5} width={18} height={16} rx={3} />
-                    <Path d="M3 9h18M8 3v4M16 3v4" />
-                  </Svg>
-                </View>
-                <Text style={styles.rowLabel}>Started</Text>
-                <Text style={styles.rowValue}>Today · since this morning</Text>
-                <Text style={styles.chev}>›</Text>
+            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.glabel}>WHAT ARE YOU FEELING?</Text>
+              <View style={styles.chiprow}>
+                {SYMPTOMS.map((s) => {
+                  const on = form.symptom === s.id;
+                  return (
+                    <Pressable key={s.id} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={s.label} onPress={() => setSymptom(s.id)} style={[styles.chip, on && styles.chipSel]}>
+                      <Text style={[styles.chipText, on && styles.chipTextSel]}>{s.label}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            </View>
 
-            <TextInput
-              style={styles.note}
-              placeholder="Add a note (optional)"
-              placeholderTextColor={colors.faintest}
-              value={form.note}
-              onChangeText={setNote}
-              multiline
-              accessibilityLabel="Note"
-            />
-
-            <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
-              <View style={styles.coachmark}>
-                <View style={styles.coachdot}>
-                  <Spark />
-                </View>
-                <Text style={styles.coachLabel}>LEANIENT COACH</Text>
+              <Text style={styles.glabel}>HOW STRONG?</Text>
+              <View style={styles.seg}>
+                {SEVERITIES.map((sv) => {
+                  const on = form.severity === sv.level;
+                  return (
+                    <Pressable key={sv.level} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={sv.label} onPress={() => setSeverity(sv.level)} style={[styles.segItem, on && styles.segItemOn]}>
+                      <Text style={[styles.segText, on && styles.segTextOn]}>{sv.label}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-              <Text style={styles.coachText}>{sideEffectCoachLine(form.symptom, daysSinceShot)}</Text>
-            </LinearGradient>
 
-            <Pressable accessibilityRole="button" accessibilityLabel="Save" onPress={save}>
-              <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
-                <Text style={styles.ctaText}>Save</Text>
+              <Text style={styles.glabel}>WHEN</Text>
+              <View style={styles.group}>
+                <View style={styles.row}>
+                  <View style={styles.icon}>
+                    <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <Rect x={3} y={5} width={18} height={16} rx={3} />
+                      <Path d="M3 9h18M8 3v4M16 3v4" />
+                    </Svg>
+                  </View>
+                  <Text style={styles.rowLabel}>Started</Text>
+                  <Text style={styles.rowValue}>Today · since this morning</Text>
+                  <Text style={styles.chev}>›</Text>
+                </View>
+              </View>
+
+              <TextInput
+                style={styles.note}
+                placeholder="Add a note (optional)"
+                placeholderTextColor={colors.faintest}
+                value={form.note}
+                onChangeText={setNote}
+                multiline
+                blurOnSubmit
+                returnKeyType="done"
+                onSubmitEditing={save}
+                accessibilityLabel="Note"
+              />
+
+              <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
+                <View style={styles.coachmark}>
+                  <View style={styles.coachdot}>
+                    <Spark />
+                  </View>
+                  <Text style={styles.coachLabel}>LEANIENT COACH</Text>
+                </View>
+                <Text style={styles.coachText}>{sideEffectCoachLine(form.symptom, daysSinceShot)}</Text>
               </LinearGradient>
-            </Pressable>
-          </ScrollView>
+            </ScrollView>
+
+            <View style={styles.floatingCta}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Save" onPress={save}>
+                <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
+                  <Text style={styles.ctaText}>Save</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </ModalSafeArea>
       </View>
     </Modal>
@@ -144,7 +160,8 @@ export function SideEffectLogScreen({ visible, onClose, onSave }: SideEffectLogS
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   safe: { flex: 1 },
-  scroll: { paddingBottom: 28 },
+  keyboard: { flex: 1 },
+  scroll: { paddingBottom: SIDE_EFFECT_SCROLL_BOTTOM_PADDING },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 6, paddingBottom: 4 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
   headSpacer: { width: 34, height: 34 },
@@ -172,7 +189,8 @@ const styles = StyleSheet.create({
   coachdot: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.emeraldDeep },
   coachLabel: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 0.69, color: colors.emeraldDeep },
   coachText: { fontFamily: font.medium, fontSize: 14, lineHeight: 20, color: colors.inkSoft, marginTop: 10 },
-  cta: { marginHorizontal: 20, marginTop: 18, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  floatingCta: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: SIDE_EFFECT_FLOATING_CTA_BOTTOM_PADDING, backgroundColor: "transparent" },
+  cta: { height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   ctaText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7", letterSpacing: -0.16 },
 });
 
