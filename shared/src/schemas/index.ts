@@ -614,6 +614,17 @@ export const weeklyVerdictResponseSchema = z
   })
   .strict();
 
+// Check-in history: each past check-in paired with the verdict it produced
+// (verdict is null for any check-in that did not generate one).
+export const weeklyCheckinHistoryItemSchema = z
+  .object({
+    checkin: weeklyCheckinResponseSchema,
+    verdict: weeklyVerdictResponseSchema.nullable(),
+  })
+  .strict();
+
+export const weeklyCheckinHistoryResponseSchema = z.array(weeklyCheckinHistoryItemSchema);
+
 export const latestWeeklyVerdictResponseSchema = z.discriminatedUnion("status", [
   z
     .object({
@@ -971,3 +982,5 @@ export type AvatarUploadIntentRequest = z.infer<typeof avatarUploadIntentRequest
 export type AvatarUploadIntentResponse = z.infer<typeof avatarUploadIntentResponseSchema>;
 export type AvatarConfirmRequest = z.infer<typeof avatarConfirmRequestSchema>;
 export type AvatarViewUrlResponse = z.infer<typeof avatarViewUrlResponseSchema>;
+export type WeeklyCheckinHistoryItem = z.infer<typeof weeklyCheckinHistoryItemSchema>;
+export type WeeklyCheckinHistoryResponse = z.infer<typeof weeklyCheckinHistoryResponseSchema>;

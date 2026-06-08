@@ -222,8 +222,8 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
               )}
               <Text style={[styles.eyebrow, styles.eyebrowSpace]}>{view.current.eyebrow}</Text>
               <Text style={styles.name}>{view.current.name}</Text>
+              {view.current.description ? <Text style={styles.description}>{view.current.description}</Text> : null}
               <Text style={styles.reps}>{view.current.reps}</Text>
-              {view.current.cue ? <Text style={styles.cue}>{view.current.cue}</Text> : null}
             </>
           )}
         </View>
@@ -322,7 +322,8 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 1.4, color: ACCENT },
   eyebrowSpace: { marginTop: 26 },
   name: { fontFamily: font.extrabold, fontSize: 27, letterSpacing: -0.54, color: "#F4FBF6", marginTop: 10, textAlign: "center" },
-  reps: { fontFamily: font.semibold, fontSize: 16, color: "#B9CCBE", marginTop: 8 },
+  description: { fontFamily: font.medium, fontSize: 13.5, lineHeight: 19, color: "#B9CCBE", marginTop: 8, textAlign: "center", maxWidth: 310 },
+  reps: { fontFamily: font.semibold, fontSize: 16, color: "#D9E9DD", marginTop: 10 },
   cue: { fontFamily: font.medium, fontSize: 13.5, lineHeight: 18, color: "#9FB6A4", marginTop: 14, textAlign: "center", maxWidth: 290 },
   timer: { fontFamily: font.extrabold, fontSize: 62, letterSpacing: -1.2, color: "#F4FBF6", marginTop: 14 },
   next: { flexDirection: "row", alignItems: "center", gap: 11, marginHorizontal: 20, padding: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.09)" },

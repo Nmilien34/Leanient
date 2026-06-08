@@ -110,7 +110,7 @@ export interface SessionView {
   exerciseIndex: number;
   phase: SessionPhase;
   isFinalSet: boolean; // last exercise (CTA copy)
-  current: { name: string; eyebrow: string; reps: string; cue: string | null; muscleGroups: string[] };
+  current: { name: string; eyebrow: string; description: string | null; reps: string; cue: string | null; muscleGroups: string[] };
   nextUp: { label: string; text: string } | null;
   restLabel: string; // "0:32"
   exerciseLabel: string; // "1:41"
@@ -198,7 +198,7 @@ export function selectView(state: SessionState, workout: Workout): SessionView {
       exerciseIndex: state.exerciseIndex,
       phase: state.phase,
       isFinalSet: true,
-      current: { name: "", eyebrow: "", reps: "", cue: null, muscleGroups: [] },
+      current: { name: "", eyebrow: "", description: null, reps: "", cue: null, muscleGroups: [] },
       nextUp: null,
       restLabel: "0:00",
       exerciseLabel: "0:00",
@@ -230,6 +230,7 @@ export function selectView(state: SessionState, workout: Workout): SessionView {
     current: {
       name: exercise.name,
       eyebrow: `EXERCISE ${state.exerciseIndex + 1} OF ${total}`,
+      description: exercise.notes,
       reps: `${exercise.sets} sets · ${exercise.reps}`,
       cue: exercise.notes,
       muscleGroups: exercise.muscleGroups,

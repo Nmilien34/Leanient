@@ -2,6 +2,7 @@ import {
   ERROR_CODES,
   type LatestWeeklyVerdictResponse,
   type UserContextSnapshot,
+  type WeeklyCheckinHistoryItem,
   type WeeklyCheckinRequest,
 } from "@leanient/shared";
 import { AppError, NotFoundError } from "../lib/errors";
@@ -178,4 +179,32 @@ export async function getLatestWeeklyVerdict(userId: string): Promise<LatestWeek
     verdict: null,
     message: STILL_GATHERING_VERDICT_MESSAGE,
   };
+}
+
+/**
+ * Every past weekly check-in (most recent first), each paired with the verdict
+ * it produced. Powers the Progress-tab check-in history.
+ */
+export async function getCheckinHistory(userId: string): Promise<WeeklyCheckinHistoryItem[]> {
+  const [checkins, verdicts] = await Promise.all([
+    WeeklyCheckinModel.find({ userId }).sort({ weekOf: -1 }).limit(104),
+    WeeklyVerdictModel.find({ userId }),
+  ]);
+
+  // Match a verdict to its check-in by checkinId, falling back to the same week.
+  const verdictByCheckinId = new Map<string, (typeof verdicts)[number]>();
+  const verdictByWeek = new Map<string, (typeof verdicts)[number]>();
+  for (const verdict of verdicts) {
+    if (verdict.checkinId) verdictByCheckinId.set(verdict.checkinId.toString(), verdict);
+    verdictByWeek.set(verdict.weekOf, verdict);
+  }
+
+  return checkins.map((checkin) => {
+    const verdict =
+      verdictByCheckinId.get(checkin._id.toString()) ?? verdictByWeek.get(checkin.weekOf) ?? null;
+    return {
+      checkin: serializeWeeklyCheckin(checkin),
+      verdict: verdict ? serializeWeeklyVerdict(verdict) : null,
+    };
+  });
 }

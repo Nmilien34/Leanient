@@ -92,6 +92,7 @@ describe("workoutSession selectView", () => {
     expect(v.progressLabel).toBe("1 / 8");
     expect(v.current.eyebrow).toBe("EXERCISE 1 OF 8");
     expect(v.current.name).toBe("Dumbbell floor press");
+    expect(v.current.description).toBe(W.exercises[0].notes);
     expect(v.current.reps).toBe("3 sets · 10");
     expect(v.current.cue).toBe(W.exercises[0].notes);
     expect(v.nextUp).toEqual({ label: "NEXT UP", text: "Bent-over row · 3 × 10" });

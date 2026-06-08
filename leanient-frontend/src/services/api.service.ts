@@ -49,6 +49,7 @@ import {
   verdictStatusSchema,
   weeklyCheckinRequestSchema,
   weeklyVerdictResponseSchema,
+  weeklyCheckinResponseSchema,
   weightLogResponseSchema,
   workoutLogResponseSchema,
   workoutEnergyPhaseSchema,
@@ -214,6 +215,18 @@ const weeklyVerdictFrontendSchema = weeklyVerdictResponseSchema.transform(
       : undefined,
   }),
 );
+
+// Check-in history: raw check-in + the verdict run through the same normalizer
+// used elsewhere so verdicts match the frontend WeeklyVerdict shape.
+const checkinHistoryFrontendSchema = z.array(
+  z.object({
+    checkin: weeklyCheckinResponseSchema,
+    verdict: weeklyVerdictFrontendSchema.nullable(),
+  }),
+);
+
+/** A check-in paired with its (normalized) verdict, as returned to the app. */
+export type CheckinHistoryItem = z.infer<typeof checkinHistoryFrontendSchema>[number];
 
 const latestWeeklyVerdictFrontendSchema = latestWeeklyVerdictResponseSchema.transform(
   (response): LatestWeeklyVerdictResponse => {
@@ -510,6 +523,10 @@ export class LeanientApiClient {
 
   public async getLatestWeeklyVerdict(): Promise<LatestWeeklyVerdictResponse> {
     return this.get("/weekly-verdicts/latest", latestWeeklyVerdictFrontendSchema);
+  }
+
+  public async getCheckinHistory(): Promise<CheckinHistoryItem[]> {
+    return this.get("/weekly-checkins", checkinHistoryFrontendSchema);
   }
 
   public async getWorkouts(): Promise<Workout[]> {

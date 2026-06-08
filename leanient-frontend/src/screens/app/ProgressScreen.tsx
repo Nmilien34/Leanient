@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import type { MuscleRetentionLabel } from "@leanient/shared";
+import type { CheckinHistoryItem } from "../../services/api.service";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
@@ -14,6 +15,8 @@ import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
 import { StallDiagnosticScreen } from "./StallDiagnosticScreen";
+import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
+import { CheckinDetailScreen } from "./CheckinDetailScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
@@ -55,6 +58,8 @@ export function ProgressScreen() {
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
   const [stallOpen, setStallOpen] = useState(false);
+  const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
+  const [selectedCheckin, setSelectedCheckin] = useState<CheckinHistoryItem | null>(null);
   const now = new Date();
 
   const overview = data.progressOverview;
@@ -204,6 +209,22 @@ export function ProgressScreen() {
             </View>
           )}
 
+          {/* weekly check-in history */}
+          <View style={styles.aiWrap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Weekly check-ins"
+              onPress={() => setCheckinHistoryOpen(true)}
+              style={styles.historyRow}
+            >
+              <View style={styles.flex}>
+                <Text style={styles.historyTitle}>Weekly check-ins</Text>
+                <Text style={styles.historySub}>Every check-in and the verdict it earned</Text>
+              </View>
+              <Text style={styles.historyChev}>›</Text>
+            </Pressable>
+          </View>
+
           {/* coach prompt */}
           <View style={styles.aiWrap}>
             <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={() => setStallOpen(true)}>
@@ -252,6 +273,16 @@ export function ProgressScreen() {
       </SafeAreaView>
 
       <StallDiagnosticScreen visible={stallOpen} onClose={() => setStallOpen(false)} />
+      <CheckinHistoryScreen
+        visible={checkinHistoryOpen}
+        onClose={() => setCheckinHistoryOpen(false)}
+        onSelect={(item) => setSelectedCheckin(item)}
+      />
+      <CheckinDetailScreen
+        visible={selectedCheckin !== null}
+        item={selectedCheckin}
+        onClose={() => setSelectedCheckin(null)}
+      />
     </View>
   );
 }
@@ -274,6 +305,12 @@ const styles = StyleSheet.create({
   axis: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
   axisLabel: { fontFamily: font.semibold, fontSize: 10.5, color: colors.faint },
   axisDark: { fontFamily: font.semibold, fontSize: 12, color: colors.muted },
+  // check-in history entry
+  flex: { flex: 1 },
+  historyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 16, marginBottom: 12 },
+  historyTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
+  historySub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
+  historyChev: { fontFamily: font.semibold, fontSize: 20, color: colors.faint },
   // coach prompt
   aiWrap: { paddingHorizontal: 20 },
   aicard: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: "rgba(47,184,122,0.25)", borderRadius: 20, padding: 16 },
