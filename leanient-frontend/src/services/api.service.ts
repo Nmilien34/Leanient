@@ -45,6 +45,8 @@ import {
   userMedicationProtocolResponseSchema,
   userProfileResponseSchema,
   userResponseSchema,
+  verdictSourceSchema,
+  verdictStatusSchema,
   weeklyCheckinRequestSchema,
   weeklyVerdictResponseSchema,
   weightLogResponseSchema,
@@ -91,6 +93,7 @@ import {
   type userContextSnapshotSchema,
   type UserMedicationProtocol,
   type UserProfile,
+  type VerdictStatus,
   type WeeklyCheckinRequest,
   type WeeklyVerdict,
   type WeightLog,
@@ -225,11 +228,47 @@ const latestWeeklyVerdictFrontendSchema = latestWeeklyVerdictResponseSchema.tran
   },
 );
 
+const submitWeeklyVerdictStatusSchema = z
+  .union([verdictStatusSchema, z.literal("needs_reset")])
+  .transform((status): VerdictStatus => (status === "needs_reset" ? "losing_muscle" : status));
+
+const submitWeeklyVerdictFallbackSchema = z
+  .object({
+    id: z.string().min(1),
+    userId: z.string().min(1),
+    weekOf: z.string().min(1),
+    checkinId: z.string().min(1).nullable(),
+    source: verdictSourceSchema,
+    engineVersion: z.string().min(1),
+    copyVersion: z.string().min(1).nullable(),
+    explanation: z.string().min(1).nullable(),
+    status: submitWeeklyVerdictStatusSchema,
+    score: z.number().min(0).max(100).nullable(),
+    estimatedLeanMassRisk: z.number().min(0).max(1).nullable(),
+    nextActionCode: z.string().min(1),
+    headline: z.string().min(1),
+    message: z.string().min(1),
+    explanationFactors: z.array(z.string().min(1)).default([]),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    inputsUsed: z.unknown().optional(),
+  })
+  .transform((verdict): WeeklyVerdict => {
+    const { inputsUsed: _inputsUsed, ...cardVerdict } = verdict;
+    return cardVerdict;
+  });
+
 // POST /weekly-checkins returns `{ checkin, verdict }`; the screen only needs the
-// freshly generated verdict (for the reveal), so reduce the envelope to it.
+// freshly generated verdict card for the reveal. Try the full contract first,
+// then tolerate nested snapshot drift so a saved check-in does not look failed.
 const submitWeeklyCheckinFrontendSchema = z
-  .object({ verdict: weeklyVerdictFrontendSchema })
-  .transform((response): WeeklyVerdict => response.verdict);
+  .object({ verdict: z.unknown() })
+  .transform((response): WeeklyVerdict => {
+    const strictVerdict = weeklyVerdictFrontendSchema.safeParse(response.verdict);
+    return strictVerdict.success
+      ? strictVerdict.data
+      : submitWeeklyVerdictFallbackSchema.parse(response.verdict);
+  });
 
 export class LeanientApiClient {
   private readonly client: AxiosInstance;

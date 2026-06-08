@@ -570,4 +570,102 @@ describe("api service", () => {
       },
     });
   });
+
+  it("does not fail a saved weekly check-in when the verdict snapshot has extra nested fields", async () => {
+    const now = "2026-06-07T04:17:04.995Z";
+    const api = createLeanientApiClient({
+      baseURL: "http://localhost:8080",
+      adapter: async (config) => ({
+        data: {
+          data: {
+            checkin: {
+              id: "checkin_1",
+              userId: "user_1",
+              weekOf: "2026-06-01",
+              weight: { value: 184, unit: "lb", measuredAt: now },
+              proteinGramsPerDay: 120,
+              resistanceWorkoutsCompleted: 2,
+              sideEffects: [],
+              userContextSnapshot: {
+                profile: {
+                  journeyStage: "active_loss",
+                  goalWeight: 172,
+                  goalWeightUnit: "lb",
+                  dailyProteinTarget: 144,
+                  dailyCalorieTarget: 2080,
+                  goalPace: "steady",
+                  biggestFear: "losing_muscle",
+                  trainingStatus: "consistent",
+                  equipmentAccess: "dumbbells",
+                  weeklyWorkoutTarget: 3,
+                  sideEffectBaseline: [],
+                  timezone: "America/New_York",
+                },
+              },
+              weightLogId: "weight_1",
+              createdAt: now,
+              updatedAt: now,
+            },
+            verdict: {
+              id: "verdict_1",
+              userId: "user_1",
+              weekOf: "2026-06-01",
+              checkinId: "checkin_1",
+              source: "checkin",
+              engineVersion: "leanient-verdict-2026-05-29",
+              copyVersion: null,
+              explanation: null,
+              status: "on_track",
+              score: 88,
+              estimatedLeanMassRisk: 0.12,
+              nextActionCode: "keep_rhythm",
+              headline: "Keep your rhythm",
+              message: "Protein and training gave this week a strong signal.",
+              explanationFactors: ["Protein intake supported lean-mass retention."],
+              inputsUsed: {
+                profile: {
+                  journeyStage: "active_loss",
+                  goalWeight: 172,
+                  goalWeightUnit: "lb",
+                  dailyProteinTarget: 144,
+                  dailyCalorieTarget: 2080,
+                  goalPace: "steady",
+                  biggestFear: "losing_muscle",
+                  trainingStatus: "consistent",
+                  equipmentAccess: "dumbbells",
+                  weeklyWorkoutTarget: 3,
+                  sideEffectBaseline: [],
+                  timezone: "America/New_York",
+                  sex: "male",
+                },
+                weight: { value: 184, unit: "lb", measuredAt: now },
+                proteinGramsPerDay: 120,
+                resistanceWorkoutsCompleted: 2,
+              },
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+        },
+        status: 201,
+        statusText: "Created",
+        headers: {},
+        config,
+      }),
+    });
+
+    await expect(
+      api.submitWeeklyCheckin({
+        weekOf: "2026-06-01",
+        weight: { value: 184, unit: "lb", measuredAt: now },
+        proteinGramsPerDay: 120,
+        resistanceWorkoutsCompleted: 2,
+        sideEffects: [],
+      }),
+    ).resolves.toMatchObject({
+      id: "verdict_1",
+      status: "on_track",
+      headline: "Keep your rhythm",
+    });
+  });
 });
