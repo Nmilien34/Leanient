@@ -171,6 +171,41 @@ describe("weekly check-in submit flow", () => {
     expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ id: "verdict_1" }));
     expect(onError).not.toHaveBeenCalled();
   });
+
+  it("refreshes progress data after a saved check-in", async () => {
+    const onComplete = vi.fn();
+    const refreshProgressData = vi.fn(async () => undefined);
+
+    const saved = await runWeeklyCheckinSubmit({
+      submitRequest: async () => ({
+        id: "verdict_2",
+        userId: "user_1",
+        weekOf: "2026-06-01",
+        checkinId: "checkin_1",
+        source: "checkin",
+        engineVersion: "v1.0",
+        copyVersion: null,
+        explanation: null,
+        status: "on_track",
+        score: 90,
+        estimatedLeanMassRisk: 0.1,
+        nextActionCode: "keep_rhythm",
+        headline: "Keep going",
+        message: "This week is on track.",
+        explanationFactors: [],
+        createdAt: STAMP,
+        updatedAt: STAMP,
+      }),
+      refreshHomeData: async () => undefined,
+      refreshProgressData,
+      onComplete,
+      onError: vi.fn(),
+      errorMessage: () => "Something went wrong. Please try again.",
+    });
+
+    expect(saved).toBe(true);
+    expect(refreshProgressData).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("weekly check-in keyboard-safe layout", () => {

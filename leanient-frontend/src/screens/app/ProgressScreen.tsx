@@ -1,15 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import type { MuscleRetentionLabel, SubscriptionStatus } from "@leanient/shared";
+import type { MuscleRetentionLabel, SubscriptionStatus, WorkoutLog } from "@leanient/shared";
 import type { CheckinHistoryItem } from "../../services/api.service";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
-import { LineChart, type ChartPoint } from "../../components/app/LineChart";
+import { LineChart } from "../../components/app/LineChart";
 import { AddPhotoThumb, ProgressPhotoThumb } from "../../components/app/ProgressPhotoThumb";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
@@ -18,10 +18,17 @@ import { CoachChatScreen } from "./CoachChatScreen";
 import { SubscriptionScreen } from "./SubscriptionScreen";
 import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
 import { CheckinDetailScreen } from "./CheckinDetailScreen";
+import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
+import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import { resolveSectionState } from "./sectionState";
+import {
+  buildProgressRetentionChart,
+  buildProgressWeightChart,
+  buildWorkoutSessionsCard,
+} from "./progressMetrics";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -62,6 +69,8 @@ export function ProgressScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinHistoryItem | null>(null);
+  const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
+  const [selectedWorkoutLog, setSelectedWorkoutLog] = useState<WorkoutLog | null>(null);
   const now = new Date();
 
   const SUBSCRIBED: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
@@ -96,8 +105,21 @@ export function ProgressScreen() {
 
   // Section data + states (retention + weight come from the combined home fetch).
   const snapshots = overview?.chart.snapshots ?? [];
+  const retentionChart = useMemo(
+    () => buildProgressRetentionChart(snapshots, (label) => RETENTION_COLOR[label]),
+    [snapshots],
+  );
+  const weightChart = useMemo(
+    () =>
+      buildProgressWeightChart({
+        weightLogs,
+        fallbackUnit: profile?.goalWeightUnit ?? "lb",
+        goalWeight: profile?.goalWeight,
+      }),
+    [profile?.goalWeight, profile?.goalWeightUnit, weightLogs],
+  );
   const retentionState = resolveSectionState({
-    hasData: snapshots.length > 0,
+    hasData: retentionChart.snapshots.length > 0,
     isLoading: data.isLoading || data.isRefreshing,
     hasError: !!(data.progressPhotosError ?? data.homeError),
   });
@@ -113,24 +135,19 @@ export function ProgressScreen() {
     hasError: !!data.progressPhotosError,
   });
 
-  // Weight chart values
-  const weightValues = weightLogs.map((w) => w.value);
-  const unit = weightLogs[weightLogs.length - 1]?.unit ?? profile?.goalWeightUnit ?? "lb";
-  const startWeight = weightValues[0] ?? 0;
-  const todayWeight = weightValues[weightValues.length - 1] ?? 0;
-  const lost = Math.max(0, startWeight - todayWeight);
-  const weightPoints: ChartPoint[] = weightValues.map((v) => ({ value: v }));
-
-  // Muscle retention chart points
-  const retentionPoints: ChartPoint[] = snapshots.map((s) => ({
-    value: s.muscleRetentionScore,
-    color: RETENTION_COLOR[s.retentionLabel],
-  }));
+  const { points: weightPoints, unit, startWeight, todayWeight, lost } = weightChart;
+  const { points: retentionPoints } = retentionChart;
+  const workoutSessionsCard = buildWorkoutSessionsCard(data.trainingToday);
 
   const weekOf = (captureDate: string) =>
     medication
       ? Math.max(1, Math.floor((daysSince(medication.startDate, now) - daysSince(captureDate, now)) / 7) + 1)
       : null;
+
+  const openWorkoutHistory = () => {
+    setWorkoutHistoryOpen(true);
+    void data.refreshWorkouts();
+  };
 
   return (
     <View style={styles.root}>
@@ -170,15 +187,17 @@ export function ProgressScreen() {
             <View style={styles.chartcard}>
               <View style={styles.ctitle}>
                 <Text style={styles.cTitleText}>Muscle retention</Text>
-                <Text style={styles.cval}>{overview ? RETENTION_TEXT[overview.chart.currentLabel] : ""}</Text>
+                <Text style={styles.cval}>
+                  {retentionChart.currentLabel ? RETENTION_TEXT[retentionChart.currentLabel] : ""}
+                </Text>
               </View>
               <View style={{ marginTop: 12 }}>
                 <LineChart points={retentionPoints} height={92} stroke={colors.emerald} showDots showBaseline />
               </View>
               <View style={styles.axis}>
                 <Text style={styles.axisLabel}>Wk 1</Text>
-                <Text style={styles.axisLabel}>Wk {Math.ceil(snapshots.length / 2)}</Text>
-                <Text style={styles.axisLabel}>Wk {snapshots.length}</Text>
+                <Text style={styles.axisLabel}>Wk {Math.ceil(retentionChart.snapshots.length / 2)}</Text>
+                <Text style={styles.axisLabel}>Wk {retentionChart.snapshots.length}</Text>
               </View>
             </View>
           )}
@@ -213,11 +232,36 @@ export function ProgressScreen() {
                   {todayWeight} {unit} today
                 </Text>
                 <Text style={styles.axisDark}>
-                  {profile?.goalWeight ?? todayWeight} {unit} goal
+                  {weightChart.goalWeight} {unit} goal
                 </Text>
               </View>
             </View>
           )}
+
+          {/* workout sessions */}
+          <View style={styles.trainingWrap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Workout sessions"
+              onPress={openWorkoutHistory}
+              style={({ pressed }) => [styles.trainingCard, pressed && styles.trainingCardPressed]}
+            >
+              <View style={styles.trainingIcon}>
+                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
+                </Svg>
+              </View>
+              <View style={styles.flex}>
+                <Text style={styles.trainingEyebrow}>{workoutSessionsCard.eyebrow}</Text>
+                <Text style={styles.trainingTitle}>{workoutSessionsCard.title}</Text>
+                <Text style={styles.trainingSub}>{workoutSessionsCard.detail}</Text>
+              </View>
+              <View style={styles.trainingCta}>
+                <Text style={styles.trainingCtaText}>{workoutSessionsCard.cta}</Text>
+                <Text style={styles.trainingChev}>›</Text>
+              </View>
+            </Pressable>
+          </View>
 
           {/* weekly check-in history */}
           <View style={styles.aiWrap}>
@@ -301,6 +345,18 @@ export function ProgressScreen() {
         item={selectedCheckin}
         onClose={() => setSelectedCheckin(null)}
       />
+      <WorkoutHistoryScreen
+        visible={workoutHistoryOpen}
+        workouts={data.workouts}
+        onClose={() => setWorkoutHistoryOpen(false)}
+        onSelectLog={(log) => setSelectedWorkoutLog(log)}
+      />
+      <WorkoutDetailScreen
+        visible={selectedWorkoutLog !== null}
+        log={selectedWorkoutLog}
+        workouts={data.workouts}
+        onClose={() => setSelectedWorkoutLog(null)}
+      />
     </View>
   );
 }
@@ -323,6 +379,17 @@ const styles = StyleSheet.create({
   axis: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
   axisLabel: { fontFamily: font.semibold, fontSize: 10.5, color: colors.faint },
   axisDark: { fontFamily: font.semibold, fontSize: 12, color: colors.muted },
+  // workout sessions
+  trainingWrap: { paddingHorizontal: 20, marginBottom: 12 },
+  trainingCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: "rgba(47,184,122,0.24)", borderRadius: 20, paddingVertical: 16, paddingHorizontal: 16 },
+  trainingCardPressed: { opacity: 0.72 },
+  trainingIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(47,184,122,0.12)" },
+  trainingEyebrow: { fontFamily: font.bold, fontSize: 10.5, letterSpacing: 0.84, color: colors.emeraldDeep },
+  trainingTitle: { fontFamily: font.bold, fontSize: 17, color: colors.ink, marginTop: 3 },
+  trainingSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
+  trainingCta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  trainingCtaText: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
+  trainingChev: { fontFamily: font.semibold, fontSize: 20, color: colors.emeraldDeep },
   // check-in history entry
   flex: { flex: 1 },
   historyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 16, marginBottom: 12 },

@@ -105,6 +105,7 @@ export function buildCheckinRequest(args: {
 export async function runWeeklyCheckinSubmit(args: {
   submitRequest: () => Promise<WeeklyVerdict>;
   refreshHomeData: () => Promise<void>;
+  refreshProgressData?: () => Promise<void>;
   onComplete: (verdict: WeeklyVerdict) => void;
   onError: (message: string) => void;
   errorMessage: (error: unknown) => string;
@@ -119,7 +120,10 @@ export async function runWeeklyCheckinSubmit(args: {
   }
 
   try {
-    await args.refreshHomeData();
+    await Promise.allSettled([
+      args.refreshHomeData(),
+      args.refreshProgressData?.() ?? Promise.resolve(),
+    ]);
   } catch {
     // The check-in is already persisted. A home refresh miss should not turn a
     // successful submission into a failed form state.

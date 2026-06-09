@@ -176,6 +176,7 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
     const saved = await runWeeklyCheckinSubmit({
       submitRequest: () => apiService.submitWeeklyCheckin(request),
       refreshHomeData: data.refreshHomeData,
+      refreshProgressData: data.refreshProgress,
       onComplete,
       onError: setError,
       errorMessage: (e) => extractApiError(e).message,
