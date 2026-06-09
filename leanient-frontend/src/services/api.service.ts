@@ -144,6 +144,16 @@ function isUnauthorized(error: unknown): boolean {
   return maybeHttpError.response?.status === 401;
 }
 
+/**
+ * A 403 from a gated endpoint (e.g. the coach) means the user is authenticated
+ * but lacks an active subscription. Callers use this to show a paywall instead
+ * of a generic error.
+ */
+export function isSubscriptionRequired(error: unknown): boolean {
+  const maybeHttpError = error as { response?: { status?: number } };
+  return maybeHttpError.response?.status === 403;
+}
+
 type ParsedUserContextSnapshot = z.infer<typeof userContextSnapshotSchema>;
 
 function normalizeContextSnapshot(snapshot: ParsedUserContextSnapshot): UserContextSnapshot {

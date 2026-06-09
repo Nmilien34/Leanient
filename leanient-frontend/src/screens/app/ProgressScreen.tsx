@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import type { MuscleRetentionLabel } from "@leanient/shared";
+import type { MuscleRetentionLabel, SubscriptionStatus } from "@leanient/shared";
 import type { CheckinHistoryItem } from "../../services/api.service";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
@@ -15,6 +15,7 @@ import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
 import { CoachChatScreen } from "./CoachChatScreen";
+import { SubscriptionScreen } from "./SubscriptionScreen";
 import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
 import { CheckinDetailScreen } from "./CheckinDetailScreen";
 import { useAuth } from "../../context/AuthContext";
@@ -58,9 +59,14 @@ export function ProgressScreen() {
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [selectedCheckin, setSelectedCheckin] = useState<CheckinHistoryItem | null>(null);
   const now = new Date();
+
+  const SUBSCRIBED: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
+  const subscribed = auth.user ? SUBSCRIBED.includes(auth.user.subscriptionStatus) : false;
+  const openCoach = () => (subscribed ? setCoachOpen(true) : setSubscriptionOpen(true));
 
   const overview = data.progressOverview;
   const profile = data.profile;
@@ -227,7 +233,7 @@ export function ProgressScreen() {
 
           {/* coach prompt */}
           <View style={styles.aiWrap}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={() => setCoachOpen(true)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={openCoach}>
               <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
                 <View style={styles.coachdot}>
                   <Spark />
@@ -272,7 +278,15 @@ export function ProgressScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <CoachChatScreen visible={coachOpen} onClose={() => setCoachOpen(false)} />
+      <CoachChatScreen
+        visible={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        onUpgrade={() => {
+          setCoachOpen(false);
+          setSubscriptionOpen(true);
+        }}
+      />
+      <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
       <CheckinHistoryScreen
         visible={checkinHistoryOpen}
         onClose={() => setCheckinHistoryOpen(false)}

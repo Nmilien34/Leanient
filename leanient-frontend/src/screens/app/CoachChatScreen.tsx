@@ -15,7 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
 import { COACH_CHAT_MAX_CONTENT_LENGTH, COACH_CHAT_MAX_MESSAGES, type CoachChatMessage } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
-import apiService from "../../services/api.service";
+import apiService, { isSubscriptionRequired } from "../../services/api.service";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -43,6 +43,8 @@ const SUGGESTIONS = [
 interface CoachChatScreenProps {
   visible: boolean;
   onClose: () => void;
+  /** Called when a non-subscribed user hits the gate, to open the paywall. */
+  onUpgrade: () => void;
 }
 
 /**
@@ -50,11 +52,12 @@ interface CoachChatScreenProps {
  * capped text box handles follow-ups. The backend injects the user's data and
  * holds the medical-advice boundaries, so this screen stays a thin chat shell.
  */
-export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
+export function CoachChatScreen({ visible, onClose, onUpgrade }: CoachChatScreenProps) {
   const [messages, setMessages] = useState<CoachChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [errored, setErrored] = useState(false);
+  const [locked, setLocked] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -63,6 +66,7 @@ export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
       setInput("");
       setPending(false);
       setErrored(false);
+      setLocked(false);
     }
   }, [visible]);
 
@@ -79,8 +83,12 @@ export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
       const payload = conversation.slice(-COACH_CHAT_MAX_MESSAGES);
       const res = await apiService.coachChat(payload);
       setMessages([...conversation, { role: "assistant", content: res.reply }]);
-    } catch {
-      setErrored(true);
+    } catch (error) {
+      if (isSubscriptionRequired(error)) {
+        setLocked(true);
+      } else {
+        setErrored(true);
+      }
     } finally {
       setPending(false);
     }
@@ -161,7 +169,20 @@ export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
               </Pressable>
             ) : null}
 
-            {!conversationStarted ? (
+            {locked ? (
+              <View style={styles.lockCard}>
+                <Text style={styles.lockTitle}>The coach is part of Premium</Text>
+                <Text style={styles.lockBody}>
+                  Start your trial to ask the coach about your weight, protein, and training, grounded
+                  in your own data.
+                </Text>
+                <Pressable accessibilityRole="button" onPress={onUpgrade} style={styles.lockBtn}>
+                  <Text style={styles.lockBtnText}>See plans</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {!conversationStarted && !locked ? (
               <View style={styles.suggestions}>
                 {SUGGESTIONS.map((question) => (
                   <Pressable
@@ -177,6 +198,7 @@ export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
             ) : null}
           </ScrollView>
 
+          {locked ? null : (
           <View style={styles.composer}>
             <View style={styles.inputWrap}>
               <TextInput
@@ -207,6 +229,7 @@ export function CoachChatScreen({ visible, onClose }: CoachChatScreenProps) {
               Based on your logged behavior, not medical advice. Talk to your prescriber about anything dose related.
             </Text>
           </View>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
@@ -260,6 +283,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   errorText: { fontFamily: font.medium, fontSize: 13.5, color: colors.amberDeep },
+  lockCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: "rgba(47,184,122,0.25)",
+    borderRadius: 18,
+    padding: 18,
+    gap: 10,
+    marginTop: 4,
+  },
+  lockTitle: { fontFamily: font.bold, fontSize: 17, color: colors.ink },
+  lockBody: { fontFamily: font.regular, fontSize: 14.5, lineHeight: 21, color: colors.inkSoft },
+  lockBtn: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    backgroundColor: colors.emeraldDeep,
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  lockBtnText: { fontFamily: font.semibold, fontSize: 15, color: "#F4FBF7" },
   suggestions: { gap: 8, paddingTop: 4 },
   chip: {
     alignSelf: "flex-start",
