@@ -14,6 +14,7 @@ import type {
   Workout,
 } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { StaggeredReveal } from "../../components/layout/StaggeredReveal";
 import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
@@ -254,212 +255,238 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           {scope === "today" ? (
             /* ---- Today scope: daily, shot-cycle re-skin (screen 15) ---- */
             <>
-              <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} onAction={() => setTodayPlanOpen(true)} />
+              <StaggeredReveal index={0}>
+                <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} onAction={() => setTodayPlanOpen(true)} />
+              </StaggeredReveal>
 
-              <View style={styles.rings}>
-                <MetricRing
-                  ratio={today.protein.ratio}
-                  value={`${today.protein.logged} / ${today.protein.target}g`}
-                  label="Protein today"
-                />
-                <MetricRing
-                  ratio={today.session.ratio}
-                  value={`${today.session.done} / ${today.session.target}`}
-                  label="Session today"
-                />
-                {today.nextShot.onProtocol ? (
-                  <InfoTile
-                    icon={
-                      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.emerald} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
-                      </Svg>
-                    }
-                    value={today.nextShot.label}
-                    label="Next shot"
+              <StaggeredReveal index={1}>
+                <View style={styles.rings}>
+                  <MetricRing
+                    ratio={today.protein.ratio}
+                    value={`${today.protein.logged} / ${today.protein.target}g`}
+                    label="Protein today"
                   />
-                ) : (
-                  <TrendTile
-                    series={weight.series}
-                    deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
-                    label="This week"
+                  <MetricRing
+                    ratio={today.session.ratio}
+                    value={`${today.session.done} / ${today.session.target}`}
+                    label="Session today"
                   />
-                )}
-              </View>
-
-              {/* Adjust today's targets — link only until the targets editor exists */}
-              <View style={styles.whylinkWrap}>
-                <Text style={styles.whylink}>Adjust today's targets</Text>
-              </View>
-
-              {focus ? (
-                <TodaysFocusCard focus={focus} eyebrow="DO THIS NEXT" onAction={handleFocusAction} />
-              ) : (
-                <EmptyState message="Your next move shows up here once you start logging meals and workouts." />
-              )}
-
-              <View style={styles.snap}>
-                <Text style={styles.eyebrow}>LOGGED TODAY</Text>
-                <View style={styles.loggedList}>
-                  {today.loggedMeals.length ? (
-                    today.loggedMeals.map((m, i) => (
-                      <View key={`${m.name}-${i}`} style={styles.loggedRow}>
-                        <View style={styles.loggedIcon}>
-                          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                            <Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" />
-                          </Svg>
-                        </View>
-                        <Text style={styles.loggedName}>{m.name}</Text>
-                        <Text style={styles.loggedVal}>
-                          {m.grams}g · {m.timeLabel}
-                        </Text>
-                      </View>
-                    ))
+                  {today.nextShot.onProtocol ? (
+                    <InfoTile
+                      icon={
+                        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.emerald} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
+                        </Svg>
+                      }
+                      value={today.nextShot.label}
+                      label="Next shot"
+                    />
                   ) : (
-                    <Text style={styles.loggedEmpty}>Nothing logged yet today.</Text>
+                    <TrendTile
+                      series={weight.series}
+                      deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
+                      label="This week"
+                    />
                   )}
                 </View>
-              </View>
+              </StaggeredReveal>
+
+              {/* Adjust today's targets — link only until the targets editor exists */}
+              <StaggeredReveal index={2}>
+                <View style={styles.whylinkWrap}>
+                  <Text style={styles.whylink}>Adjust today's targets</Text>
+                </View>
+              </StaggeredReveal>
+
+              <StaggeredReveal index={3}>
+                {focus ? (
+                  <TodaysFocusCard focus={focus} eyebrow="DO THIS NEXT" onAction={handleFocusAction} />
+                ) : (
+                  <EmptyState message="Your next move shows up here once you start logging meals and workouts." />
+                )}
+              </StaggeredReveal>
+
+              <StaggeredReveal index={4}>
+                <View style={styles.snap}>
+                  <Text style={styles.eyebrow}>LOGGED TODAY</Text>
+                  <View style={styles.loggedList}>
+                    {today.loggedMeals.length ? (
+                      today.loggedMeals.map((m, i) => (
+                        <View key={`${m.name}-${i}`} style={styles.loggedRow}>
+                          <View style={styles.loggedIcon}>
+                            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" />
+                            </Svg>
+                          </View>
+                          <Text style={styles.loggedName}>{m.name}</Text>
+                          <Text style={styles.loggedVal}>
+                            {m.grams}g · {m.timeLabel}
+                          </Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.loggedEmpty}>Nothing logged yet today.</Text>
+                    )}
+                  </View>
+                </View>
+              </StaggeredReveal>
             </>
           ) : (
             /* ---- This week scope ---- */
             <>
-              <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} />
+              <StaggeredReveal index={0}>
+                <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} />
+              </StaggeredReveal>
 
               {/* metric rings */}
               {verdict.status !== "no_data" ? (
-                <View style={styles.rings}>
-                  <MetricRing
-                    ratio={protein.ratio}
-                    value={`${protein.logged} / ${protein.target}g`}
-                    label="Protein"
-                  />
-                  <MetricRing
-                    ratio={training.ratio}
-                    value={`${training.done} / ${training.target}`}
-                    label="Training"
-                  />
-                  <TrendTile
-                    series={weight.series}
-                    deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
-                    label="This week"
-                  />
-                </View>
+                <StaggeredReveal index={1}>
+                  <View style={styles.rings}>
+                    <MetricRing
+                      ratio={protein.ratio}
+                      value={`${protein.logged} / ${protein.target}g`}
+                      label="Protein"
+                    />
+                    <MetricRing
+                      ratio={training.ratio}
+                      value={`${training.done} / ${training.target}`}
+                      label="Training"
+                    />
+                    <TrendTile
+                      series={weight.series}
+                      deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
+                      label="This week"
+                    />
+                  </View>
+                </StaggeredReveal>
               ) : null}
 
               {verdict.status !== "no_data" ? (
-                <Pressable
-                  style={styles.whylinkWrap}
-                  accessibilityRole="button"
-                  accessibilityLabel="Why this verdict?"
-                  onPress={() => setExplainerOpen(true)}
-                >
-                  <Text style={styles.whylink}>Why this verdict?</Text>
-                </Pressable>
+                <StaggeredReveal index={2}>
+                  <Pressable
+                    style={styles.whylinkWrap}
+                    accessibilityRole="button"
+                    accessibilityLabel="Why this verdict?"
+                    onPress={() => setExplainerOpen(true)}
+                  >
+                    <Text style={styles.whylink}>Why this verdict?</Text>
+                  </Pressable>
+                </StaggeredReveal>
               ) : null}
 
               {/* today's focus — hides itself when there's nothing actionable yet */}
-              {focus ? <TodaysFocusCard focus={focus} onAction={handleFocusAction} /> : null}
+              {focus ? (
+                <StaggeredReveal index={3}>
+                  <TodaysFocusCard focus={focus} onAction={handleFocusAction} />
+                </StaggeredReveal>
+              ) : null}
 
               {/* dose */}
-              <View style={styles.med}>
-                <View>
-                  <Text style={styles.mk}>LAST DOSE</Text>
-                  <Text style={styles.mv}>{dose.lastLabel}</Text>
+              <StaggeredReveal index={4}>
+                <View style={styles.med}>
+                  <View>
+                    <Text style={styles.mk}>LAST DOSE</Text>
+                    <Text style={styles.mv}>{dose.lastLabel}</Text>
+                  </View>
+                  <View style={styles.mdiv} />
+                  <View>
+                    <Text style={styles.mk}>NEXT DOSE</Text>
+                    <Text style={styles.mv}>{dose.nextLabel}</Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Log dose"
+                    style={styles.mlogWrap}
+                    onPress={openDoseLog}
+                  >
+                    <Text style={styles.mlog}>Log dose ›</Text>
+                  </Pressable>
                 </View>
-                <View style={styles.mdiv} />
-                <View>
-                  <Text style={styles.mk}>NEXT DOSE</Text>
-                  <Text style={styles.mv}>{dose.nextLabel}</Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Log dose"
-                  style={styles.mlogWrap}
-                  onPress={openDoseLog}
-                >
-                  <Text style={styles.mlog}>Log dose ›</Text>
-                </Pressable>
-              </View>
+              </StaggeredReveal>
 
               {/* dose history — preview the latest few; full list on its own screen */}
               {recentDoses.length > 0 ? (
-                <View style={styles.doseHist}>
-                  <Text style={styles.doseHistTitle}>RECENT DOSES</Text>
-                  {previewDoses.map((d) => (
-                    <Pressable
-                      key={d.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Dose ${formatDoseRelative(d.recordedAt, now)}`}
-                      onPress={() => setSelectedDose(d)}
-                      style={({ pressed }) => [styles.doseRow, pressed && styles.doseRowPressed]}
-                    >
-                      <Text style={styles.doseDate}>{formatDoseRelative(d.recordedAt, now)}</Text>
-                      <View style={styles.doseRight}>
-                        <Text style={styles.doseMeta} numberOfLines={1}>
-                          {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
-                          {formatDoseAmount(d)}
-                        </Text>
-                        <Text style={styles.doseChev}>›</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                  {recentDoses.length > DOSE_PREVIEW_COUNT ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Show all doses"
-                      onPress={() => setDoseHistoryOpen(true)}
-                      style={styles.doseMore}
-                    >
-                      <Text style={styles.doseMoreText}>Show all ({recentDoses.length})</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
+                <StaggeredReveal index={5}>
+                  <View style={styles.doseHist}>
+                    <Text style={styles.doseHistTitle}>RECENT DOSES</Text>
+                    {previewDoses.map((d) => (
+                      <Pressable
+                        key={d.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Dose ${formatDoseRelative(d.recordedAt, now)}`}
+                        onPress={() => setSelectedDose(d)}
+                        style={({ pressed }) => [styles.doseRow, pressed && styles.doseRowPressed]}
+                      >
+                        <Text style={styles.doseDate}>{formatDoseRelative(d.recordedAt, now)}</Text>
+                        <View style={styles.doseRight}>
+                          <Text style={styles.doseMeta} numberOfLines={1}>
+                            {d.injectionSite ? `${siteLabel(d.injectionSite)} · ` : ""}
+                            {formatDoseAmount(d)}
+                          </Text>
+                          <Text style={styles.doseChev}>›</Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                    {recentDoses.length > DOSE_PREVIEW_COUNT ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Show all doses"
+                        onPress={() => setDoseHistoryOpen(true)}
+                        style={styles.doseMore}
+                      >
+                        <Text style={styles.doseMoreText}>Show all ({recentDoses.length})</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </StaggeredReveal>
               ) : null}
 
               {/* this week's body */}
-              <View style={styles.snap}>
-                <Text style={styles.eyebrow}>THIS WEEK'S BODY</Text>
-                <View style={styles.snaprow}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Add this week's photo"
-                    onPress={handleOpenBodyPhoto}
-                    style={({ pressed }) => [styles.sc, styles.scAdd, pressed && styles.scPressed]}
-                  >
-                    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
-                      <Circle cx={12} cy={13} r={3.2} />
-                    </Svg>
-                    <Text style={styles.scAddText}>Add this{"\n"}week's photo</Text>
-                  </Pressable>
-                  <View style={styles.sc}>
-                    <Text style={styles.sk}>WEIGHT · 4 WK</Text>
-                    <Svg width="100%" height={28} viewBox="0 0 120 28" preserveAspectRatio="none">
-                      <Path
-                        d={sparklinePath(weight.series)}
-                        fill="none"
-                        stroke={colors.emerald}
-                        strokeWidth={2.5}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                    <View style={styles.svRow}>
-                      <Text style={styles.sv}>
-                        {w(weight.current)} {weight.unit}
-                      </Text>
-                      <Text style={styles.du}>
-                        ↓ {Math.abs(weight.delta4wk).toFixed(1)}
-                      </Text>
+              <StaggeredReveal index={6}>
+                <View style={styles.snap}>
+                  <Text style={styles.eyebrow}>THIS WEEK'S BODY</Text>
+                  <View style={styles.snaprow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Add this week's photo"
+                      onPress={handleOpenBodyPhoto}
+                      style={({ pressed }) => [styles.sc, styles.scAdd, pressed && styles.scPressed]}
+                    >
+                      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
+                        <Circle cx={12} cy={13} r={3.2} />
+                      </Svg>
+                      <Text style={styles.scAddText}>Add this{"\n"}week's photo</Text>
+                    </Pressable>
+                    <View style={styles.sc}>
+                      <Text style={styles.sk}>WEIGHT · 4 WK</Text>
+                      <Svg width="100%" height={28} viewBox="0 0 120 28" preserveAspectRatio="none">
+                        <Path
+                          d={sparklinePath(weight.series)}
+                          fill="none"
+                          stroke={colors.emerald}
+                          strokeWidth={2.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                      <View style={styles.svRow}>
+                        <Text style={styles.sv}>
+                          {w(weight.current)} {weight.unit}
+                        </Text>
+                        <Text style={styles.du}>
+                          ↓ {Math.abs(weight.delta4wk).toFixed(1)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.sc}>
+                      <Text style={styles.sk}>MEASUREMENTS</Text>
+                      <Text style={styles.sm}>Waist {measurements.waist ?? "—"}"</Text>
+                      <Text style={styles.sm}>Arm {measurements.arm ?? "—"}"</Text>
                     </View>
                   </View>
-                  <View style={styles.sc}>
-                    <Text style={styles.sk}>MEASUREMENTS</Text>
-                    <Text style={styles.sm}>Waist {measurements.waist ?? "—"}"</Text>
-                    <Text style={styles.sm}>Arm {measurements.arm ?? "—"}"</Text>
-                  </View>
                 </View>
-              </View>
+              </StaggeredReveal>
             </>
           )}
         </ScrollView>
