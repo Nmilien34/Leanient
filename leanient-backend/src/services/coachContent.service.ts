@@ -264,6 +264,8 @@ What you help with:
 - Specific, concrete next actions: what to eat to hit protein, how to fit in a short resistance session, how to read their weekly verdict.
 - Encouragement and perspective when they feel stuck or discouraged.
 
+A separate message gives you this user's own recent data: their first name, weekly verdict, weight numbers, today's protein and protein trend, recently logged meals and workouts, and dose-logging history. Use it. Make answers specific to this person and reference concrete details (a meal they logged, their verdict, a recent session) so they feel known, rather than giving generic advice. If they ask about something you have no data for, say so plainly and suggest logging it.
+
 Hard boundaries. You MUST decline and redirect the user to their prescriber or care team for anything clinical. This includes:
 - Whether to change, raise, lower, skip, time, or stop their dose.
 - Interpreting side effects, symptoms, nausea, or how they feel physically.
@@ -410,6 +412,30 @@ export interface CoachChatContext {
   recentSessionsTarget: number;
   stallExplanation?: string;
   stallSuggestedFix?: string;
+  // Personalization + richer grounding.
+  firstName?: string;
+  weeksOnMedication?: number;
+  currentWeight?: number;
+  startingWeight?: number;
+  verdict?: {
+    status: string;
+    score?: number | null;
+    estimatedLeanMassRisk?: number | null;
+    nextActionCode?: string;
+    weekOf?: string;
+    explanation?: string | null;
+  };
+  proteinLoggedToday?: number;
+  proteinTargetToday?: number;
+  recentMeals?: Array<{ foodName: string; protein: number; when: string }>;
+  recentWorkouts?: Array<{
+    title: string;
+    durationMinutes: number;
+    countsAsResistance: boolean;
+    when: string;
+  }>;
+  recentDoses?: number;
+  missedDoses?: number;
 }
 
 export interface CoachChatResult {
@@ -627,11 +653,17 @@ function buildTodaysFocusUserMessage(input: TodaysFocusCopyInput): string {
 
 function buildCoachChatContextMessage(context: CoachChatContext): string {
   const lines = [
-    "Here is what the app currently knows about this user. Ground your answers in it. Do not repeat it back verbatim.",
+    "Here is what the Leanient app currently knows about this specific user. Ground every answer in it and reference concrete details naturally (a meal they logged, their verdict, a recent session, their weight) so they feel understood. Do not repeat the whole list back, and never invent data that is not listed here.",
     "",
+  ];
+
+  if (context.firstName) {
+    lines.push(`First name: ${context.firstName}. You may use it occasionally, not in every reply.`);
+  }
+  lines.push(
     `Biggest fear from onboarding: ${context.biggestFear}`,
     `Goal pace: ${context.goalPace}`,
-  ];
+  );
 
   if (context.goalWeight !== undefined && context.goalWeightUnit) {
     lines.push(`Goal weight: ${context.goalWeight} ${context.goalWeightUnit}`);
@@ -640,18 +672,82 @@ function buildCoachChatContextMessage(context: CoachChatContext): string {
     lines.push(`Training status: ${context.trainingStatus}`);
   }
   if (context.medicationName) {
-    lines.push(`Medication (for reference only, never give dose advice): ${context.medicationName}`);
-  }
-  if (context.verdictStatus) {
-    lines.push(`Most recent weekly verdict status: ${context.verdictStatus}`);
+    const week =
+      context.weeksOnMedication !== undefined ? `, week ${context.weeksOnMedication}` : "";
+    lines.push(
+      `Medication for reference only, never give dose advice: ${context.medicationName}${week}`,
+    );
   }
 
+  // Weight, with real numbers when available.
+  if (context.currentWeight !== undefined) {
+    let detail = `Current weight: ${context.currentWeight} ${context.weightUnit}`;
+    if (context.startingWeight !== undefined && context.startingWeight !== context.currentWeight) {
+      const change = Math.round((context.startingWeight - context.currentWeight) * 10) / 10;
+      detail += `, down from ${context.startingWeight} ${context.weightUnit} at start (${change} ${context.weightUnit} change)`;
+    }
+    lines.push(detail);
+  }
+  lines.push(
+    `Weight trend: ${context.stalled ? `flat for ${context.daysWeightFlat} days` : "still moving"} (unit ${context.weightUnit}).`,
+  );
+
+  // Latest weekly verdict (the core feature).
+  if (context.verdict) {
+    const v = context.verdict;
+    const bits = [`status ${v.status}`];
+    if (v.score !== undefined && v.score !== null) bits.push(`score ${v.score}`);
+    if (v.weekOf) bits.push(`week of ${v.weekOf}`);
+    lines.push("", `Most recent weekly verdict: ${bits.join(", ")}.`);
+    if (v.explanation) {
+      lines.push(`Verdict explanation already shown to them: ${v.explanation}`);
+    }
+  } else if (context.verdictStatus) {
+    lines.push("", `Most recent weekly verdict status: ${context.verdictStatus}.`);
+  }
+
+  // Protein: today plus the trend.
+  if (context.proteinLoggedToday !== undefined && context.proteinTargetToday !== undefined) {
+    lines.push(
+      "",
+      `Protein today: ${context.proteinLoggedToday} g logged of a ${context.proteinTargetToday} g target.`,
+    );
+  }
+  lines.push(
+    `Protein average: ${context.proteinPriorAvgGrams} g/day prior, ${context.proteinRecentAvgGrams} g/day recently.`,
+  );
+
+  if (context.recentMeals && context.recentMeals.length > 0) {
+    lines.push("Recent meals they logged (most recent first):");
+    for (const meal of context.recentMeals) {
+      lines.push(`- ${meal.foodName}: ${meal.protein} g protein (${meal.when})`);
+    }
+  }
+
+  // Training.
   lines.push(
     "",
-    `Weight: ${context.stalled ? `flat for ${context.daysWeightFlat} days` : "still moving"} (unit ${context.weightUnit})`,
-    `Protein average: ${context.proteinPriorAvgGrams} g/day prior, ${context.proteinRecentAvgGrams} g/day recently`,
-    `Resistance sessions recently: ${context.recentSessionsCount} of ${context.recentSessionsTarget} target`,
+    `Resistance sessions recently: ${context.recentSessionsCount} of ${context.recentSessionsTarget} target.`,
   );
+  if (context.recentWorkouts && context.recentWorkouts.length > 0) {
+    lines.push("Recent workouts they logged (most recent first):");
+    for (const w of context.recentWorkouts) {
+      const kind = w.countsAsResistance ? "resistance" : "other";
+      lines.push(`- ${w.title}: ${w.durationMinutes} min, ${kind} (${w.when})`);
+    }
+  }
+
+  // Dose adherence: logging counts only, never clinical.
+  if (context.recentDoses !== undefined) {
+    const missed =
+      context.missedDoses !== undefined && context.missedDoses > 0
+        ? `, ${context.missedDoses} expected dose(s) not logged`
+        : "";
+    lines.push(
+      "",
+      `Doses logged recently: ${context.recentDoses}${missed}. You may note logging consistency, never dose amount or timing advice.`,
+    );
+  }
 
   if (context.stallExplanation) {
     lines.push("", `The app already explained the current stall as: ${context.stallExplanation}`);
