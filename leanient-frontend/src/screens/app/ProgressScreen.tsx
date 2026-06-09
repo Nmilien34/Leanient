@@ -82,7 +82,11 @@ export function ProgressScreen() {
 
     refreshedForUserRef.current = userId;
     void data.refreshProgress();
-  }, [auth.user?.id, data.refreshProgress]);
+    // Re-fetch the user so subscription status is current. The cached user from
+    // login can be stale (e.g. after a subscription starts), which would wrongly
+    // gate the coach. refreshMe() pulls the authoritative status from the server.
+    void auth.refreshMe();
+  }, [auth.user?.id, auth.refreshMe, data.refreshProgress]);
 
   // Header
   const weeksOnMed =
