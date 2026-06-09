@@ -433,6 +433,7 @@ export interface CoachChatContext {
     durationMinutes: number;
     countsAsResistance: boolean;
     when: string;
+    exercises?: string[];
   }>;
   recentDoses?: number;
   missedDoses?: number;
@@ -733,7 +734,9 @@ function buildCoachChatContextMessage(context: CoachChatContext): string {
     lines.push("Recent workouts they logged (most recent first):");
     for (const w of context.recentWorkouts) {
       const kind = w.countsAsResistance ? "resistance" : "other";
-      lines.push(`- ${w.title}: ${w.durationMinutes} min, ${kind} (${w.when})`);
+      const detail =
+        w.exercises && w.exercises.length > 0 ? ` — ${w.exercises.join(", ")}` : "";
+      lines.push(`- ${w.title}: ${w.durationMinutes} min, ${kind} (${w.when})${detail}`);
     }
   }
 

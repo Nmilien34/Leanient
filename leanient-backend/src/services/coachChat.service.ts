@@ -119,15 +119,22 @@ export async function getCoachChatReply(
       .reduce((sum, meal) => sum + meal.protein, 0),
   );
 
-  const recentWorkouts = recentWorkoutDocs.map((w) => ({
-    title:
-      w.customWorkoutName ??
-      (w.workoutId ? workoutTitleById.get(String(w.workoutId)) : undefined) ??
-      "Workout",
-    durationMinutes: w.durationMinutes,
-    countsAsResistance: w.countsAsResistance,
-    when: dayLabel(w.recordedAt, now),
-  }));
+  const recentWorkouts = recentWorkoutDocs.map((w) => {
+    const exerciseNames = (w.exercises ?? [])
+      .map((ex) => ex.name)
+      .filter((name): name is string => Boolean(name))
+      .slice(0, 8);
+    return {
+      title:
+        w.customWorkoutName ??
+        (w.workoutId ? workoutTitleById.get(String(w.workoutId)) : undefined) ??
+        "Workout",
+      durationMinutes: w.durationMinutes,
+      countsAsResistance: w.countsAsResistance,
+      when: dayLabel(w.recordedAt, now),
+      exercises: exerciseNames.length > 0 ? exerciseNames : undefined,
+    };
+  });
 
   // Only report a start weight when it shares the current unit, so the model
   // never computes a change across mixed lb/kg values.

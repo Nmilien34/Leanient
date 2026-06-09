@@ -71,4 +71,39 @@ describe("deriveWorkoutComplete", () => {
       recordedAt: "2026-06-03T18:00:00.000Z",
     });
   });
+
+  it("captures the catalog exercise composition into the log", () => {
+    const workout = {
+      id: "workout_2",
+      category: "strength",
+      exercises: [
+        { name: "Goblet Squat", sets: 3, reps: "8-12", restSeconds: 60, muscleGroups: ["legs"], notes: null },
+        { name: "Plank", sets: 1, reps: "30 sec", restSeconds: 30, muscleGroups: ["core"], notes: null },
+      ],
+    } as Workout;
+
+    const draft = buildGuidedWorkoutLogDraft({
+      summary: { ...fullSession, elapsedSeconds: 1320 },
+      workout,
+      recordedAt: "2026-06-03T18:00:00.000Z",
+    });
+
+    expect(draft.exercises).toEqual([
+      {
+        name: "Goblet Squat",
+        muscleGroups: ["legs"],
+        // "8-12" range uses the upper target; weights are not measured by the player.
+        sets: [
+          { reps: 12, weight: null, unit: null },
+          { reps: 12, weight: null, unit: null },
+          { reps: 12, weight: null, unit: null },
+        ],
+      },
+      {
+        name: "Plank",
+        muscleGroups: ["core"],
+        sets: [{ reps: 30, weight: null, unit: null }],
+      },
+    ]);
+  });
 });

@@ -84,6 +84,24 @@ export function deriveWorkoutComplete(args: {
   };
 }
 
+/**
+ * Pull a usable positive integer rep count from a catalog reps string like
+ * "8-12", "10", "12 each side", or "30 sec". Ranges use the upper target.
+ * Falls back to 10 when there is no number (e.g. "AMRAP").
+ */
+function parsePrescribedReps(reps: string): number {
+  const found = (reps.match(/\d+/g) ?? []).map((n) => parseInt(n, 10)).filter((n) => n > 0);
+  if (found.length === 0) return 10;
+  return found.length === 1 ? found[0] : found[1];
+}
+
+/**
+ * Capture the session's exercise composition from the catalog workout so each
+ * logged workout carries what was actually trained (names, muscle groups, the
+ * prescribed set/rep structure). Weights are left null: the guided player does
+ * not measure load, so we record the plan the user followed, not invented data.
+ * This is what lets the coach and the history view reference real exercises.
+ */
 export function buildGuidedWorkoutLogDraft(args: {
   summary: CompletedWorkout;
   workout: Workout;
@@ -91,10 +109,20 @@ export function buildGuidedWorkoutLogDraft(args: {
 }): CreateWorkoutLogRequest {
   const durationMinutes = Math.max(1, Math.round(args.summary.elapsedSeconds / 60));
 
+  const exercises: CreateWorkoutLogRequest["exercises"] = (args.workout.exercises ?? []).map((ex) => {
+    const setCount = Math.max(1, ex.sets);
+    const reps = parsePrescribedReps(ex.reps);
+    return {
+      name: ex.name,
+      muscleGroups: ex.muscleGroups,
+      sets: Array.from({ length: setCount }, () => ({ reps, weight: null, unit: null })),
+    };
+  });
+
   return {
     workoutId: args.summary.workoutId,
     durationMinutes,
-    exercises: [],
+    exercises,
     countsAsResistance: args.workout.category === "strength",
     recordedAt: args.recordedAt,
   };
