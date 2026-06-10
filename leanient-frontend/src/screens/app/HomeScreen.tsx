@@ -37,6 +37,7 @@ import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
 import { DoseDetailScreen } from "./DoseDetailScreen";
 import { MealDetailScreen } from "./MealDetailScreen";
+import { TargetsScreen } from "./TargetsScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
@@ -87,6 +88,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [targetsOpen, setTargetsOpen] = useState(false);
   const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -298,11 +300,15 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </View>
               </StaggeredReveal>
 
-              {/* Adjust today's targets — link only until the targets editor exists */}
               <StaggeredReveal index={2}>
-                <View style={styles.whylinkWrap}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Adjust today's targets"
+                  onPress={() => setTargetsOpen(true)}
+                  style={styles.whylinkWrap}
+                >
                   <Text style={styles.whylink}>Adjust today's targets</Text>
-                </View>
+                </Pressable>
               </StaggeredReveal>
 
               <StaggeredReveal index={3}>
@@ -617,6 +623,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         meal={data.todaysMeals.find((m) => m.id === selectedMealId) ?? null}
         onClose={() => setSelectedMealId(null)}
       />
+      <TargetsScreen visible={targetsOpen} onClose={() => setTargetsOpen(false)} />
     </View>
   );
 }
