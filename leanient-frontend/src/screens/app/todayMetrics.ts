@@ -1,6 +1,8 @@
 import type { MealLog, UserMedicationProtocol, UserProfile, VerdictStatus, Weekday, Workout, WorkoutLog } from "@leanient/shared";
 
 export interface TodayLogEntry {
+  /** MealLog id, so the row can open the logged meal's detail view. */
+  id: string;
   name: string;
   grams: number;
   timeLabel: string;
@@ -30,7 +32,7 @@ function formatLogTime(iso: string): string {
  */
 export function toTodayLog(meals: MealLog[], workouts: WorkoutLog[] = []): TodayLog {
   return {
-    meals: meals.map((m) => ({ name: m.foodName, grams: Math.round(m.protein), timeLabel: formatLogTime(m.recordedAt) })),
+    meals: meals.map((m) => ({ id: m.id, name: m.foodName, grams: Math.round(m.protein), timeLabel: formatLogTime(m.recordedAt) })),
     workoutsDone: workouts.length,
   };
 }

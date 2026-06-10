@@ -19,6 +19,7 @@ import {
   inferEquipmentAccessFromTrainingStatus,
   latestWeeklyVerdictResponseSchema,
   mealLogResponseSchema,
+  mealLogScanDetailResponseSchema,
   coachChatRequestSchema,
   coachChatResponseSchema,
   mealScanRequestSchema,
@@ -70,6 +71,7 @@ import {
   type LeanientFocusArea,
   type LatestWeeklyVerdictResponse,
   type MealLog,
+  type MealLogScanDetailResponse,
   type MealScanRequest,
   type MealScanResponse,
   type MeasurementLog,
@@ -428,6 +430,10 @@ export class LeanientApiClient {
 
   public async scanMeal(body: MealScanRequest): Promise<MealScanResponse> {
     return this.post("/meal-scans/analyze", mealScanRequestSchema.parse(body), mealScanResponseSchema);
+  }
+
+  public async getMealLogScan(mealLogId: string): Promise<MealLogScanDetailResponse> {
+    return this.get(`/meal-logs/${mealLogId}/scan`, mealLogScanDetailResponseSchema);
   }
 
   public async getStallDiagnostic(): Promise<StallDiagnosticResponse> {

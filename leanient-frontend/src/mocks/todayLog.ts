@@ -7,8 +7,8 @@ import type { TodayLog } from "../screens/app/todayMetrics";
  */
 export const mockTodayLog: TodayLog = {
   meals: [
-    { name: "Greek yogurt + berries", grams: 32, timeLabel: "8:10a" },
-    { name: "Chicken & rice bowl", grams: 26, timeLabel: "1:05p" },
+    { id: "meal_1", name: "Greek yogurt + berries", grams: 32, timeLabel: "8:10a" },
+    { id: "meal_2", name: "Chicken & rice bowl", grams: 26, timeLabel: "1:05p" },
   ],
   workoutsDone: 0,
 };

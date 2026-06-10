@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { isValidObjectId } from "mongoose";
 import type {
+  MealLogScanDetailResponse,
   MealScanAnalysis,
   MealScanCoachContent,
   MealScanImageMimeType,
@@ -7,7 +9,7 @@ import type {
   MealScanResponse,
 } from "@leanient/shared";
 import { ERROR_CODES, mealScanRequestSchema } from "@leanient/shared";
-import { AppError } from "../lib/errors";
+import { AppError, NotFoundError } from "../lib/errors";
 import { logger } from "../lib/logger";
 import { startOfUtcWeek } from "../lib/week";
 import { MealLogModel } from "../models/mealLog.model";
@@ -22,7 +24,7 @@ import {
   type MealScanProteinSnapshot,
 } from "./coachContent.service";
 import { serializeMealScan } from "./serializers";
-import { putS3Object } from "./s3.service";
+import { createPresignedGetUrl, putS3Object } from "./s3.service";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const PROTEIN_ON_TRACK_THRESHOLD = 0.8;
@@ -352,4 +354,40 @@ export async function analyzeMealScan(
 
     throw error;
   }
+}
+
+/**
+ * The scan artifacts behind a logged meal: a fresh presigned photo URL plus
+ * what the coach said at confirm time. Scanned logs carry their photoS3Key,
+ * which is unique per scan, so the scan record is recovered through it — no
+ * schema linkage needed, and it works for logs created before this endpoint
+ * existed. Manual/barcode logs return all nulls.
+ */
+export async function getMealLogScanDetail(
+  userId: string,
+  mealLogId: string,
+): Promise<MealLogScanDetailResponse> {
+  if (!isValidObjectId(mealLogId)) {
+    throw new NotFoundError("Meal log not found");
+  }
+
+  const log = await MealLogModel.findOne({ _id: mealLogId, userId, deletedAt: null });
+  if (!log) {
+    throw new NotFoundError("Meal log not found");
+  }
+
+  if (!log.photoS3Key) {
+    return { photoViewUrl: null, analysis: null, coachContent: null };
+  }
+
+  const [photoViewUrl, scan] = await Promise.all([
+    createPresignedGetUrl({ key: log.photoS3Key }),
+    MealScanModel.findOne({ userId, photoS3Key: log.photoS3Key }),
+  ]);
+
+  return {
+    photoViewUrl,
+    analysis: scan?.analysis ?? null,
+    coachContent: scan?.coachContent ?? null,
+  };
 }

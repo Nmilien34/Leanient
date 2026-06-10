@@ -36,6 +36,7 @@ import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
 import { DoseDetailScreen } from "./DoseDetailScreen";
+import { MealDetailScreen } from "./MealDetailScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
@@ -85,6 +86,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const [scope, setScope] = useState<"week" | "today">("week");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -323,7 +325,13 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   <View style={styles.loggedList}>
                     {today.loggedMeals.length ? (
                       today.loggedMeals.map((m, i) => (
-                        <View key={`${m.name}-${i}`} style={styles.loggedRow}>
+                        <Pressable
+                          key={`${m.name}-${i}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`View ${m.name}`}
+                          onPress={() => setSelectedMealId(m.id)}
+                          style={styles.loggedRow}
+                        >
                           <View style={styles.loggedIcon}>
                             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                               <Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" />
@@ -333,7 +341,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                           <Text style={styles.loggedVal}>
                             {m.grams}g · {m.timeLabel}
                           </Text>
-                        </View>
+                          <Text style={styles.loggedChev}>›</Text>
+                        </Pressable>
                       ))
                     ) : (
                       <Text style={styles.loggedEmpty}>Nothing logged yet today.</Text>
@@ -603,6 +612,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         medicationName={medication?.medicationName}
         onClose={() => setSelectedDose(null)}
       />
+      <MealDetailScreen
+        visible={selectedMealId !== null}
+        meal={data.todaysMeals.find((m) => m.id === selectedMealId) ?? null}
+        onClose={() => setSelectedMealId(null)}
+      />
     </View>
   );
 }
@@ -754,6 +768,7 @@ const styles = StyleSheet.create({
   loggedIcon: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF7F1" },
   loggedName: { flex: 1, fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   loggedVal: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep },
+  loggedChev: { fontFamily: font.bold, fontSize: 15, color: colors.faint, marginLeft: 2 },
   loggedEmpty: { fontFamily: font.medium, fontSize: 13, color: colors.muted, paddingVertical: 8 },
 });
 

@@ -420,6 +420,18 @@ export const mealScanResponseSchema = z
   })
   .strict();
 
+// GET /meal-logs/:id/scan — the scan artifacts behind a logged meal (photo +
+// what the coach said at confirm time). All nulls for manual/barcode logs.
+export const mealLogScanDetailResponseSchema = z
+  .object({
+    photoViewUrl: z.string().nullable(),
+    analysis: mealScanAnalysisSchema.nullable(),
+    coachContent: mealScanCoachContentSchema.nullable(),
+  })
+  .strict();
+
+export type MealLogScanDetailResponse = z.infer<typeof mealLogScanDetailResponseSchema>;
+
 export const workoutLogSetSchema = z
   .object({
     reps: z.number().int().positive(),
