@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.boltzman.leanient</string>
+          <string>ai.boltzman.leanient</string>
         </array>
       </dict>
       <dict>

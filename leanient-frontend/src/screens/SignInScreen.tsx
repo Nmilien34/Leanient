@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
 import Svg, { Path } from "react-native-svg";
 import { SplashArt } from "../components/brand/SplashArt";
 import { useAuth } from "../context/AuthContext";
@@ -11,6 +12,7 @@ import { extractApiError } from "../services/apiError";
 import { GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "../config";
 import { colors } from "../theme/tokens";
 import { font } from "../theme/fonts";
+import { runAppleSignIn, shouldRenderAppleSignIn } from "./appleSignIn";
 
 // Configure native Google Sign-In once. webClientId is REQUIRED — it's the
 // audience the backend's /auth/google validation expects on the idToken, so it
@@ -47,13 +49,15 @@ function AppleMark() {
  * Sign-in entry. Shown to signed-out users after the splash. Google runs the
  * native Google Sign-In flow (@react-native-google-signin) → idToken →
  * `auth.signInWithGoogle`, which populates `auth.user`; the app router
- * (App.tsx) then routes to onboarding or the main app. Apple is present but
- * deferred (Developer enrollment pending).
+ * (App.tsx) then routes to onboarding or the main app. Apple follows the same
+ * auth context path after the native iOS sheet returns an identity token.
  */
 export function SignInScreen() {
   const auth = useAuth();
-  const [busy, setBusy] = useState(false);
+  const [busyProvider, setBusyProvider] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const busy = busyProvider !== null;
+  const showAppleSignIn = shouldRenderAppleSignIn(Platform.OS);
 
   const onGoogle = async () => {
     setError(null);
@@ -61,22 +65,22 @@ export function SignInScreen() {
       setError("Google sign-in isn't configured yet.");
       return;
     }
-    setBusy(true);
+    setBusyProvider("google");
     try {
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
       if (response.type !== "success") {
-        return; // user backed out — silent, no error UI
+        return; // user backed out, silent, no error UI
       }
       const idToken = response.data.idToken;
       if (!idToken) {
         throw new Error("No idToken returned from Google Sign-In");
       }
-      await auth.signInWithGoogle(idToken); // success → auth.user set → router advances
+      await auth.signInWithGoogle(idToken);
     } catch (e) {
       const code = (e as { code?: string }).code;
       if (code === statusCodes.SIGN_IN_CANCELLED) {
-        return; // cancelled (throw-based on older API) — silent
+        return; // cancelled, silent
       }
       if (code === statusCodes.IN_PROGRESS) {
         setError("Sign-in is already in progress.");
@@ -88,13 +92,23 @@ export function SignInScreen() {
       }
       setError(extractApiError(e).message);
     } finally {
-      setBusy(false);
+      setBusyProvider(null);
     }
   };
 
-  const onApple = () => {
-    // Apple Sign-In is wired in a later pass (Developer enrollment pending).
-    setError("Apple sign-in is coming soon.");
+  const onApple = async () => {
+    setError(null);
+    setBusyProvider("apple");
+    try {
+      await runAppleSignIn({
+        appleAuth: AppleAuthentication,
+        signInWithApple: auth.signInWithApple,
+      });
+    } catch (e) {
+      setError(extractApiError(e).message);
+    } finally {
+      setBusyProvider(null);
+    }
   };
 
   return (
@@ -124,7 +138,7 @@ export function SignInScreen() {
             disabled={busy}
             style={({ pressed }) => [styles.btn, styles.google, (pressed || busy) && styles.pressed]}
           >
-            {busy ? (
+            {busyProvider === "google" ? (
               <ActivityIndicator color={colors.ink} />
             ) : (
               <>
@@ -134,16 +148,24 @@ export function SignInScreen() {
             )}
           </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Apple"
-            onPress={onApple}
-            disabled={busy}
-            style={({ pressed }) => [styles.btn, styles.apple, pressed && styles.pressed]}
-          >
-            <AppleMark />
-            <Text style={styles.appleText}>Continue with Apple</Text>
-          </Pressable>
+          {showAppleSignIn ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Apple"
+              onPress={onApple}
+              disabled={busy}
+              style={({ pressed }) => [styles.btn, styles.apple, (pressed || busy) && styles.pressed]}
+            >
+              {busyProvider === "apple" ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <AppleMark />
+                  <Text style={styles.appleText}>Continue with Apple</Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
 
           <Text style={styles.legal}>By continuing you agree to our Terms and Privacy Policy.</Text>
         </View>

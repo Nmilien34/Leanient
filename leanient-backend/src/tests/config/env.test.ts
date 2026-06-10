@@ -54,7 +54,7 @@ describe("env Apple configuration", () => {
   it("exposes a complete Apple config when every Apple credential is present", async () => {
     const { env } = await loadEnvModule(
       productionEnv({
-        APPLE_CLIENT_ID: "com.boltzman.leanient",
+        APPLE_CLIENT_ID: "ai.boltzman.leanient",
         APPLE_TEAM_ID: "TEAMID1234",
         APPLE_KEY_ID: "APPLEKEY123",
         APPLE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\\nabc123\\n-----END PRIVATE KEY-----",
@@ -62,7 +62,7 @@ describe("env Apple configuration", () => {
     );
 
     expect(env.apple).toEqual({
-      clientId: "com.boltzman.leanient",
+      clientId: "ai.boltzman.leanient",
       teamId: "TEAMID1234",
       keyId: "APPLEKEY123",
       privateKey: "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----",

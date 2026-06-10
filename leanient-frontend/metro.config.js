@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Metro config for the Leanient monorepo.
 // @leanient/shared is hoisted to the monorepo root node_modules and lives in
 // ../shared, both outside this project folder. Metro only watches the project

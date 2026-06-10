@@ -8,11 +8,11 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.boltzman.leanient",
+      "bundleIdentifier": "ai.boltzman.leanient",
       "usesAppleSignIn": true
     },
     "android": {
-      "package": "com.boltzman.leanient"
+      "package": "ai.boltzman.leanient"
     },
     "web": {
       "bundler": "metro"
