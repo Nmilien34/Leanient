@@ -4,13 +4,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import type { MealScanResponse } from "@leanient/shared";
+import type { MealScanResponse, SubscriptionStatus } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { CoachChatScreen } from "./CoachChatScreen";
+import { SubscriptionScreen } from "./SubscriptionScreen";
+import { useAuth } from "../../context/AuthContext";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { readMealScanImageFromUri } from "../../services/mealScanPhoto.service";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+
+const SUBSCRIBED: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
+
+/**
+ * Suggested chat openers seeded with the scan itself. The backend coach only
+ * sees logged data, and at confirm time this meal is not logged yet, so the
+ * questions carry the macros inline.
+ */
+function mealSuggestions(result: MealScanResponse): string[] {
+  const { foodName, protein, calories } = result.analysis;
+  const meal = `${foodName} (${protein}g protein, ${calories} cal)`;
+  const questions = [
+    `I'm about to eat ${meal}. Good call for my protein today?`,
+    `What should I pair with ${foodName} to hit my protein target?`,
+  ];
+  if (result.coachContent?.mode === "swap" && result.coachContent.swap) {
+    questions.push(`Why did you suggest "${result.coachContent.swap.description}" for this meal?`);
+  }
+  questions.push("How is my protein looking this week overall?");
+  return questions;
+}
 
 function Spark({ color = "#fff" }: { color?: string }) {
   return (
@@ -34,16 +58,24 @@ interface MealScanScreenProps {
  * `MealScanResponse`.
  */
 export function MealScanScreen({ visible, photoUri, onClose, onRetake, onLogged }: MealScanScreenProps) {
+  const auth = useAuth();
   const [result, setResult] = useState<MealScanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanAttempt, setScanAttempt] = useState(0);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
+
+  const subscribed = auth.user ? SUBSCRIBED.includes(auth.user.subscriptionStatus) : false;
+  const openCoach = () => (subscribed ? setCoachOpen(true) : setSubscriptionOpen(true));
 
   useEffect(() => {
     if (!visible) {
       setResult(null);
       setError(null);
       setIsScanning(false);
+      setCoachOpen(false);
+      setSubscriptionOpen(false);
       return;
     }
 
@@ -178,6 +210,15 @@ export function MealScanScreen({ visible, photoUri, onClose, onRetake, onLogged 
                   <Text style={styles.slv}>+{coachContent.swap.additionalProtein}g</Text>
                 </View>
               ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Talk to your coach"
+                onPress={openCoach}
+                style={styles.coachChatBtn}
+              >
+                <Text style={styles.coachChatBtnText}>Talk to your coach</Text>
+                <Text style={styles.coachChatChev}>›</Text>
+              </Pressable>
             </LinearGradient>
           ) : null}
 
@@ -196,6 +237,18 @@ export function MealScanScreen({ visible, photoUri, onClose, onRetake, onLogged 
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Rendered inside this overlay's root so they stack above it. */}
+      <CoachChatScreen
+        visible={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        onUpgrade={() => {
+          setCoachOpen(false);
+          setSubscriptionOpen(true);
+        }}
+        suggestions={mealSuggestions(result)}
+      />
+      <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
     </View>
   );
 }
@@ -274,6 +327,9 @@ const styles = StyleSheet.create({
   coachLabel: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 0.69, color: colors.emeraldDeep },
   callout: { fontFamily: font.medium, fontSize: 15, lineHeight: 22, color: colors.inkSoft, marginTop: 10 },
   statline: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, padding: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14 },
+  coachChatBtn: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, marginTop: 12 },
+  coachChatBtnText: { fontFamily: font.bold, fontSize: 13.5, color: colors.emeraldDeep },
+  coachChatChev: { fontFamily: font.bold, fontSize: 15, color: colors.emeraldDeep },
   sli: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF7F1" },
   slk: { flex: 1, fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   slv: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep },

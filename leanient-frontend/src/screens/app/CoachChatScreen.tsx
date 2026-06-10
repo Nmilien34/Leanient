@@ -45,6 +45,12 @@ interface CoachChatScreenProps {
   onClose: () => void;
   /** Called when a non-subscribed user hits the gate, to open the paywall. */
   onUpgrade: () => void;
+  /**
+   * Replaces the default suggestion chips. Callers opening the chat from a
+   * specific context (e.g. a just-scanned meal) pass questions that carry that
+   * context, since the backend only knows about logged data.
+   */
+  suggestions?: string[];
 }
 
 /**
@@ -52,7 +58,7 @@ interface CoachChatScreenProps {
  * capped text box handles follow-ups. The backend injects the user's data and
  * holds the medical-advice boundaries, so this screen stays a thin chat shell.
  */
-export function CoachChatScreen({ visible, onClose, onUpgrade }: CoachChatScreenProps) {
+export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions }: CoachChatScreenProps) {
   const [messages, setMessages] = useState<CoachChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -184,7 +190,7 @@ export function CoachChatScreen({ visible, onClose, onUpgrade }: CoachChatScreen
 
             {!conversationStarted && !locked ? (
               <View style={styles.suggestions}>
-                {SUGGESTIONS.map((question) => (
+                {(suggestions ?? SUGGESTIONS).map((question) => (
                   <Pressable
                     key={question}
                     accessibilityRole="button"
