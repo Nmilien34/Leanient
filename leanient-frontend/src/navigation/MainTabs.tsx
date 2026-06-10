@@ -109,6 +109,7 @@ export function MainTabs() {
   const quickActions = useMemo<QuickActions>(
     () => ({
       openQuickLog: () => setLogOpen(true),
+      openMealScan: () => setCameraOpen(true),
       openMealLog: () => setMealLogOpen(true),
       openDoseLog: () => setDoseOpen(true),
       openProgressPhoto: () => setPhotoOpen(true),
@@ -117,7 +118,7 @@ export function MainTabs() {
         setPlayerOpen(true);
       },
     }),
-    [setLogOpen, setMealLogOpen, setDoseOpen, setPhotoOpen, setActiveWorkout, setPlayerOpen],
+    [setLogOpen, setCameraOpen, setMealLogOpen, setDoseOpen, setPhotoOpen, setActiveWorkout, setPlayerOpen],
   );
 
   const showLogError = (error: unknown) => {

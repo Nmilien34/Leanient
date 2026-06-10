@@ -31,7 +31,7 @@ import { ErrorState } from "../../components/app/ErrorState";
 import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
 import { VerdictRevealScreen } from "./VerdictRevealScreen";
 import { deriveHomeMetrics } from "./homeMetrics";
-import { createOpenProgressPhotoAction } from "./homeActions";
+import { createOpenProgressPhotoAction, getPrimaryFocusActionIntent, getSecondaryFocusAction } from "./homeActions";
 import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
@@ -80,7 +80,7 @@ interface HomeViewProps {
 function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const navigation = useNavigation();
-  const { openDoseLog, openMealLog, openProgressPhoto, startWorkout } = useQuickActions();
+  const { openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
@@ -161,25 +161,30 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   );
 
   const handleFocusAction = () => {
-    switch (focus?.actionType) {
-      case "log_meal":
-        openMealLog();
+    switch (getPrimaryFocusActionIntent(focus?.actionType)) {
+      case "meal_scan":
+        openMealScan();
         break;
-      case "log_workout":
+      case "workout":
         startWorkout();
         break;
-      case "log_dose":
+      case "dose":
         openDoseLog();
         break;
-      case "take_photo":
+      case "photo":
         openProgressPhoto();
         break;
-      case "view_progress":
+      case "progress":
         navigation.navigate("Progress" as never);
         break;
       default:
         break;
     }
+  };
+
+  const secondaryFocusAction = getSecondaryFocusAction(focus?.actionType);
+  const handleSecondaryFocusAction = () => {
+    if (secondaryFocusAction?.intent === "meal_manual") openMealLog();
   };
 
   // Completion summary (screen 21): fold the just-finished session into the
@@ -300,7 +305,13 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
 
               <StaggeredReveal index={3}>
                 {focus ? (
-                  <TodaysFocusCard focus={focus} eyebrow="DO THIS NEXT" onAction={handleFocusAction} />
+                  <TodaysFocusCard
+                    focus={focus}
+                    eyebrow="DO THIS NEXT"
+                    onAction={handleFocusAction}
+                    secondaryActionLabel={secondaryFocusAction?.label}
+                    onSecondaryAction={handleSecondaryFocusAction}
+                  />
                 ) : (
                   <EmptyState message="Your next move shows up here once you start logging meals and workouts." />
                 )}
@@ -377,7 +388,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               {/* today's focus — hides itself when there's nothing actionable yet */}
               {focus ? (
                 <StaggeredReveal index={3}>
-                  <TodaysFocusCard focus={focus} onAction={handleFocusAction} />
+                  <TodaysFocusCard
+                    focus={focus}
+                    onAction={handleFocusAction}
+                    secondaryActionLabel={secondaryFocusAction?.label}
+                    onSecondaryAction={handleSecondaryFocusAction}
+                  />
                 </StaggeredReveal>
               ) : null}
 

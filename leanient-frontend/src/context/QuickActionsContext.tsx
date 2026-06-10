@@ -9,6 +9,7 @@ import type { Workout } from "@leanient/shared";
  */
 export interface QuickActions {
   openQuickLog: () => void;
+  openMealScan: () => void;
   openMealLog: () => void;
   openDoseLog: () => void;
   openProgressPhoto: () => void;

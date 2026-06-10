@@ -26,6 +26,8 @@ function ActionIcon({ type }: { type: TodaysFocusActionType }) {
 interface TodaysFocusCardProps {
   focus: TodaysFocusResponse;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
   /** Section label — "TODAY'S FOCUS" on the week scope, "DO THIS NEXT" on today. */
   eyebrow?: string;
 }
@@ -35,7 +37,13 @@ interface TodaysFocusCardProps {
  * when there's no actionable focus (headline null or actionType "none") — Rule 7.
  * Shot-day recovery gets an amber chip; everything else the emerald chip.
  */
-export function TodaysFocusCard({ focus, onAction, eyebrow = "TODAY'S FOCUS" }: TodaysFocusCardProps) {
+export function TodaysFocusCard({
+  focus,
+  onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+  eyebrow = "TODAY'S FOCUS",
+}: TodaysFocusCardProps) {
   if (!focus.headline || focus.actionType === "none") return null;
 
   const amber = focus.category === "shot_day_recovery";
@@ -58,6 +66,16 @@ export function TodaysFocusCard({ focus, onAction, eyebrow = "TODAY'S FOCUS" }: 
           <Text style={styles.btn2Text}>{focus.actionLabel}</Text>
         </Pressable>
       ) : null}
+      {secondaryActionLabel ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={secondaryActionLabel}
+          onPress={onSecondaryAction}
+          style={styles.secondaryAction}
+        >
+          <Text style={styles.secondaryActionText}>{secondaryActionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -72,6 +90,8 @@ const styles = StyleSheet.create({
   fsub: { fontFamily: font.regular, fontSize: 13, lineHeight: 17, color: colors.muted, marginTop: 2 },
   btn2: { marginTop: 15, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(47,184,122,0.10)", borderWidth: 1.5, borderColor: "rgba(47,184,122,0.35)" },
   btn2Text: { fontFamily: font.semibold, fontSize: 15, color: colors.emeraldDeep },
+  secondaryAction: { marginTop: 12, alignSelf: "center", paddingHorizontal: 10, paddingVertical: 6 },
+  secondaryActionText: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep, textDecorationLine: "underline" },
 });
 
 export default TodaysFocusCard;
