@@ -1,4 +1,4 @@
-import type { AuthProvider, SubscriptionStatus } from "@leanient/shared";
+import { ERROR_CODES, type AuthProvider, type SubscriptionStatus } from "@leanient/shared";
 import type { Express } from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -111,13 +111,17 @@ const userModelMock = vi.hoisted(() => {
     );
   }
 
+  async function findById(userId: string): Promise<MockUserDocument | null> {
+    return users.find((user) => user._id.toString() === userId) ?? null;
+  }
+
   function MockUserModel(init: MockUserInit): MockUserDocument {
     return createUserDocument(init);
   }
 
   return {
     users,
-    UserModel: Object.assign(MockUserModel, { findOne }),
+    UserModel: Object.assign(MockUserModel, { findOne, findById }),
     createUserDocument,
     reset: () => {
       nextId = 1;
@@ -139,6 +143,7 @@ vi.mock("../models/user.model", () => ({
   UserModel: userModelMock.UserModel,
 }));
 
+import { issueSessionJwt } from "../auth/jwt";
 import { createApp } from "../server";
 
 function makeIdentity(overrides: Partial<ProviderIdentity> = {}): ProviderIdentity {
@@ -306,6 +311,79 @@ describe("auth routes", () => {
       },
     });
     expect(verifierMocks.verifyAppleIdentityToken).not.toHaveBeenCalled();
+  });
+
+  it("links an Apple identity to the current authenticated user", async () => {
+    const currentUser = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("google", "google_1")],
+    });
+    verifierMocks.verifyAppleIdentityToken.mockResolvedValue(
+      makeIdentity({
+        provider: "apple",
+        providerUserId: "apple_1",
+        email: "abc123@privaterelay.appleid.com",
+        emailVerified: true,
+        name: undefined,
+        picture: undefined,
+      }),
+    );
+
+    const response = await request(app)
+      .post("/auth/apple/link")
+      .set("Authorization", `Bearer ${issueSessionJwt(currentUser._id.toString())}`)
+      .send({
+        identityToken: "verified-apple-token",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      id: currentUser._id.toString(),
+      email: "nick@gmail.com",
+      authProviders: [
+        {
+          provider: "google",
+          providerUserId: "google_1",
+        },
+        {
+          provider: "apple",
+          providerUserId: "apple_1",
+        },
+      ],
+    });
+    expect(userModelMock.users).toHaveLength(1);
+  });
+
+  it("rejects linking an Apple identity that is already linked to another user", async () => {
+    const currentUser = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("google", "google_1")],
+    });
+    userModelMock.createUserDocument({
+      email: "relay@privaterelay.appleid.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("apple", "apple_1")],
+    });
+    verifierMocks.verifyAppleIdentityToken.mockResolvedValue(
+      makeIdentity({
+        provider: "apple",
+        providerUserId: "apple_1",
+        email: "relay@privaterelay.appleid.com",
+        emailVerified: true,
+      }),
+    );
+
+    const response = await request(app)
+      .post("/auth/apple/link")
+      .set("Authorization", `Bearer ${issueSessionJwt(currentUser._id.toString())}`)
+      .send({
+        identityToken: "verified-apple-token",
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe(ERROR_CODES.conflict);
   });
 
   it("creates separate users for the same provider with different provider user IDs", async () => {

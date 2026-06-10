@@ -1,9 +1,9 @@
-import type { AuthResponse } from "@leanient/shared";
+import type { AuthResponse, User } from "@leanient/shared";
 import type { AppleSignInRequest } from "@leanient/shared";
 import { verifyAppleIdentityToken } from "../auth/apple";
 import { verifyGoogleIdToken } from "../auth/google";
 import { issueSessionJwt } from "../auth/jwt";
-import { serializeUser, upsertUserFromIdentity } from "./user.service";
+import { linkProviderIdentityToUser, serializeUser, upsertUserFromIdentity } from "./user.service";
 
 function buildAppleDisplayName(fullName: AppleSignInRequest["fullName"]): string | undefined {
   if (!fullName) {
@@ -40,4 +40,14 @@ export async function signInWithApple(request: AppleSignInRequest): Promise<Auth
     user: serializeUser(user),
     token: issueSessionJwt(userId),
   };
+}
+
+export async function linkAppleProvider(userId: string, request: AppleSignInRequest): Promise<User> {
+  const identity = await verifyAppleIdentityToken(request.identityToken);
+  const user = await linkProviderIdentityToUser(userId, {
+    ...identity,
+    name: buildAppleDisplayName(request.fullName),
+  });
+
+  return serializeUser(user);
 }

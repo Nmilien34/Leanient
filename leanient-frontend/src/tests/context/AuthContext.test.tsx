@@ -11,6 +11,7 @@ const user: User = {
   emailVerified: true,
   onboardingComplete: false,
   authProviders: [],
+  hasAvatar: false,
   subscriptionStatus: "free",
   subscriptionWillRenew: false,
   createdAt: "2026-05-29T12:00:00.000Z",
@@ -23,6 +24,10 @@ async function renderAuthHarness(api: {
     identityToken: string;
     fullName?: { givenName?: string; familyName?: string };
   }) => Promise<AuthResponse>;
+  linkAppleProvider: (body: {
+    identityToken: string;
+    fullName?: { givenName?: string; familyName?: string };
+  }) => Promise<User>;
   logout: () => Promise<void>;
   getMe: () => Promise<User>;
   patchMe: (body: { displayName?: string; avatarUrl?: string }) => Promise<User>;
@@ -61,6 +66,7 @@ describe("AuthContext", () => {
     const api = {
       signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1" }),
       signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
       logout: vi.fn(),
       getMe: vi.fn(),
       patchMe: vi.fn(),
@@ -82,6 +88,7 @@ describe("AuthContext", () => {
     const api = {
       signInWithGoogle: vi.fn(),
       signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
       logout: vi.fn().mockRejectedValue(new Error("network")),
       getMe: vi.fn().mockResolvedValue(user),
       patchMe: vi.fn(),
@@ -95,5 +102,53 @@ describe("AuthContext", () => {
     expect(harness.value().user).toBeNull();
     expect(harness.value().token).toBeNull();
     expect(testStorage.snapshot()).toEqual({});
+  });
+
+  it("updates the cached user after linking Apple without replacing the session token", async () => {
+    await testStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(user));
+    await testStorage.setItem(AUTH_STORAGE_KEYS.token, "token_1");
+    const linkedUser: User = {
+      ...user,
+      authProviders: [
+        {
+          provider: "google",
+          providerUserId: "google_1",
+          linkedAt: "2026-06-01T12:00:00.000Z",
+        },
+        {
+          provider: "apple",
+          providerUserId: "apple_1",
+          linkedAt: "2026-06-10T12:00:00.000Z",
+        },
+      ],
+    };
+    const api = {
+      signInWithGoogle: vi.fn(),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn().mockResolvedValue(linkedUser),
+      logout: vi.fn(),
+      getMe: vi.fn().mockResolvedValue(user),
+      patchMe: vi.fn(),
+    };
+    const harness = await renderAuthHarness(api);
+
+    await act(async () => {
+      await harness.value().hydrateAuth();
+    });
+
+    await act(async () => {
+      await harness.value().linkAppleProvider("apple.identity.token", { givenName: "Maya" });
+    });
+
+    expect(api.linkAppleProvider).toHaveBeenCalledWith({
+      identityToken: "apple.identity.token",
+      fullName: { givenName: "Maya" },
+    });
+    expect(harness.value().user?.authProviders.map((provider) => provider.provider)).toEqual([
+      "google",
+      "apple",
+    ]);
+    expect(harness.value().token).toBe("token_1");
+    expect(testStorage.snapshot()[AUTH_STORAGE_KEYS.token]).toBe("token_1");
   });
 });

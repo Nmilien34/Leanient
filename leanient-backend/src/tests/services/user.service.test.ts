@@ -1,4 +1,4 @@
-import type { AuthProvider, SubscriptionStatus } from "@leanient/shared";
+import { ERROR_CODES, type AuthProvider, type SubscriptionStatus } from "@leanient/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderIdentity } from "../../auth/identity";
 
@@ -22,6 +22,7 @@ interface MockUserDocument {
   };
   email?: string;
   emailVerified: boolean;
+  onboardingComplete: boolean;
   authProviders: MockLinkedAuthProvider[];
   displayName?: string;
   avatarUrl?: string;
@@ -61,6 +62,7 @@ const userModelMock = vi.hoisted(() => {
       },
       email: init.email,
       emailVerified: init.emailVerified ?? false,
+      onboardingComplete: false,
       authProviders: init.authProviders ? [...init.authProviders] : [],
       displayName: init.displayName,
       avatarUrl: init.avatarUrl,
@@ -103,6 +105,10 @@ const userModelMock = vi.hoisted(() => {
     );
   }
 
+  async function findById(userId: string): Promise<MockUserDocument | null> {
+    return users.find((user) => user._id.toString() === userId) ?? null;
+  }
+
   function MockUserModel(init: MockUserInit): MockUserDocument {
     return createUserDocument(init);
   }
@@ -110,7 +116,7 @@ const userModelMock = vi.hoisted(() => {
   return {
     users,
     findOneCalls,
-    UserModel: Object.assign(MockUserModel, { findOne }),
+    UserModel: Object.assign(MockUserModel, { findOne, findById }),
     createUserDocument,
     reset: () => {
       nextId = 1;
@@ -124,7 +130,7 @@ vi.mock("../../models/user.model", () => ({
   UserModel: userModelMock.UserModel,
 }));
 
-import { upsertUserFromIdentity } from "../../services/user.service";
+import { linkProviderIdentityToUser, upsertUserFromIdentity } from "../../services/user.service";
 
 function makeIdentity(overrides: Partial<ProviderIdentity> = {}): ProviderIdentity {
   return {
@@ -279,5 +285,65 @@ describe("user service", () => {
         providerUserId: "apple_relay_1",
       },
     ]);
+  });
+
+  it("links a new Apple identity to the current signed-in user without creating another user", async () => {
+    const existingUser = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("google", "google_1")],
+      displayName: "Nick",
+    });
+
+    const user = await linkProviderIdentityToUser(
+      existingUser._id.toString(),
+      makeIdentity({
+        provider: "apple",
+        providerUserId: "apple_1",
+        email: "abc123@privaterelay.appleid.com",
+        emailVerified: true,
+        name: "Apple Name",
+        picture: undefined,
+      }),
+    );
+
+    expect(user).toBe(existingUser);
+    expect(user.email).toBe("nick@gmail.com");
+    expect(user.displayName).toBe("Nick");
+    expect(user.authProviders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: "google", providerUserId: "google_1" }),
+        expect.objectContaining({ provider: "apple", providerUserId: "apple_1" }),
+      ]),
+    );
+    expect(userModelMock.users).toHaveLength(1);
+  });
+
+  it("rejects linking an Apple identity that belongs to another user", async () => {
+    const currentUser = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("google", "google_1")],
+    });
+    userModelMock.createUserDocument({
+      email: "relay@privaterelay.appleid.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("apple", "apple_1")],
+    });
+
+    await expect(
+      linkProviderIdentityToUser(
+        currentUser._id.toString(),
+        makeIdentity({
+          provider: "apple",
+          providerUserId: "apple_1",
+          email: "relay@privaterelay.appleid.com",
+          emailVerified: true,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.conflict,
+      statusCode: 409,
+    });
   });
 });

@@ -63,6 +63,52 @@ describe("api service", () => {
     expect(seenConfig?.headers.Authorization).toBe("Bearer session-token");
   });
 
+  it("posts Apple link requests to the authenticated link endpoint", async () => {
+    let seenConfig: InternalAxiosRequestConfig | undefined;
+    const linkedUser: User = {
+      ...user,
+      authProviders: [
+        {
+          provider: "google",
+          providerUserId: "google_1",
+          linkedAt: "2026-06-01T12:00:00.000Z",
+        },
+        {
+          provider: "apple",
+          providerUserId: "apple_1",
+          linkedAt: "2026-06-10T12:00:00.000Z",
+        },
+      ],
+    };
+    const api = createLeanientApiClient({
+      baseURL: "http://localhost:8080",
+      adapter: async (config) => {
+        seenConfig = config;
+        return {
+          data: { data: linkedUser },
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        };
+      },
+    });
+
+    await expect(
+      api.linkAppleProvider({
+        identityToken: "apple.identity.token",
+        fullName: { givenName: "Maya" },
+      }),
+    ).resolves.toEqual(linkedUser);
+
+    expect(seenConfig?.method).toBe("post");
+    expect(seenConfig?.url).toBe("/auth/apple/link");
+    expect(JSON.parse(String(seenConfig?.data))).toEqual({
+      identityToken: "apple.identity.token",
+      fullName: { givenName: "Maya" },
+    });
+  });
+
   it("prevents conditional cache revalidation on API requests", async () => {
     let seenConfig: InternalAxiosRequestConfig | undefined;
     const api = createLeanientApiClient({

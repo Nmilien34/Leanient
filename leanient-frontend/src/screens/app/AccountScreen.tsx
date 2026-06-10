@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { useAuth } from "../../context/AuthContext";
@@ -12,8 +13,10 @@ import { Button } from "../../components/ui/Button";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { ACCOUNT_HEADER_TOP_PADDING, ACCOUNT_PROFILE_TOP_PADDING } from "./accountLayout";
+import { providerCanBeLinkedFromSettings } from "./accountAuthLinking";
 import { deriveAccountView } from "./accountMetrics";
 import { persistAccountEdit } from "./accountSettings";
+import { runAppleSignIn } from "../appleSignIn";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -57,6 +60,8 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
   const [nameInput, setNameInput] = useState(view.name);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkingProvider, setLinkingProvider] = useState<"apple" | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const sheet = useRef(new Animated.Value(0)).current;
 
   const openNameEdit = () => {
@@ -98,6 +103,22 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
     }
   };
 
+  const linkApple = async () => {
+    if (linkingProvider) return;
+    setLinkError(null);
+    setLinkingProvider("apple");
+    try {
+      await runAppleSignIn({
+        appleAuth: AppleAuthentication,
+        signInWithApple: auth.linkAppleProvider,
+      });
+    } catch (e) {
+      setLinkError(extractApiError(e).message);
+    } finally {
+      setLinkingProvider(null);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={styles.root}>
@@ -132,12 +153,20 @@ export function AccountScreen({ visible, onClose, onDeleteAccount }: AccountScre
             />
 
             <Text style={styles.glabel}>SIGN-IN</Text>
+            {linkError ? <Text style={styles.linkError}>{linkError}</Text> : null}
             <SettingGroup
               rows={view.providers.map((p) => ({
                 key: p.provider,
                 icon: p.provider === "apple" ? Icons.apple : Icons.google,
                 label: p.label,
-                value: p.status,
+                value: linkingProvider === p.provider ? "Linking..." : p.status,
+                onPress: providerCanBeLinkedFromSettings({
+                  provider: p.provider,
+                  linked: p.linked,
+                  platform: Platform.OS,
+                })
+                  ? () => void linkApple()
+                  : undefined,
               }))}
             />
 
@@ -196,6 +225,7 @@ const styles = StyleSheet.create({
   pn: { fontFamily: font.extrabold, fontSize: 21, letterSpacing: -0.42, color: colors.ink },
   changePhoto: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep, marginTop: 4 },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },
+  linkError: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", paddingHorizontal: 22, paddingTop: 6 },
   dangerWrap: { marginTop: 22 },
   disc: { fontFamily: font.regular, fontSize: 11.5, lineHeight: 16, color: colors.faint, textAlign: "center", paddingHorizontal: 28, paddingTop: 14 },
   // name edit sheet
