@@ -305,7 +305,10 @@ export class LeanientApiClient {
     this.onUnauthorized = options.onUnauthorized;
     this.client = axios.create({
       baseURL: options.baseURL ?? API_BASE_URL,
-      timeout: 10000,
+      // First-ever fetches of generated content (today's focus, training copy)
+      // can take ~8s server-side (OpenAI budgets) plus network; 10s left no
+      // headroom and timed out fresh users right after onboarding.
+      timeout: 15000,
       headers: {
         "Content-Type": "application/json",
       },
@@ -379,6 +382,10 @@ export class LeanientApiClient {
 
   public async signInWithApple(body: AppleSignInRequest): Promise<AuthResponse> {
     return this.post("/auth/apple", appleSignInRequestSchema.parse(body), authResponseSchema);
+  }
+
+  public async linkAppleProvider(body: AppleSignInRequest): Promise<User> {
+    return this.post("/auth/apple/link", appleSignInRequestSchema.parse(body), userResponseSchema);
   }
 
   public async logout(): Promise<void> {

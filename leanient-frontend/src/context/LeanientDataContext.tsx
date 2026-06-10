@@ -111,6 +111,22 @@ interface LeanientDataProviderProps {
 
 const LeanientDataContext = createContext<LeanientDataContextValue | undefined>(undefined);
 
+/**
+ * Run a fetch, and on failure retry it once after a short pause. The first
+ * home fetch after onboarding triggers first-ever content generation on the
+ * backend (today's focus, training copy), which can push a response past the
+ * client timeout on slow networks; by the retry the content is cached and
+ * fast, so the user never sees a transient failure.
+ */
+async function retryOnce<T>(task: () => Promise<T>): Promise<T> {
+  try {
+    return await task();
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return task();
+  }
+}
+
 export function LeanientDataProvider({
   children,
   api = apiService,
@@ -179,17 +195,17 @@ export function LeanientDataProvider({
           nextProgressOverview,
           nextTrainingToday,
         ] = await Promise.allSettled([
-          api.getProfile(),
-          api.getMedicationProtocol(),
-          api.getWeightLogs(),
-          api.getLatestWeeklyVerdict(),
-          api.getRecommendedWorkouts(),
-          api.getTodaysFocus(),
-          api.getMealLogs({ recordedAt: today }),
-          api.getWorkoutLogs({ recordedAt: today }),
-          api.getDoseLogs(),
-          api.getProgressOverview(),
-          api.getTrainingToday(),
+          retryOnce(() => api.getProfile()),
+          retryOnce(() => api.getMedicationProtocol()),
+          retryOnce(() => api.getWeightLogs()),
+          retryOnce(() => api.getLatestWeeklyVerdict()),
+          retryOnce(() => api.getRecommendedWorkouts()),
+          retryOnce(() => api.getTodaysFocus()),
+          retryOnce(() => api.getMealLogs({ recordedAt: today })),
+          retryOnce(() => api.getWorkoutLogs({ recordedAt: today })),
+          retryOnce(() => api.getDoseLogs()),
+          retryOnce(() => api.getProgressOverview()),
+          retryOnce(() => api.getTrainingToday()),
         ]);
 
         const firstRejected = [

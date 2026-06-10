@@ -64,14 +64,22 @@ function AppContent() {
   // (both set auth.user). The ref + the data context's own in-flight dedupe
   // guard against double-fetching.
   const userId = auth.user?.id;
+  const userOnboarded = auth.user?.onboardingComplete;
   const fetchedForUserRef = useRef<string | null>(null);
   useEffect(() => {
     if (!userId || fetchedForUserRef.current === userId) {
       return;
     }
+    // A user mid-signup has no profile or logs yet; every home call would
+    // 403/404 and poison homeError before onboarding even starts. Hold off
+    // until the flag flips (the paywall submit updates the cached user, which
+    // re-runs this effect), leaving the ref unset so the fetch fires then.
+    if (userOnboarded === false) {
+      return;
+    }
     fetchedForUserRef.current = userId;
     void refreshHomeData();
-  }, [userId, refreshHomeData]);
+  }, [userId, userOnboarded, refreshHomeData]);
 
   // Onboarding completion → refresh so the freshly-created profile loads, which
   // flips the router to the main app. (The user-id effect above already fired
