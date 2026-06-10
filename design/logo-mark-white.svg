@@ -1,0 +1,15 @@
+<svg width="360" height="480" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Leanient mark, white-body variant for dark or emerald grounds.
+       Extracted from design/onboarding.html logoMark(size, white=true). -->
+  <!-- pen barrel -->
+  <rect x="11" y="2" width="14" height="29" rx="7" fill="#FFFFFF"/>
+  <!-- dose graduation ticks (green on the white body) -->
+  <g stroke="#239E64" stroke-width="2" stroke-linecap="round">
+    <path d="M18.5 16h4"/>
+    <path d="M18.5 20.5h4"/>
+    <path d="M18.5 25h4"/>
+  </g>
+  <!-- needle hub + needle -->
+  <rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="#FFFFFF"/>
+  <rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="#FFFFFF"/>
+</svg>
