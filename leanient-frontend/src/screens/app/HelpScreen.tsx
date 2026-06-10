@@ -9,9 +9,9 @@ import { APP_NAME, APP_VERSION } from "../../config";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 import { coachHelpMailto, reportProblemMailto } from "./helpLinks";
+import { GettingStartedScreen } from "./GettingStartedScreen";
 
 const FAQ_URL = "https://leanient.app/faq";
-const GUIDE_URL = "https://leanient.app/getting-started";
 const VERDICT_URL = "https://leanient.app/how-the-verdict-works";
 const APP_STORE_URL = "https://apps.apple.com/app/leanient";
 
@@ -46,6 +46,7 @@ interface HelpScreenProps {
  * and the app version (config-driven). Links open via `Linking`.
  */
 export function HelpScreen({ visible, onClose }: HelpScreenProps) {
+  const [guideOpen, setGuideOpen] = React.useState(false);
   const mailCoach = () => Linking.openURL(coachHelpMailto());
   const reportProblem = () => Linking.openURL(reportProblemMailto());
 
@@ -84,7 +85,7 @@ export function HelpScreen({ visible, onClose }: HelpScreenProps) {
             <SettingGroup
               rows={[
                 { key: "faq", icon: Icons.faq, label: "FAQ", onPress: () => Linking.openURL(FAQ_URL) },
-                { key: "guide", icon: Icons.guide, label: "Getting started guide", onPress: () => Linking.openURL(GUIDE_URL) },
+                { key: "guide", icon: Icons.guide, label: "Getting started guide", onPress: () => setGuideOpen(true) },
                 { key: "verdict", icon: Icons.verdict, label: "How the verdict works", onPress: () => Linking.openURL(VERDICT_URL) },
               ]}
             />
@@ -102,6 +103,9 @@ export function HelpScreen({ visible, onClose }: HelpScreenProps) {
             </Text>
           </ScrollView>
         </ModalSafeArea>
+
+        {/* In-app guide, overlaid inside this modal's root. */}
+        <GettingStartedScreen visible={guideOpen} onClose={() => setGuideOpen(false)} />
       </View>
     </Modal>
   );

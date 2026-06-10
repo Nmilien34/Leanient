@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coachHelpMailto, reportProblemMailto } from "../../screens/app/helpLinks";
+import { coachHelpMailto, reportProblemMailto, suggestFeatureMailto } from "../../screens/app/helpLinks";
 
 describe("helpLinks", () => {
   it("sends coach help to the support inbox", () => {
@@ -8,5 +8,11 @@ describe("helpLinks", () => {
 
   it("sends problem reports to the developer inbox", () => {
     expect(reportProblemMailto()).toBe("mailto:dev@boltzman.ai?subject=Problem%20report");
+  });
+
+  it("sends feature suggestions to the developer inbox", () => {
+    expect(suggestFeatureMailto()).toBe(
+      "mailto:dev@boltzman.ai?subject=Feature%20suggestion%20for%20Leanient",
+    );
   });
 });

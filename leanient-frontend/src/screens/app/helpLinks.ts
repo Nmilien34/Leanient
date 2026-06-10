@@ -11,3 +11,7 @@ export function coachHelpMailto(): string {
 export function reportProblemMailto(): string {
   return mailto(REPORT_PROBLEM_EMAIL, "Problem report");
 }
+
+export function suggestFeatureMailto(): string {
+  return mailto(REPORT_PROBLEM_EMAIL, "Feature suggestion for Leanient");
+}
