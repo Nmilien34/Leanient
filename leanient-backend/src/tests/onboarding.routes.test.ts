@@ -12,6 +12,7 @@ import type * as MongooseModule from "mongoose";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { issueSessionJwt } from "../auth/jwt";
+import { startOfUtcWeek, toDateOnly } from "../lib/week";
 
 interface MockObjectId {
   toString: () => string;
@@ -469,9 +470,10 @@ describe("onboarding routes", () => {
     expect(modelMocks.medicationProtocols).toHaveLength(1);
     expect(modelMocks.weightLogs).toHaveLength(1);
     expect(modelMocks.users).toHaveLength(1);
+    const expectedWeekOf = toDateOnly(startOfUtcWeek(new Date()));
     expect(modelMocks.weightLogs[0]).toMatchObject({
       value: 184,
-      weekOf: "2026-06-01",
+      weekOf: expectedWeekOf,
     });
     expect(modelMocks.UserProfileModel.findOneAndUpdate).toHaveBeenCalledTimes(1);
     expect(modelMocks.UserMedicationProtocolModel.findOneAndUpdate).toHaveBeenCalledTimes(1);
