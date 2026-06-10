@@ -10,9 +10,8 @@ import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 import { coachHelpMailto, reportProblemMailto } from "./helpLinks";
 import { GettingStartedScreen } from "./GettingStartedScreen";
-
-const FAQ_URL = "https://leanient.app/faq";
-const VERDICT_URL = "https://leanient.app/how-the-verdict-works";
+import { FaqScreen } from "./FaqScreen";
+import { VerdictGuideScreen } from "./VerdictGuideScreen";
 const APP_STORE_URL = "https://apps.apple.com/app/leanient";
 
 const ic = (children: React.ReactNode) => (
@@ -47,6 +46,8 @@ interface HelpScreenProps {
  */
 export function HelpScreen({ visible, onClose }: HelpScreenProps) {
   const [guideOpen, setGuideOpen] = React.useState(false);
+  const [faqOpen, setFaqOpen] = React.useState(false);
+  const [verdictOpen, setVerdictOpen] = React.useState(false);
   const mailCoach = () => Linking.openURL(coachHelpMailto());
   const reportProblem = () => Linking.openURL(reportProblemMailto());
 
@@ -84,9 +85,9 @@ export function HelpScreen({ visible, onClose }: HelpScreenProps) {
             <Text style={styles.glabel}>LEARN</Text>
             <SettingGroup
               rows={[
-                { key: "faq", icon: Icons.faq, label: "FAQ", onPress: () => Linking.openURL(FAQ_URL) },
+                { key: "faq", icon: Icons.faq, label: "FAQ", onPress: () => setFaqOpen(true) },
                 { key: "guide", icon: Icons.guide, label: "Getting started guide", onPress: () => setGuideOpen(true) },
-                { key: "verdict", icon: Icons.verdict, label: "How the verdict works", onPress: () => Linking.openURL(VERDICT_URL) },
+                { key: "verdict", icon: Icons.verdict, label: "How the verdict works", onPress: () => setVerdictOpen(true) },
               ]}
             />
 
@@ -104,8 +105,10 @@ export function HelpScreen({ visible, onClose }: HelpScreenProps) {
           </ScrollView>
         </ModalSafeArea>
 
-        {/* In-app guide, overlaid inside this modal's root. */}
+        {/* In-app learn screens, overlaid inside this modal's root. */}
         <GettingStartedScreen visible={guideOpen} onClose={() => setGuideOpen(false)} />
+        <FaqScreen visible={faqOpen} onClose={() => setFaqOpen(false)} />
+        <VerdictGuideScreen visible={verdictOpen} onClose={() => setVerdictOpen(false)} />
       </View>
     </Modal>
   );
