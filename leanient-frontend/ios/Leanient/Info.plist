@@ -52,6 +52,8 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Leanient uses your camera to scan meals and estimate protein.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Leanient reads selected Apple Health data like weight, workouts, steps, active energy, and body fat to personalize your weekly verdict.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
