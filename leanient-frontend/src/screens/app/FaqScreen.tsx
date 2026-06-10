@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
+import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -135,7 +135,7 @@ export function FaqScreen({ visible, onClose }: FaqScreenProps) {
     <View style={styles.root}>
       <StatusBar style="dark" />
       <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <ModalSafeArea style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.head}>
           <Pressable accessibilityLabel="Back" onPress={onClose} style={styles.backBtn}>
             <Svg width={10} height={17} viewBox="0 0 10 17" fill="none" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -173,7 +173,7 @@ export function FaqScreen({ visible, onClose }: FaqScreenProps) {
             </View>
           ))}
         </ScrollView>
-      </SafeAreaView>
+      </ModalSafeArea>
     </View>
   );
 }
