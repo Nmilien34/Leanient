@@ -15,7 +15,6 @@ import {
   todaysFocusResponseSchema,
   trainingTodayResponseSchema,
   progressOverviewResponseSchema,
-  userProfileSchema,
 } from "@leanient/shared";
 
 const repoRoot = path.resolve(__dirname, "../../..");
@@ -98,16 +97,14 @@ async function main(): Promise<void> {
     }
 
     console.log("\n--- FIRST fetch (fresh generation — what the app hits right after onboarding) ---");
-    const [focus1, training1, progress1, profile1] = await Promise.all([
+    const [focus1, training1, progress1] = await Promise.all([
       getJson("/home/focus", token),
       getJson("/training/today", token),
       getJson("/progress/overview", token),
-      getJson("/me/profile", token),
     ]);
     tryParse("todaysFocus (fresh)", todaysFocusResponseSchema, focus1);
     tryParse("trainingToday (fresh)", trainingTodayResponseSchema, training1);
     tryParse("progressOverview (fresh)", progressOverviewResponseSchema, progress1);
-    tryParse("profile (fresh)", userProfileSchema, profile1);
 
     console.log("\n--- SECOND fetch (cached — what a reload sees) ---");
     const [focus2, training2] = await Promise.all([
