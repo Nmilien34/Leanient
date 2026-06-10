@@ -6,6 +6,7 @@ import { ScreenGround } from "../../components/layout/ScreenGround";
 import { RadialGlow } from "../../components/layout/RadialGlow";
 import { LogoMark } from "../../components/brand/LogoMark";
 import { Button } from "../../components/ui/Button";
+import { useAuth } from "../../context/AuthContext";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -14,8 +15,10 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
+  const auth = useAuth();
   const { height } = useWindowDimensions();
   const floatV = useRef(new Animated.Value(0)).current;
+  const accountLabel = auth.user?.email ?? auth.user?.displayName ?? null;
 
   // logo float (5s, -8px) — matches .welcome .leaf
   useEffect(() => {
@@ -80,6 +83,18 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           <View style={styles.cta}>
             <Button label="Let's start" onPress={onStart} />
             <Text style={styles.cap}>Built for people on GLP-1 medications</Text>
+            {accountLabel ? (
+              <Text style={styles.account}>
+                Signed in as {accountLabel} ·{" "}
+                <Text
+                  style={styles.logout}
+                  accessibilityRole="button"
+                  onPress={() => void auth.logout()}
+                >
+                  Log out
+                </Text>
+              </Text>
+            ) : null}
           </View>
         </View>
       </SafeAreaView>
@@ -144,6 +159,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.faint,
     textAlign: "center",
+  },
+  account: {
+    fontFamily: font.regular,
+    fontSize: 12.5,
+    color: colors.faint,
+    textAlign: "center",
+  },
+  logout: {
+    fontFamily: font.semibold,
+    color: colors.emeraldDeep,
   },
 });
 

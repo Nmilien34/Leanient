@@ -25,6 +25,7 @@ interface AuthApi {
   logout(): Promise<void>;
   getMe(): Promise<User>;
   patchMe(body: PatchMeRequest): Promise<User>;
+  setUnauthorizedHandler?(handler: (() => void) | undefined): void;
 }
 
 interface AuthState {
@@ -101,6 +102,14 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 export function AuthProvider({ children, api = apiService }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  // When any API call returns 401, the client interceptor clears stored
+  // credentials; this flips the in-memory state too, so the app immediately
+  // returns to the sign-in screen instead of carrying a ghost session.
+  useEffect(() => {
+    api.setUnauthorizedHandler?.(() => dispatch({ type: "LOGOUT" }));
+    return () => api.setUnauthorizedHandler?.(undefined);
+  }, [api]);
+
   const updateCachedUser = useCallback(async (user: User): Promise<User> => {
     await setStoredUser(user);
     dispatch({ type: "SET_USER", payload: user });
@@ -121,6 +130,16 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
 
       dispatch({ type: "SET_AUTH", payload: { user, token } });
 
+      // Validate the restored session in the background. A live token also
+      // refreshes the cached user (onboarding flag, subscription status); a
+      // dead one 401s, which clears storage and signs the UI out via the
+      // unauthorized handler. Network failures keep the cached session so
+      // offline launches still work.
+      void api
+        .getMe()
+        .then((freshUser) => updateCachedUser(freshUser))
+        .catch(() => undefined);
+
       void revenueCatService
         .configure(user.id)
         .then(() => revenueCatService.syncSubscriptionStatus(user.id))
@@ -129,7 +148,7 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
       await clearAuthStorage();
       dispatch({ type: "LOGOUT" });
     }
-  }, []);
+  }, [api, updateCachedUser]);
 
   const finalizeAuth = useCallback(async (response: AuthResponse): Promise<User> => {
     await setStoredAuth(response.user, response.token);

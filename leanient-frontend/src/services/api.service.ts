@@ -301,7 +301,17 @@ const submitWeeklyCheckinFrontendSchema = z
 
 export class LeanientApiClient {
   private readonly client: AxiosInstance;
-  private readonly onUnauthorized?: () => void;
+  private onUnauthorized?: () => void;
+
+  /**
+   * Registers the app-level reaction to a 401 (session invalid/expired). The
+   * interceptor already clears stored credentials; this lets AuthContext also
+   * flip the in-memory state to signed out so the UI returns to sign-in
+   * instead of carrying a ghost session until the next cold start.
+   */
+  public setUnauthorizedHandler(handler: (() => void) | undefined): void {
+    this.onUnauthorized = handler;
+  }
 
   public constructor(options: LeanientApiClientOptions = {}) {
     this.onUnauthorized = options.onUnauthorized;
