@@ -11,7 +11,9 @@ import { YourPlanView } from "../../components/YourPlanView";
 import { useAuth } from "../../context/AuthContext";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { extractApiError } from "../../services/apiError";
+import revenueCatService from "../../services/revenueCat.service";
 import { buildPlanPreview } from "../../onboarding/planPreview";
+import { startPaywallTrial } from "../../onboarding/paywallPurchase";
 import { completePaywallOnboarding } from "../../onboarding/paywallSubmit";
 import type { YourPlanTargets } from "../../onboarding/yourPlan";
 import { colors } from "../../theme/tokens";
@@ -112,6 +114,14 @@ function PlanTier({ tier, selected, onPress }: { tier: PlanTierDef; selected: bo
   );
 }
 
+function messageFromSubmitError(error: unknown): string {
+  if ((error as { response?: unknown })?.response) {
+    return extractApiError(error).message;
+  }
+
+  return error instanceof Error ? error.message : extractApiError(error).message;
+}
+
 interface PaywallScreenProps {
   onComplete?: () => void;
 }
@@ -170,15 +180,34 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       setSubmittedPlan(planTargets);
       setSubmitting(false);
     } catch (e) {
-      setSubmitError(extractApiError(e).message);
+      setSubmitError(messageFromSubmitError(e));
       setSubmitting(false);
     }
   };
 
   const startTrial = () => {
-    // INTEGRATION POINT: trigger the RevenueCat purchase for `selected` first
-    // (revenueCatService is currently a stub), then persist onboarding.
-    void complete();
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    void startPaywallTrial({
+      user: auth.user,
+      planId: selected,
+      purchasePlan: (input) => revenueCatService.purchasePlan(input),
+      submit,
+      updateCachedUser: auth.updateCachedUser,
+    })
+      .then((result) => {
+        if (result.status === "completed") {
+          setSubmittedPlan(result.plan);
+        }
+      })
+      .catch((e) => {
+        setSubmitError(messageFromSubmitError(e));
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
   const skipForNow = () => {
     // Leave without subscribing → subscriptionStatus stays "free"; can upgrade in settings.

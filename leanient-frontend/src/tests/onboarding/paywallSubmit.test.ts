@@ -44,4 +44,32 @@ describe("completePaywallOnboarding", () => {
 
     expect(updateCachedUser).not.toHaveBeenCalled();
   });
+
+  it("can merge purchase subscription state into the cached onboarding user", async () => {
+    const result = makeResult();
+    const submit = vi.fn().mockResolvedValue(result);
+    const updateCachedUser = vi.fn().mockResolvedValue(result.user);
+
+    await completePaywallOnboarding({
+      submit,
+      updateCachedUser,
+      mapUser: (user) => ({
+        ...user,
+        subscriptionStatus: "trialing",
+        subscriptionWillRenew: true,
+        entitlementExpiresAt: "2026-06-17T00:00:00.000Z",
+        revenueCatCustomerId: user.id,
+        revenueCatEntitlement: "leanient_pro",
+      }),
+    });
+
+    expect(updateCachedUser).toHaveBeenCalledWith({
+      ...result.user,
+      subscriptionStatus: "trialing",
+      subscriptionWillRenew: true,
+      entitlementExpiresAt: "2026-06-17T00:00:00.000Z",
+      revenueCatCustomerId: "user_1",
+      revenueCatEntitlement: "leanient_pro",
+    });
+  });
 });

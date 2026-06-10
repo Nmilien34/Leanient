@@ -121,7 +121,10 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
 
       dispatch({ type: "SET_AUTH", payload: { user, token } });
 
-      void revenueCatService.configure().then(() => revenueCatService.syncSubscriptionStatus());
+      void revenueCatService
+        .configure(user.id)
+        .then(() => revenueCatService.syncSubscriptionStatus(user.id))
+        .catch(() => undefined);
     } catch {
       await clearAuthStorage();
       dispatch({ type: "LOGOUT" });
@@ -131,7 +134,10 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
   const finalizeAuth = useCallback(async (response: AuthResponse): Promise<User> => {
     await setStoredAuth(response.user, response.token);
     dispatch({ type: "SET_AUTH", payload: response });
-    void revenueCatService.configure().then(() => revenueCatService.syncSubscriptionStatus());
+    void revenueCatService
+      .configure(response.user.id)
+      .then(() => revenueCatService.syncSubscriptionStatus(response.user.id))
+      .catch(() => undefined);
     return response.user;
   }, []);
 

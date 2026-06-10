@@ -1,10 +1,11 @@
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Rect } from "react-native-svg";
 import { useAuth } from "../../context/AuthContext";
 import { mockUser } from "../../mocks/user";
+import revenueCatService, { applyRevenueCatCustomerInfoToUser } from "../../services/revenueCat.service";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
@@ -33,9 +34,9 @@ function FeatureCheck() {
 interface SubscriptionScreenProps {
   visible: boolean;
   onClose: () => void;
-  onManage?: () => void;
-  onRestore?: () => void;
-  onPrimary?: () => void;
+  onManage?: () => void | Promise<void>;
+  onRestore?: () => void | Promise<void>;
+  onPrimary?: () => void | Promise<void>;
   onCancel?: () => void;
 }
 
@@ -48,6 +49,98 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
   const auth = useAuth();
   const user = auth.user ?? mockUser;
   const view = deriveSubscription(user);
+  const [busyAction, setBusyAction] = React.useState<"primary" | "restore" | "manage" | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [actionMessage, setActionMessage] = React.useState<string | null>(null);
+
+  const runSubscriptionAction = async (
+    action: "primary" | "restore" | "manage",
+    task: () => Promise<void>,
+  ) => {
+    if (busyAction) return;
+
+    setBusyAction(action);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await task();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const currentUser = auth.user;
+  const requireUserId = () => {
+    if (!currentUser?.id) {
+      throw new Error("Sign in again to manage your subscription.");
+    }
+
+    return currentUser.id;
+  };
+
+  const refreshCachedSubscription = async (customerInfo: Parameters<typeof applyRevenueCatCustomerInfoToUser>[1]) => {
+    if (!currentUser) return;
+
+    await auth.updateCachedUser(applyRevenueCatCustomerInfoToUser(currentUser, customerInfo));
+    void auth.refreshMe().catch(() => {
+      // RevenueCat webhooks can take a moment; the local RevenueCat customer info
+      // keeps the UI honest while the backend catches up.
+    });
+  };
+
+  const handlePrimary = () => {
+    void runSubscriptionAction("primary", async () => {
+      if (onPrimary) {
+        await onPrimary();
+        return;
+      }
+
+      const result = await revenueCatService.purchasePlan({
+        planId: "annual",
+        appUserId: requireUserId(),
+      });
+      if (result.status === "cancelled") return;
+
+      await refreshCachedSubscription(result.customerInfo);
+      setActionMessage("Subscription updated.");
+    });
+  };
+
+  const handleRestore = () => {
+    void runSubscriptionAction("restore", async () => {
+      if (onRestore) {
+        await onRestore();
+        return;
+      }
+
+      const customerInfo = await revenueCatService.restorePurchases(requireUserId());
+      await refreshCachedSubscription(customerInfo);
+      setActionMessage(
+        Object.keys(customerInfo.entitlements.active).length
+          ? "Purchases restored."
+          : "No active purchases found.",
+      );
+    });
+  };
+
+  const handleManage = () => {
+    void runSubscriptionAction("manage", async () => {
+      if (onManage) {
+        await onManage();
+        return;
+      }
+
+      const customerInfo = await revenueCatService.syncSubscriptionStatus(requireUserId());
+      const managementUrl = customerInfo?.managementURL;
+      if (!managementUrl) {
+        throw new Error("Open your App Store subscriptions to manage billing.");
+      }
+
+      await Linking.openURL(managementUrl);
+    });
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
@@ -85,16 +178,26 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
                 <Text style={styles.glabel}>BILLING</Text>
                 <SettingGroup
                   rows={[
-                    { key: "manage", icon: Icons.card, label: "Manage in App Store", value: "Payment · history", onPress: onManage },
-                    { key: "restore", icon: Icons.restore, label: "Restore purchases", onPress: onRestore },
+                    { key: "manage", icon: Icons.card, label: "Manage in App Store", value: busyAction === "manage" ? "Opening..." : "Payment · history", onPress: handleManage },
+                    { key: "restore", icon: Icons.restore, label: "Restore purchases", value: busyAction === "restore" ? "Restoring..." : undefined, onPress: handleRestore },
                   ]}
                 />
               </>
             ) : null}
 
-            <Pressable accessibilityRole="button" accessibilityLabel={view.primaryActionLabel} onPress={onPrimary} style={styles.btn2}>
-              <Text style={styles.btn2Text}>{view.primaryActionLabel}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={view.primaryActionLabel}
+              onPress={handlePrimary}
+              disabled={Boolean(busyAction)}
+              style={[styles.btn2, busyAction && styles.btnDisabled]}
+            >
+              <Text style={styles.btn2Text}>
+                {busyAction === "primary" ? "Starting..." : view.primaryActionLabel}
+              </Text>
             </Pressable>
+            {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
+            {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
             {view.showCancel ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Cancel subscription" onPress={onCancel} style={styles.cancel}>
@@ -125,7 +228,10 @@ const styles = StyleSheet.create({
   featText: { fontFamily: font.medium, fontSize: 13.5, color: "rgba(244,251,246,0.92)" },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },
   btn2: { marginHorizontal: 20, marginTop: 18, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(47,184,122,0.10)", borderWidth: 1.5, borderColor: "rgba(47,184,122,0.35)" },
+  btnDisabled: { opacity: 0.65 },
   btn2Text: { fontFamily: font.semibold, fontSize: 15, color: colors.emeraldDeep },
+  actionMessage: { marginTop: 10, marginHorizontal: 24, fontFamily: font.medium, fontSize: 13, color: colors.emeraldDeep, textAlign: "center" },
+  actionError: { marginTop: 10, marginHorizontal: 24, fontFamily: font.medium, fontSize: 13, color: "#B5534B", textAlign: "center" },
   cancel: { alignItems: "center", paddingVertical: 16 },
   cancelText: { fontFamily: font.semibold, fontSize: 14, color: colors.muted },
 });
