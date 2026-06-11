@@ -29,6 +29,7 @@ const envSchema = z
     AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
     OPENAI_API_KEY: z.string().min(1).optional(),
     REVENUECAT_WEBHOOK_SECRET: z.string().min(1).optional(),
+    APPLE_APP_SPECIFIC_SHARED_SECRET: z.string().min(1).optional(),
     SCHEDULER_TIMEZONE: z.string().min(1).default("America/New_York"),
     WEEKLY_VERDICT_CRON: z.string().min(1).default("0 8 * * 1"),
   })
@@ -116,6 +117,9 @@ export const env = {
   },
   revenueCat: {
     webhookSecret: parsed.data.REVENUECAT_WEBHOOK_SECRET,
+  },
+  appStore: {
+    sharedSecret: parsed.data.APPLE_APP_SPECIFIC_SHARED_SECRET,
   },
   scheduler: {
     timezone: parsed.data.SCHEDULER_TIMEZONE,

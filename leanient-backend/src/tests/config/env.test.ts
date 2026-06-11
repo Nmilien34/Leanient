@@ -68,4 +68,14 @@ describe("env Apple configuration", () => {
       privateKey: "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----",
     });
   });
+
+  it("exposes the optional App Store shared secret when present", async () => {
+    const { env } = await loadEnvModule(
+      productionEnv({
+        APPLE_APP_SPECIFIC_SHARED_SECRET: "app-store-shared-secret",
+      }),
+    );
+
+    expect(env.appStore.sharedSecret).toBe("app-store-shared-secret");
+  });
 });
