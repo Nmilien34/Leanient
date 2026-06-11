@@ -1,0 +1,202 @@
+/* Leanient App Store screenshots — shared system
+   Canvas: 1290×2796 (iPhone 6.7"/6.9" portrait)
+   Brand tokens from src/theme/tokens.ts */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1290px; }
+body { font-family: 'Geist', -apple-system, sans-serif; }
+
+.canvas {
+  position: relative;
+  width: 1290px;
+  height: 2796px;
+  overflow: hidden;
+  background: #F3F2ED;
+}
+
+/* soft brand washes behind everything */
+.wash { position: absolute; border-radius: 50%; filter: blur(140px); pointer-events: none; }
+.wash.mint    { background: rgba(111, 224, 166, 0.34); }
+.wash.deep    { background: rgba(31, 158, 99, 0.22); }
+.wash.honey   { background: rgba(240, 192, 121, 0.30); }
+.wash.blue    { background: rgba(154, 200, 224, 0.30); }
+
+/* ---------- headline block ---------- */
+.head { position: relative; z-index: 4; padding: 150px 90px 0; text-align: center; }
+.eyebrow {
+  font-size: 27px; font-weight: 700; letter-spacing: 7px;
+  color: #1F9E63; text-transform: uppercase;
+}
+.head h1 {
+  margin-top: 30px;
+  font-size: 106px; font-weight: 800; line-height: 1.05;
+  letter-spacing: -3.5px; color: #17191B;
+}
+.head .sub {
+  margin: 30px auto 0; max-width: 1000px;
+  font-size: 39px; font-weight: 500; line-height: 1.38; color: #6E6F6A;
+}
+.head .sub strong { color: #17191B; font-weight: 700; }
+.head h1 .em { color: #1F9E63; }
+
+/* ---------- phone ---------- */
+.stage { position: absolute; left: 50%; transform: translateX(-50%); z-index: 3; }
+.phone {
+  width: 969px;
+  padding: 15px;
+  background: #101312;
+  border-radius: 94px;
+  box-shadow: 0 70px 140px rgba(23, 25, 27, 0.38), inset 0 0 0 2px rgba(255,255,255,0.07);
+}
+.screen {
+  width: 393px; height: 852px;
+  zoom: 2.39;
+  border-radius: 34px;
+  overflow: hidden;
+  position: relative;
+  background: #F3F2ED;
+}
+.island {
+  position: absolute; z-index: 50; top: 11px; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 35px; border-radius: 18px; background: #000;
+}
+.sbar {
+  position: relative; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 30px 0;
+  height: 54px;
+}
+.sbar .time { font-size: 16px; font-weight: 600; color: #17191B; letter-spacing: -0.2px; }
+.sbar.light .time { color: #fff; }
+.sbar svg { display: block; }
+
+/* ---------- floating callout chips ---------- */
+.float {
+  position: absolute; z-index: 6;
+  display: flex; align-items: center; gap: 18px;
+  background: #FCFCFA;
+  border: 2px solid #E4E3DD;
+  border-radius: 34px;
+  padding: 26px 36px;
+  box-shadow: 0 30px 70px rgba(23, 25, 27, 0.20);
+  font-size: 30px; font-weight: 700; color: #17191B; letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+.float .fi {
+  width: 56px; height: 56px; border-radius: 18px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #6FE0A6, #23A869);
+}
+.float .fi.amber { background: linear-gradient(135deg, #F0C079, #D08E45); }
+.float .fi.blue  { background: linear-gradient(135deg, #9AC8E0, #5E93B6); }
+.float small { display: block; font-size: 22px; font-weight: 500; color: #6E6F6A; letter-spacing: 0; }
+
+/* =====================================================
+   IN-SCREEN COMPONENTS (pt-space, inside .screen zoom)
+   ===================================================== */
+
+.appbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px 8px;
+}
+.brand { font-size: 18px; font-weight: 600; color: #17191B; letter-spacing: -0.2px; }
+.scope { display: flex; gap: 14px; font-size: 12.5px; font-weight: 600; }
+.scope .off { color: #9A9B95; }
+.scope .on  { color: #1F9E63; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 16px;
+  background: linear-gradient(135deg, #6FE0A6, #23A869);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 700;
+}
+
+/* verdict card */
+.vcard {
+  margin: 8px 20px 0;
+  background: #FCFCFA; border: 1px solid #E4E3DD; border-radius: 26px;
+  padding: 22px 22px 22px;
+  box-shadow: 0 16px 28px rgba(23, 25, 27, 0.10);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
+  color: #1F9E63; background: rgba(47, 184, 122, 0.13);
+  padding: 7px 12px; border-radius: 14px;
+}
+.pill .dot { width: 7px; height: 7px; border-radius: 4px; background: #2FB87A; }
+.vhead { margin-top: 13px; font-size: 31px; font-weight: 800; line-height: 35px; letter-spacing: -0.93px; color: #17191B; }
+.vmsg  { margin-top: 9px; font-size: 15px; line-height: 21px; color: #6E6F6A; }
+.gbtn {
+  margin-top: 16px; height: 54px; border-radius: 27px;
+  background: linear-gradient(135deg, #4ECF8B, #2DB87A, #1F9E63);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.2px;
+  box-shadow: 0 10px 18px rgba(31, 158, 99, 0.35);
+}
+
+/* metric ring tiles */
+.ringrow { display: flex; gap: 10px; margin: 14px 20px 0; }
+.tile {
+  flex: 1; background: #FCFCFA; border: 1px solid #E4E3DD; border-radius: 20px;
+  padding: 14px 10px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  box-shadow: 0 8px 18px rgba(23, 25, 27, 0.06);
+}
+.tval { font-size: 13px; font-weight: 700; color: #17191B; letter-spacing: -0.1px; }
+.tlabel { font-size: 11px; font-weight: 500; color: #6E6F6A; }
+
+/* eyebrow + section */
+.seyebrow { margin: 20px 20px 0; font-size: 12px; font-weight: 600; letter-spacing: 1.08px; color: #6E6F6A; }
+
+/* focus card */
+.focus {
+  margin: 10px 20px 0; background: #FCFCFA; border: 1px solid #E4E3DD;
+  border-radius: 20px; padding: 16px;
+  display: flex; align-items: center; gap: 13px;
+  box-shadow: 0 8px 18px rgba(23, 25, 27, 0.06);
+}
+.ficon {
+  width: 42px; height: 42px; border-radius: 13px; flex: none;
+  background: linear-gradient(135deg, #6FE0A6, #23A869);
+  display: flex; align-items: center; justify-content: center;
+}
+.focus b { display: block; font-size: 16px; font-weight: 700; letter-spacing: -0.16px; color: #17191B; }
+.focus span { display: block; margin-top: 3px; font-size: 13px; color: #6E6F6A; line-height: 17px; }
+
+/* logged rows */
+.lcard { margin: 10px 20px 0; background: #FCFCFA; border: 1px solid #E4E3DD; border-radius: 20px; padding: 6px 14px; box-shadow: 0 8px 18px rgba(23,25,27,0.06); }
+.lrow { display: flex; align-items: center; gap: 13px; padding: 12px 2px; }
+.lrow + .lrow { border-top: 1px solid #ECECE6; }
+.licon {
+  width: 40px; height: 40px; border-radius: 12px; flex: none;
+  background: rgba(47, 184, 122, 0.10);
+  display: flex; align-items: center; justify-content: center;
+}
+.lrow b { display: block; font-size: 15px; font-weight: 600; color: #17191B; letter-spacing: -0.15px; }
+.lrow span { display: block; margin-top: 2px; font-size: 12.5px; color: #6E6F6A; }
+.lrow .grams { margin-left: auto; font-size: 14px; font-weight: 700; color: #1F9E63; }
+.chev { margin-left: 6px; color: #CBCBC4; font-size: 20px; font-weight: 500; }
+
+/* tab bar */
+.tabbar {
+  position: absolute; z-index: 30; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: flex-start;
+  padding: 10px 18px 24px;
+  background: rgba(252, 252, 250, 0.92);
+  border-top: 1px solid #E4E3DD;
+  backdrop-filter: blur(10px);
+}
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #9A9B95; }
+.tab.on { color: #1F9E63; }
+.fab {
+  flex: none; width: 58px; height: 58px; border-radius: 29px; margin: -32px 6px 0;
+  background: linear-gradient(135deg, #4ECF8B, #1F9E63);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 24px rgba(31, 158, 99, 0.5);
+}
+
+/* footer strip on canvas */
+.foot {
+  position: absolute; z-index: 5; bottom: 60px; left: 0; right: 0;
+  text-align: center; font-size: 26px; font-weight: 600; color: #9A9B95; letter-spacing: 0.5px;
+}
