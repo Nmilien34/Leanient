@@ -8,6 +8,7 @@ import { EmptyState } from "../../components/app/EmptyState";
 import { ErrorState } from "../../components/app/ErrorState";
 import apiService, { type CheckinHistoryItem } from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
+import { CheckinDetailScreen } from "./CheckinDetailScreen";
 import { VERDICT_STATUS_COLOR, VERDICT_STATUS_TEXT, checkinWeekLabel, formatWeight } from "./checkinHistory";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -15,14 +16,20 @@ import { font } from "../../theme/fonts";
 interface CheckinHistoryScreenProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (item: CheckinHistoryItem) => void;
 }
 
-/** Full list of past weekly check-ins. Each row opens its detail + verdict. */
-export function CheckinHistoryScreen({ visible, onClose, onSelect }: CheckinHistoryScreenProps) {
+/**
+ * Full list of past weekly check-ins. Each row opens its detail + verdict.
+ *
+ * The detail modal renders inside this modal's hierarchy on purpose: iOS
+ * presents one modal per view controller, so a sibling modal would silently
+ * wait until this one dismissed before appearing.
+ */
+export function CheckinHistoryScreen({ visible, onClose }: CheckinHistoryScreenProps) {
   const [items, setItems] = useState<CheckinHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<CheckinHistoryItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,7 +84,7 @@ export function CheckinHistoryScreen({ visible, onClose, onSelect }: CheckinHist
                       key={item.checkin.id}
                       accessibilityRole="button"
                       accessibilityLabel={`Check-in ${checkinWeekLabel(item.checkin.weekOf)}`}
-                      onPress={() => onSelect(item)}
+                      onPress={() => setSelected(item)}
                       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
                     >
                       <View style={styles.rowText}>
@@ -98,6 +105,8 @@ export function CheckinHistoryScreen({ visible, onClose, onSelect }: CheckinHist
             </ScrollView>
           )}
         </ModalSafeArea>
+
+        <CheckinDetailScreen visible={selected !== null} item={selected} onClose={() => setSelected(null)} />
       </View>
     </Modal>
   );

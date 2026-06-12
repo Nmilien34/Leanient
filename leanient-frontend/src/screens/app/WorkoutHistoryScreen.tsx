@@ -11,6 +11,7 @@ import { ExerciseIcon } from "../../components/app/ExerciseIcon";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { formatWorkoutDay, sortRecentWorkouts, workoutSummaryLine, workoutTitle } from "./workoutHistory";
+import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -21,15 +22,21 @@ interface WorkoutHistoryScreenProps {
   visible: boolean;
   workouts: Workout[];
   onClose: () => void;
-  onSelectLog: (log: WorkoutLog) => void;
 }
 
-/** Full, scrollable list of every logged workout. Each row opens its detail. */
-export function WorkoutHistoryScreen({ visible, workouts, onClose, onSelectLog }: WorkoutHistoryScreenProps) {
+/**
+ * Full, scrollable list of every logged workout. Each row opens its detail.
+ *
+ * The detail modal renders inside this modal's hierarchy on purpose: iOS
+ * presents one modal per view controller, so a sibling modal would silently
+ * wait until this one dismissed before appearing.
+ */
+export function WorkoutHistoryScreen({ visible, workouts, onClose }: WorkoutHistoryScreenProps) {
   const now = useRef(new Date()).current;
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,7 +92,7 @@ export function WorkoutHistoryScreen({ visible, workouts, onClose, onSelectLog }
                       key={log.id}
                       accessibilityRole="button"
                       accessibilityLabel={`Workout ${formatWorkoutDay(log.recordedAt, now)}`}
-                      onPress={() => onSelectLog(log)}
+                      onPress={() => setSelectedLog(log)}
                       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
                     >
                       <View style={styles.rowIcon}>
@@ -110,6 +117,13 @@ export function WorkoutHistoryScreen({ visible, workouts, onClose, onSelectLog }
             </ScrollView>
           )}
         </ModalSafeArea>
+
+        <WorkoutDetailScreen
+          visible={selectedLog !== null}
+          log={selectedLog}
+          workouts={workouts}
+          onClose={() => setSelectedLog(null)}
+        />
       </View>
     </Modal>
   );

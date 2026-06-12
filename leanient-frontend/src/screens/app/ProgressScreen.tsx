@@ -4,8 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import type { MuscleRetentionLabel, SubscriptionStatus, WorkoutLog } from "@leanient/shared";
-import type { CheckinHistoryItem } from "../../services/api.service";
+import type { MuscleRetentionLabel, SubscriptionStatus } from "@leanient/shared";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
@@ -17,9 +16,7 @@ import { EmptyState } from "../../components/app/EmptyState";
 import { CoachChatScreen } from "./CoachChatScreen";
 import { SubscriptionScreen } from "./SubscriptionScreen";
 import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
-import { CheckinDetailScreen } from "./CheckinDetailScreen";
 import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
-import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
@@ -68,9 +65,7 @@ export function ProgressScreen() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
-  const [selectedCheckin, setSelectedCheckin] = useState<CheckinHistoryItem | null>(null);
   const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
-  const [selectedWorkoutLog, setSelectedWorkoutLog] = useState<WorkoutLog | null>(null);
   const now = new Date();
 
   const SUBSCRIBED: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
@@ -335,27 +330,11 @@ export function ProgressScreen() {
         }}
       />
       <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
-      <CheckinHistoryScreen
-        visible={checkinHistoryOpen}
-        onClose={() => setCheckinHistoryOpen(false)}
-        onSelect={(item) => setSelectedCheckin(item)}
-      />
-      <CheckinDetailScreen
-        visible={selectedCheckin !== null}
-        item={selectedCheckin}
-        onClose={() => setSelectedCheckin(null)}
-      />
+      <CheckinHistoryScreen visible={checkinHistoryOpen} onClose={() => setCheckinHistoryOpen(false)} />
       <WorkoutHistoryScreen
         visible={workoutHistoryOpen}
         workouts={data.workouts}
         onClose={() => setWorkoutHistoryOpen(false)}
-        onSelectLog={(log) => setSelectedWorkoutLog(log)}
-      />
-      <WorkoutDetailScreen
-        visible={selectedWorkoutLog !== null}
-        log={selectedWorkoutLog}
-        workouts={data.workouts}
-        onClose={() => setSelectedWorkoutLog(null)}
       />
     </View>
   );

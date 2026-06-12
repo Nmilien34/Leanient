@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import type { Workout, WorkoutEnergyPhase, WorkoutLog } from "@leanient/shared";
+import type { Workout, WorkoutEnergyPhase } from "@leanient/shared";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { WorkoutCard } from "../../components/app/WorkoutCard";
@@ -12,7 +12,6 @@ import { WorkoutDetailSheet } from "../../components/app/WorkoutDetailSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
 import { WorkoutCompleteSheet, type WorkoutFeel } from "../../components/app/WorkoutCompleteSheet";
 import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
-import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
@@ -46,7 +45,6 @@ export function TrainScreen() {
   const [completeSaving, setCompleteSaving] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<WorkoutLog | null>(null);
 
   const trainingToday = data.trainingToday;
   const featured = trainingToday?.featuredWorkout?.workout ?? null;
@@ -232,18 +230,7 @@ export function TrainScreen() {
         />
       ) : null}
 
-      <WorkoutHistoryScreen
-        visible={historyOpen}
-        workouts={library}
-        onClose={() => setHistoryOpen(false)}
-        onSelectLog={(log) => setSelectedLog(log)}
-      />
-      <WorkoutDetailScreen
-        visible={selectedLog !== null}
-        log={selectedLog}
-        workouts={library}
-        onClose={() => setSelectedLog(null)}
-      />
+      <WorkoutHistoryScreen visible={historyOpen} workouts={library} onClose={() => setHistoryOpen(false)} />
     </View>
   );
 }
