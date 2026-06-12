@@ -1,12 +1,14 @@
-import React from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import type { WorkoutEffort } from "@leanient/shared";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { MetricRing } from "./MetricRing";
+import { EFFORT_OPTIONS } from "../../screens/app/workoutLogForm";
 import type { WorkoutCompleteView } from "../../screens/app/workoutCompleteMetrics";
 
 function Spark() {
@@ -17,12 +19,17 @@ function Spark() {
   );
 }
 
+export interface WorkoutFeel {
+  effort: WorkoutEffort;
+  note?: string;
+}
+
 interface WorkoutCompleteSheetProps {
   visible: boolean;
   view: WorkoutCompleteView;
   onClose: () => void;
-  onBackHome: () => void;
-  onLogFeel?: () => void;
+  /** Saves the session. Carries the feel when the user logged one. */
+  onBackHome: (feel?: WorkoutFeel) => void;
   isSaving?: boolean;
   errorMessage?: string | null;
 }
@@ -31,16 +38,36 @@ interface WorkoutCompleteSheetProps {
  * "Workout complete" (screen 21) — celebrates the finished session and shows
  * what it does to the week: exercises, actual time, sessions/week, and the
  * verdict it's shaping. All values come from `WorkoutCompleteView`.
+ *
+ * "Log how it felt" expands an inline effort picker (+ optional note) instead
+ * of opening another screen; whatever is selected rides along with Done.
  */
 export function WorkoutCompleteSheet({
   visible,
   view,
   onClose,
   onBackHome,
-  onLogFeel,
   isSaving = false,
   errorMessage = null,
 }: WorkoutCompleteSheetProps) {
+  const [feelOpen, setFeelOpen] = useState(false);
+  const [effort, setEffort] = useState<WorkoutEffort | null>(null);
+  const [note, setNote] = useState("");
+
+  // The sheet stays mounted between sessions; start each one with a clean slate.
+  useEffect(() => {
+    if (visible) {
+      setFeelOpen(false);
+      setEffort(null);
+      setNote("");
+    }
+  }, [visible]);
+
+  const confirm = () => {
+    const trimmed = note.trim();
+    onBackHome(effort ? { effort, note: trimmed.length > 0 ? trimmed : undefined } : undefined);
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={styles.root}>
@@ -93,6 +120,39 @@ export function WorkoutCompleteSheet({
               </View>
             </View>
 
+            {feelOpen ? (
+              <View style={styles.feel}>
+                <Text style={styles.feelLabel}>HOW DID IT FEEL?</Text>
+                <View style={styles.seg}>
+                  {EFFORT_OPTIONS.map((e) => {
+                    const on = effort === e.id;
+                    return (
+                      <Pressable
+                        key={e.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={e.label}
+                        onPress={() => setEffort(on ? null : e.id)}
+                        style={[styles.segItem, on && styles.segItemOn]}
+                      >
+                        <Text style={[styles.segText, on && styles.segTextOn]}>{e.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Anything to remember? (optional)"
+                  placeholderTextColor={colors.faint}
+                  style={styles.noteInput}
+                  maxLength={500}
+                  multiline
+                  accessibilityLabel="Workout note"
+                />
+              </View>
+            ) : null}
+
             {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
             <Pressable
@@ -100,21 +160,23 @@ export function WorkoutCompleteSheet({
               accessibilityLabel="Done"
               accessibilityState={{ disabled: isSaving }}
               disabled={isSaving}
-              onPress={onBackHome}
+              onPress={confirm}
             >
               <LinearGradient colors={["#4ECF8B", "#2DB87A", "#1F9E63"]} locations={[0, 0.56, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
                 {isSaving ? <ActivityIndicator color="#F4FBF7" /> : <Text style={styles.ctaText}>Done</Text>}
               </LinearGradient>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Log how it felt"
-              disabled={isSaving}
-              onPress={onLogFeel ?? onBackHome}
-              style={styles.dismiss}
-            >
-              <Text style={styles.dismissText}>Log how it felt</Text>
-            </Pressable>
+            {feelOpen ? null : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Log how it felt"
+                disabled={isSaving}
+                onPress={() => setFeelOpen(true)}
+                style={styles.dismiss}
+              >
+                <Text style={styles.dismissText}>Log how it felt</Text>
+              </Pressable>
+            )}
           </ScrollView>
         </ModalSafeArea>
       </View>
@@ -145,6 +207,14 @@ const styles = StyleSheet.create({
   eyebrowVal: { fontFamily: font.bold, fontSize: 12, color: colors.emeraldDeep },
   bar: { height: 10, borderRadius: 5, backgroundColor: "rgba(222,231,212,0.9)", marginTop: 13, overflow: "hidden" },
   barFill: { height: 10, borderRadius: 5 },
+  feel: { marginTop: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
+  feelLabel: { fontFamily: font.semibold, fontSize: 12, letterSpacing: 0.84, color: colors.muted },
+  seg: { flexDirection: "row", backgroundColor: "#EBECE6", borderRadius: 14, padding: 4, gap: 4, marginTop: 12 },
+  segItem: { flex: 1, paddingVertical: 11, alignItems: "center", borderRadius: 11 },
+  segItemOn: { backgroundColor: "#fff", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 4 }, shadowRadius: 10, shadowOpacity: 0.18, elevation: 2 },
+  segText: { fontFamily: font.semibold, fontSize: 14, color: colors.muted },
+  segTextOn: { color: colors.ink },
+  noteInput: { marginTop: 12, minHeight: 44, maxHeight: 96, borderWidth: 1, borderColor: colors.line, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 11, fontFamily: font.regular, fontSize: 14, color: colors.ink, backgroundColor: colors.paper, textAlignVertical: "top" },
   errorText: { fontFamily: font.semibold, fontSize: 13, color: "#A94B4B", marginTop: 16, textAlign: "center" },
   cta: { height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", marginTop: 18 },
   ctaText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7", letterSpacing: -0.16 },

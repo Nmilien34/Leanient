@@ -15,7 +15,7 @@ import { MeasurementLogScreen } from "../screens/app/MeasurementLogScreen";
 import { ProgressPhotoScreen } from "../screens/app/ProgressPhotoScreen";
 import { SideEffectLogScreen } from "../screens/app/SideEffectLogScreen";
 import { WorkoutPlayer } from "../components/app/WorkoutPlayer";
-import { WorkoutCompleteSheet } from "../components/app/WorkoutCompleteSheet";
+import { WorkoutCompleteSheet, type WorkoutFeel } from "../components/app/WorkoutCompleteSheet";
 import { HomeScreen } from "../screens/app/HomeScreen";
 import { TrainScreen } from "../screens/app/TrainScreen";
 import { ProgressScreen } from "../screens/app/ProgressScreen";
@@ -172,7 +172,7 @@ export function MainTabs() {
     if (key === "side") setSideEffectOpen(true);
   };
 
-  const confirmWorkoutCompletion = async () => {
+  const confirmWorkoutCompletion = async (feel?: WorkoutFeel) => {
     if (!completedWorkout) return;
 
     setCompletionSaving(true);
@@ -183,6 +183,7 @@ export function MainTabs() {
           summary: completedWorkout,
           workout: playerWorkout,
           recordedAt: new Date().toISOString(),
+          feel,
         }),
       );
       await data.refreshHomeData();
@@ -360,7 +361,7 @@ export function MainTabs() {
             setCompletionOpen(false);
             setCompletionError(null);
           }}
-          onBackHome={() => void confirmWorkoutCompletion()}
+          onBackHome={(feel) => void confirmWorkoutCompletion(feel)}
           isSaving={completionSaving}
           errorMessage={completionError}
         />

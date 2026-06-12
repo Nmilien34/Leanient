@@ -1,4 +1,4 @@
-import type { CreateWorkoutLogRequest, VerdictStatus, Workout } from "@leanient/shared";
+import type { CreateWorkoutLogRequest, VerdictStatus, Workout, WorkoutEffort } from "@leanient/shared";
 import { fmtClock, type CompletedWorkout } from "./workoutSession";
 
 /**
@@ -106,6 +106,7 @@ export function buildGuidedWorkoutLogDraft(args: {
   summary: CompletedWorkout;
   workout: Workout;
   recordedAt: string;
+  feel?: { effort: WorkoutEffort; note?: string };
 }): CreateWorkoutLogRequest {
   const durationMinutes = Math.max(1, Math.round(args.summary.elapsedSeconds / 60));
 
@@ -125,5 +126,7 @@ export function buildGuidedWorkoutLogDraft(args: {
     exercises,
     countsAsResistance: args.workout.category === "strength",
     recordedAt: args.recordedAt,
+    perceivedEffort: args.feel?.effort,
+    notes: args.feel?.note,
   };
 }

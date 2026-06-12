@@ -10,7 +10,7 @@ import { UserAvatar } from "../../components/app/UserAvatar";
 import { WorkoutCard } from "../../components/app/WorkoutCard";
 import { WorkoutDetailSheet } from "../../components/app/WorkoutDetailSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
-import { WorkoutCompleteSheet } from "../../components/app/WorkoutCompleteSheet";
+import { WorkoutCompleteSheet, type WorkoutFeel } from "../../components/app/WorkoutCompleteSheet";
 import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
 import { WorkoutDetailScreen } from "./WorkoutDetailScreen";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
@@ -98,7 +98,7 @@ export function TrainScreen() {
     setActiveWorkout(workout);
   };
 
-  const confirmWorkoutComplete = async () => {
+  const confirmWorkoutComplete = async (feel?: WorkoutFeel) => {
     if (!completed || !activeWorkout) return;
 
     setCompleteSaving(true);
@@ -109,6 +109,7 @@ export function TrainScreen() {
           summary: completed,
           workout: activeWorkout,
           recordedAt: new Date().toISOString(),
+          feel,
         }),
       );
       await data.refreshHomeData();
@@ -225,7 +226,7 @@ export function TrainScreen() {
             setCompleted(null);
             setActiveWorkout(null);
           }}
-          onBackHome={() => void confirmWorkoutComplete()}
+          onBackHome={(feel) => void confirmWorkoutComplete(feel)}
           isSaving={completeSaving}
           errorMessage={completeError}
         />

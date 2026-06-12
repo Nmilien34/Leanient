@@ -22,7 +22,7 @@ import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
 import { TodayPlanSheet } from "../../components/app/TodayPlanSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
-import { WorkoutCompleteSheet } from "../../components/app/WorkoutCompleteSheet";
+import { WorkoutCompleteSheet, type WorkoutFeel } from "../../components/app/WorkoutCompleteSheet";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
@@ -206,7 +206,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     [completed, training.done, training.target, verdict.status],
   );
 
-  const confirmWorkoutComplete = async () => {
+  const confirmWorkoutComplete = async (feel?: WorkoutFeel) => {
     if (!completed || !recommendedWorkout) return;
 
     setCompleteSaving(true);
@@ -217,6 +217,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           summary: completed,
           workout: recommendedWorkout,
           recordedAt: new Date().toISOString(),
+          feel,
         }),
       );
       await data.refreshHomeData();
@@ -572,7 +573,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
             setCompleteOpen(false);
             setCompleteError(null);
           }}
-          onBackHome={() => void confirmWorkoutComplete()}
+          onBackHome={(feel) => void confirmWorkoutComplete(feel)}
           isSaving={completeSaving}
           errorMessage={completeError}
         />

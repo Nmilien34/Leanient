@@ -106,4 +106,25 @@ describe("deriveWorkoutComplete", () => {
       },
     ]);
   });
+
+  it("carries the post-workout feel into the log when provided", () => {
+    const workout = { id: "workout_1", category: "strength", exercises: [] } as unknown as Workout;
+
+    const withFeel = buildGuidedWorkoutLogDraft({
+      summary: fullSession,
+      workout,
+      recordedAt: "2026-06-03T18:00:00.000Z",
+      feel: { effort: "hard", note: "Last set of squats was a grind." },
+    });
+    expect(withFeel.perceivedEffort).toBe("hard");
+    expect(withFeel.notes).toBe("Last set of squats was a grind.");
+
+    const noFeel = buildGuidedWorkoutLogDraft({
+      summary: fullSession,
+      workout,
+      recordedAt: "2026-06-03T18:00:00.000Z",
+    });
+    expect(noFeel.perceivedEffort).toBeUndefined();
+    expect(noFeel.notes).toBeUndefined();
+  });
 });
