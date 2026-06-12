@@ -188,6 +188,14 @@ export function MealScanScreen({ visible, photoUri, onClose, onRetake, onLogged 
             <Macro value={`${analysis.calories}`} label="Calories" />
             <Macro value={`${analysis.carbs}g`} label="Carbs" />
           </View>
+          {analysis.fiber != null || analysis.waterOz != null ? (
+            <Text style={styles.derivedLine}>
+              Also counted:
+              {analysis.fiber != null ? ` ~${Math.round(analysis.fiber)}g fiber` : ""}
+              {analysis.fiber != null && analysis.waterOz != null ? " ·" : ""}
+              {analysis.waterOz != null ? ` ~${Math.round(analysis.waterOz)} oz water` : ""}
+            </Text>
+          ) : null}
 
           {/* coach content */}
           {coachContent ? (
@@ -317,6 +325,7 @@ const styles = StyleSheet.create({
   foodName: { fontFamily: font.extrabold, fontSize: 20, letterSpacing: -0.4, color: colors.ink },
   serving: { fontFamily: font.regular, fontSize: 13, color: colors.muted, marginTop: 2 },
   macros: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 12 },
+  derivedLine: { fontFamily: font.medium, fontSize: 12.5, color: colors.muted, paddingHorizontal: 20, paddingTop: 10 },
   macro: { flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, padding: 12, alignItems: "center" },
   macroLead: { borderColor: "rgba(47,184,122,0.4)", backgroundColor: "rgba(47,184,122,0.07)" },
   macroValue: { fontFamily: font.extrabold, fontSize: 19, letterSpacing: -0.38, color: colors.ink },

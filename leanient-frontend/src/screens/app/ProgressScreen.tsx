@@ -22,9 +22,14 @@ import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
 import { resolveSectionState } from "./sectionState";
 import {
+  CHART_RANGES,
   buildProgressRetentionChart,
   buildProgressWeightChart,
   buildWorkoutSessionsCard,
+  chartRangeTitle,
+  filterByChartRange,
+  muscleKeptStreak,
+  type ChartRangeId,
 } from "./progressMetrics";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -56,6 +61,29 @@ function Spark() {
   );
 }
 
+function RangeToggle({ value, onChange }: { value: ChartRangeId; onChange: (next: ChartRangeId) => void }) {
+  return (
+    <View style={styles.rangeRow}>
+      {CHART_RANGES.map((range) => {
+        const on = range.id === value;
+        return (
+          <Pressable
+            key={range.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`Show ${range.title}`}
+            hitSlop={6}
+            onPress={() => onChange(range.id)}
+            style={[styles.rangePill, on && styles.rangePillOn]}
+          >
+            <Text style={[styles.rangeText, on && styles.rangeTextOn]}>{range.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function ProgressScreen() {
   const auth = useAuth();
   const data = useLeanientData();
@@ -66,6 +94,8 @@ export function ProgressScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
+  const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
+  const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
   const now = new Date();
 
   const SUBSCRIBED: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
@@ -100,21 +130,33 @@ export function ProgressScreen() {
 
   // Section data + states (retention + weight come from the combined home fetch).
   const snapshots = overview?.chart.snapshots ?? [];
+  const kept = muscleKeptStreak(snapshots);
   const retentionChart = useMemo(
-    () => buildProgressRetentionChart(snapshots, (label) => RETENTION_COLOR[label]),
-    [snapshots],
+    () =>
+      buildProgressRetentionChart(
+        filterByChartRange(snapshots, (s) => s.weekOf, retentionRange, now),
+        (label) => RETENTION_COLOR[label],
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is a per-render Date
+    [snapshots, retentionRange],
   );
   const weightChart = useMemo(
     () =>
       buildProgressWeightChart({
-        weightLogs,
+        weightLogs: filterByChartRange(weightLogs, (log) => log.measuredAt, weightRange, now),
         fallbackUnit: profile?.goalWeightUnit ?? "lb",
         goalWeight: profile?.goalWeight,
       }),
-    [profile?.goalWeight, profile?.goalWeightUnit, weightLogs],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is a per-render Date
+    [profile?.goalWeight, profile?.goalWeightUnit, weightLogs, weightRange],
   );
+  // Week numbers stay absolute when a window hides earlier weeks.
+  const firstVisibleWeek =
+    retentionChart.snapshots.length > 0
+      ? Math.max(0, snapshots.filter((s) => s.weekOf < retentionChart.snapshots[0].weekOf).length)
+      : 0;
   const retentionState = resolveSectionState({
-    hasData: retentionChart.snapshots.length > 0,
+    hasData: snapshots.length > 0,
     isLoading: data.isLoading || data.isRefreshing,
     hasError: !!(data.progressPhotosError ?? data.homeError),
   });
@@ -156,6 +198,14 @@ export function ProgressScreen() {
               <Text style={styles.ssub}>
                 {weeksOnMed != null && medName ? `${weeksOnMed} weeks on ${medName}` : "Tracking your progress"}
               </Text>
+              {kept >= 2 ? (
+                <View style={styles.streakPill}>
+                  <View style={styles.streakDot} />
+                  <Text style={styles.streakText}>
+                    {kept} weeks keeping muscle
+                  </Text>
+                </View>
+              ) : null}
             </View>
             <Pressable
               accessibilityRole="button"
@@ -186,14 +236,23 @@ export function ProgressScreen() {
                   {retentionChart.currentLabel ? RETENTION_TEXT[retentionChart.currentLabel] : ""}
                 </Text>
               </View>
-              <View style={{ marginTop: 12 }}>
-                <LineChart points={retentionPoints} height={92} stroke={colors.emerald} showDots showBaseline />
-              </View>
-              <View style={styles.axis}>
-                <Text style={styles.axisLabel}>Wk 1</Text>
-                <Text style={styles.axisLabel}>Wk {Math.ceil(retentionChart.snapshots.length / 2)}</Text>
-                <Text style={styles.axisLabel}>Wk {retentionChart.snapshots.length}</Text>
-              </View>
+              <RangeToggle value={retentionRange} onChange={setRetentionRange} />
+              {retentionChart.snapshots.length === 0 ? (
+                <Text style={styles.rangeEmpty}>No check-ins in this window yet.</Text>
+              ) : (
+                <>
+                  <View style={{ marginTop: 12 }}>
+                    <LineChart points={retentionPoints} height={92} stroke={colors.emerald} showDots showBaseline />
+                  </View>
+                  <View style={styles.axis}>
+                    <Text style={styles.axisLabel}>Wk {firstVisibleWeek + 1}</Text>
+                    <Text style={styles.axisLabel}>
+                      Wk {firstVisibleWeek + Math.ceil(retentionChart.snapshots.length / 2)}
+                    </Text>
+                    <Text style={styles.axisLabel}>Wk {firstVisibleWeek + retentionChart.snapshots.length}</Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -213,23 +272,30 @@ export function ProgressScreen() {
               <View style={styles.ctitle}>
                 <Text style={styles.cTitleText}>Weight</Text>
                 <Text style={styles.cval}>
-                  ↓ {lost.toFixed(0)} {unit} since start
+                  ↓ {lost.toFixed(0)} {unit} {chartRangeTitle(weightRange)}
                 </Text>
               </View>
-              <View style={{ marginTop: 10 }}>
-                <LineChart points={weightPoints} height={64} stroke={colors.emeraldDeep} />
-              </View>
-              <View style={styles.axis}>
-                <Text style={styles.axisDark}>
-                  {startWeight} {unit}
-                </Text>
-                <Text style={styles.axisDark}>
-                  {todayWeight} {unit} today
-                </Text>
-                <Text style={styles.axisDark}>
-                  {weightChart.goalWeight} {unit} goal
-                </Text>
-              </View>
+              <RangeToggle value={weightRange} onChange={setWeightRange} />
+              {weightPoints.length === 0 ? (
+                <Text style={styles.rangeEmpty}>No weigh-ins in this window yet.</Text>
+              ) : (
+                <>
+                  <View style={{ marginTop: 10 }}>
+                    <LineChart points={weightPoints} height={64} stroke={colors.emeraldDeep} />
+                  </View>
+                  <View style={styles.axis}>
+                    <Text style={styles.axisDark}>
+                      {startWeight} {unit}
+                    </Text>
+                    <Text style={styles.axisDark}>
+                      {todayWeight} {unit} today
+                    </Text>
+                    <Text style={styles.axisDark}>
+                      {weightChart.goalWeight} {unit} goal
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -347,6 +413,15 @@ const styles = StyleSheet.create({
   secthead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
   stitle: { fontFamily: font.extrabold, fontSize: 27, letterSpacing: -0.81, color: colors.ink },
   ssub: { fontFamily: font.regular, fontSize: 13, color: colors.muted, marginTop: 2 },
+  streakPill: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: "rgba(47,184,122,0.13)", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4, marginTop: 7 },
+  streakDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.emerald },
+  streakText: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 0.2, color: colors.emeraldDeep },
+  rangeRow: { flexDirection: "row", gap: 6, marginTop: 12 },
+  rangePill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.sageFill },
+  rangePillOn: { backgroundColor: "rgba(47,184,122,0.16)" },
+  rangeText: { fontFamily: font.semibold, fontSize: 12, color: colors.muted },
+  rangeTextOn: { color: colors.emeraldDeep },
+  rangeEmpty: { fontFamily: font.regular, fontSize: 13, color: colors.muted, marginTop: 16, marginBottom: 6 },
   avatar: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: font.bold, fontSize: 13, color: "#5B6157" },
   // chart card

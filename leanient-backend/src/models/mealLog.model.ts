@@ -16,6 +16,8 @@ export interface MealLogDocument extends Document<Types.ObjectId> {
   calories: number;
   carbs?: number;
   fat?: number;
+  fiber?: number;
+  waterOz?: number;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +83,14 @@ const mealLogSchema = new Schema<MealLogDocument>(
       min: 0,
     },
     fat: {
+      type: Number,
+      min: 0,
+    },
+    fiber: {
+      type: Number,
+      min: 0,
+    },
+    waterOz: {
       type: Number,
       min: 0,
     },

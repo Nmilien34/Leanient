@@ -346,6 +346,8 @@ const mealLogMutableSchema = z
     calories: z.number().min(0),
     carbs: z.number().min(0).optional(),
     fat: z.number().min(0).optional(),
+    fiber: z.number().min(0).optional(),
+    waterOz: z.number().min(0).optional(),
     notes: z.string().trim().max(500).optional(),
   })
   .strict();
@@ -380,6 +382,10 @@ export const mealScanAnalysisSchema = z
     calories: z.number().nonnegative(),
     carbs: z.number().nonnegative(),
     fat: z.number().nonnegative(),
+    // Derived hydration/fiber estimates. Optional so older scans and engine
+    // versions that predate them stay valid.
+    fiber: z.number().nonnegative().optional(),
+    waterOz: z.number().nonnegative().optional(),
     confidence: z.number().min(0).max(1),
   })
   .strict();

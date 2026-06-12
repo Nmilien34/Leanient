@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
+import { QUICK_LOG_ACTIONS, type QuickLogActionKey } from "./quickLogActions";
 import { QUICK_LOG_BACKDROP_BLUR_INTENSITY, QUICK_LOG_BACKDROP_DIM_COLOR } from "./quickLogBackdrop";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -13,21 +14,22 @@ const Glyph = ({ children }: IconProps) => (
   </Svg>
 );
 
-const ROWS: { key: string; label: string; icon: React.ReactNode }[] = [
-  { key: "scan_meal", label: "Scan meal", icon: <Glyph><Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><Circle cx={12} cy={13} r={3.2} /></Glyph> },
-  { key: "meal", label: "Manual meal", icon: <Glyph><Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" /></Glyph> },
-  { key: "workout", label: "Workout", icon: <Glyph><Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" /></Glyph> },
-  { key: "dose", label: "Dose", icon: <Glyph><Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" /></Glyph> },
-  { key: "weight", label: "Weight", icon: <Glyph><Path d="M4 9h16l-1.5 11h-13zM9 9a3 3 0 0 1 6 0" /></Glyph> },
-  { key: "measurement", label: "Measurement", icon: <Glyph><Rect x={3} y={8} width={18} height={8} rx={1} /><Path d="M7 8v3M11 8v4M15 8v3M19 8v4" /></Glyph> },
-  { key: "photo", label: "Progress photo", icon: <Glyph><Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><Circle cx={12} cy={13} r={3.2} /></Glyph> },
-  { key: "side", label: "Side effect", icon: <Glyph><Polyline points="12,3 21,19 3,19 12,3" /><Path d="M12 9v5M12 17v.5" /></Glyph> },
-];
+const QUICK_LOG_ICONS: Record<QuickLogActionKey, React.ReactNode> = {
+  scan_meal: <Glyph><Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><Circle cx={12} cy={13} r={3.2} /></Glyph>,
+  coach: <Glyph><Path d="M4 5h16v10H8l-4 4z" /><Path d="M15 3l.8 2.2L18 6l-2.2.8L15 9l-.8-2.2L12 6l2.2-.8z" /></Glyph>,
+  meal: <Glyph><Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" /></Glyph>,
+  workout: <Glyph><Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" /></Glyph>,
+  dose: <Glyph><Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" /></Glyph>,
+  weight: <Glyph><Path d="M4 9h16l-1.5 11h-13zM9 9a3 3 0 0 1 6 0" /></Glyph>,
+  measurement: <Glyph><Rect x={3} y={8} width={18} height={8} rx={1} /><Path d="M7 8v3M11 8v4M15 8v3M19 8v4" /></Glyph>,
+  photo: <Glyph><Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><Circle cx={12} cy={13} r={3.2} /></Glyph>,
+  side: <Glyph><Polyline points="12,3 21,19 3,19 12,3" /><Path d="M12 9v5M12 17v.5" /></Glyph>,
+};
 
 interface QuickLogSheetProps {
   visible: boolean;
   onClose: () => void;
-  onSelect?: (key: string) => void;
+  onSelect?: (key: QuickLogActionKey) => void;
 }
 
 /** Frosted "Log something" bottom sheet (rows are scaffolds for now). */
@@ -61,7 +63,7 @@ export function QuickLogSheet({ visible, onClose, onSelect }: QuickLogSheetProps
       >
         <View style={styles.grabber} />
         <Text style={styles.title}>Log something</Text>
-        {ROWS.map((row) => (
+        {QUICK_LOG_ACTIONS.map((row) => (
           <Pressable
             key={row.key}
             accessibilityRole="button"
@@ -69,7 +71,7 @@ export function QuickLogSheet({ visible, onClose, onSelect }: QuickLogSheetProps
             onPress={() => (onSelect ? onSelect(row.key) : onClose())}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           >
-            <View style={styles.icon}>{row.icon}</View>
+            <View style={styles.icon}>{QUICK_LOG_ICONS[row.key]}</View>
             <Text style={styles.label}>{row.label}</Text>
             <Text style={styles.chev}>›</Text>
           </Pressable>

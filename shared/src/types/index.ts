@@ -251,6 +251,10 @@ export interface MealLog extends DailyLogBase {
   calories: number;
   carbs?: number;
   fat?: number;
+  /** Estimated grams of fiber, derived from the scan when available. */
+  fiber?: number;
+  /** Estimated fluid ounces of water in the meal, derived from the scan. */
+  waterOz?: number;
   notes?: string;
 }
 
@@ -271,6 +275,10 @@ export interface MealScanAnalysis {
   calories: number;
   carbs: number;
   fat: number;
+  /** Estimated grams of fiber in the serving. */
+  fiber?: number;
+  /** Estimated fluid ounces of water in the meal (drinks, soups, produce). */
+  waterOz?: number;
   confidence: number;
 }
 

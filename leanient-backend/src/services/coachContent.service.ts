@@ -99,6 +99,8 @@ You analyze food photos for a GLP-1 nutrition app. The user is on a medication t
 
 Identify the food. Estimate serving size from visual cues (plate size, utensils, portion volume). Return macros for the estimated serving.
 
+Also estimate fiber (grams) and water content (fluid ounces) for the serving. Water counts visible drinks, soups/broths, and the fluid content of water-rich foods (fruit, vegetables, yogurt); a dry meal with no drink is typically 2-6 oz. GLP-1 users are prone to constipation and dehydration, so reasonable estimates here are genuinely useful — but keep them conservative.
+
 Return JSON only:
 {
   "foodName": "string — plain-language name of the dish",
@@ -107,6 +109,8 @@ Return JSON only:
   "calories": number,
   "carbs": number,
   "fat": number,
+  "fiber": number,
+  "waterOz": number,
   "confidence": number
 }
 
@@ -858,6 +862,11 @@ function parseMealScanVisionJson(content: string): MealScanAnalysis {
       throw new Error("Meal scan vision JSON did not include the expected macro fields");
     }
 
+    // Fiber/water are best-effort estimates; a model that omits them or
+    // returns junk must not fail the scan.
+    const fiber = typeof parsed.fiber === "number" && parsed.fiber >= 0 ? parsed.fiber : undefined;
+    const waterOz = typeof parsed.waterOz === "number" && parsed.waterOz >= 0 ? parsed.waterOz : undefined;
+
     return {
       foodName: parsed.foodName.trim(),
       servingSize: parsed.servingSize.trim(),
@@ -865,6 +874,8 @@ function parseMealScanVisionJson(content: string): MealScanAnalysis {
       calories: parsed.calories,
       carbs: parsed.carbs,
       fat: parsed.fat,
+      fiber,
+      waterOz,
       confidence: parsed.confidence,
     };
   } catch (error) {

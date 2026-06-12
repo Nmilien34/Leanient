@@ -12,6 +12,24 @@ export interface TodayLogEntry {
 export interface TodayLog {
   meals: TodayLogEntry[];
   workoutsDone: number;
+  /**
+   * One muted line of derived hydration/fiber, summed from the day's scans.
+   * Null until at least one meal carries an estimate; the user never logs
+   * water or fiber by hand.
+   */
+  derivedLine: string | null;
+}
+
+/** Sum the day's scan-derived water/fiber estimates into a display line. */
+export function buildDerivedLine(meals: Pick<MealLog, "fiber" | "waterOz">[]): string | null {
+  const fiber = meals.reduce((sum, m) => sum + (m.fiber ?? 0), 0);
+  const water = meals.reduce((sum, m) => sum + (m.waterOz ?? 0), 0);
+  if (fiber <= 0 && water <= 0) return null;
+
+  const parts: string[] = [];
+  if (water > 0) parts.push(`~${Math.round(water)} oz water`);
+  if (fiber > 0) parts.push(`~${Math.round(fiber)}g fiber`);
+  return `From your meals: ${parts.join(" · ")}`;
 }
 
 /** Format an ISO timestamp to a short clock label like "8:10a". */
@@ -34,6 +52,7 @@ export function toTodayLog(meals: MealLog[], workouts: WorkoutLog[] = []): Today
   return {
     meals: meals.map((m) => ({ id: m.id, name: m.foodName, grams: Math.round(m.protein), timeLabel: formatLogTime(m.recordedAt) })),
     workoutsDone: workouts.length,
+    derivedLine: buildDerivedLine(meals),
   };
 }
 
@@ -66,6 +85,8 @@ export interface TodayView {
   /** Next-dose countdown tile; hidden when the user isn't on a protocol. */
   nextShot: { label: string; onProtocol: boolean };
   loggedMeals: TodayLog["meals"];
+  /** Derived hydration/fiber line under the logged list; null when unknown. */
+  derivedLine: string | null;
 }
 
 const WEEKDAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -253,5 +274,6 @@ export function deriveTodayView(args: {
     },
     nextShot,
     loggedMeals: dailyLog.meals,
+    derivedLine: dailyLog.derivedLine,
   };
 }

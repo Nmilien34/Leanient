@@ -5,6 +5,7 @@ import type { CreateMealLogRequest, MealScanResponse, ProgressPhotoUploadIntentR
 import { QuickActionsProvider, type QuickActions } from "../context/QuickActionsContext";
 import { TabBar } from "../components/layout/TabBar";
 import { QuickLogSheet } from "../components/app/QuickLogSheet";
+import type { QuickLogActionKey } from "../components/app/quickLogActions";
 import { MealCameraScreen } from "../screens/app/MealCameraScreen";
 import { MealScanScreen } from "../screens/app/MealScanScreen";
 import { MealLogScreen } from "../screens/app/MealLogScreen";
@@ -20,6 +21,8 @@ import { HomeScreen } from "../screens/app/HomeScreen";
 import { TrainScreen } from "../screens/app/TrainScreen";
 import { ProgressScreen } from "../screens/app/ProgressScreen";
 import { ProfileScreen } from "../screens/app/ProfileScreen";
+import { CoachChatScreen } from "../screens/app/CoachChatScreen";
+import { SubscriptionScreen } from "../screens/app/SubscriptionScreen";
 import { useLeanientData } from "../context/LeanientDataContext";
 import { mockRecommendedWorkout } from "../mocks/workouts";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "../screens/app/workoutCompleteMetrics";
@@ -64,6 +67,10 @@ function buildMealLogFromScan(
     calories: macros.calories,
     carbs: macros.carbs,
     fat: macros.fat,
+    // Hydration/fiber are derived from the photo itself, so the swap's macro
+    // adjustments leave them untouched.
+    fiber: result.analysis.fiber,
+    waterOz: result.analysis.waterOz,
     notes: swap?.description,
   };
 }
@@ -81,6 +88,8 @@ export function MainTabs() {
   const [measurementOpen, setMeasurementOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [sideEffectOpen, setSideEffectOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState<CompletedWorkout | null>(null);
@@ -160,9 +169,10 @@ export function MainTabs() {
     }
   };
 
-  const handleLogSelect = (key: string) => {
+  const handleLogSelect = (key: QuickLogActionKey) => {
     setLogOpen(false);
     if (key === "scan_meal") setCameraOpen(true);
+    if (key === "coach") setCoachOpen(true);
     if (key === "meal") setMealLogOpen(true);
     if (key === "workout") setLogWorkoutOpen(true);
     if (key === "dose") setDoseOpen(true);
@@ -341,6 +351,16 @@ export function MainTabs() {
           )
         }
       />
+
+      <CoachChatScreen
+        visible={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        onUpgrade={() => {
+          setCoachOpen(false);
+          setSubscriptionOpen(true);
+        }}
+      />
+      <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
 
       <WorkoutPlayer
         visible={playerOpen}

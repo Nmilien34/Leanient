@@ -116,6 +116,8 @@ export function serializeMealLog(log: MealLogDocument): MealLog {
     calories: log.calories,
     carbs: log.carbs,
     fat: log.fat,
+    fiber: log.fiber,
+    waterOz: log.waterOz,
     notes: log.notes,
     createdAt: log.createdAt.toISOString(),
     updatedAt: log.updatedAt.toISOString(),

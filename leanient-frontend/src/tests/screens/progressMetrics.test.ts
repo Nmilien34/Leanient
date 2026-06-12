@@ -4,6 +4,9 @@ import {
   buildProgressRetentionChart,
   buildProgressWeightChart,
   buildWorkoutSessionsCard,
+  chartRangeTitle,
+  filterByChartRange,
+  muscleKeptStreak,
 } from "../../screens/app/progressMetrics";
 
 const STAMP = "2026-06-09T12:00:00.000Z";
@@ -86,6 +89,49 @@ describe("buildProgressRetentionChart", () => {
       "2026-06-08T00:00:00.000Z",
     ]);
     expect(chart.points.map((point) => point.value)).toEqual([91, 72]);
+  });
+});
+
+describe("filterByChartRange", () => {
+  const now = new Date("2026-06-09T12:00:00.000Z");
+  const logs = [
+    weightLog({ id: "old", measuredAt: "2025-05-01T12:00:00.000Z" }), // ~13 months back
+    weightLog({ id: "mid", measuredAt: "2026-04-01T12:00:00.000Z" }), // ~10 weeks back
+    weightLog({ id: "new", measuredAt: "2026-06-01T12:00:00.000Z" }), // 8 days back
+  ];
+
+  it("keeps only entries inside the window", () => {
+    expect(filterByChartRange(logs, (l) => l.measuredAt, "30d", now).map((l) => l.id)).toEqual(["new"]);
+    expect(filterByChartRange(logs, (l) => l.measuredAt, "90d", now).map((l) => l.id)).toEqual(["mid", "new"]);
+    expect(filterByChartRange(logs, (l) => l.measuredAt, "1y", now).map((l) => l.id)).toEqual(["mid", "new"]);
+    expect(filterByChartRange(logs, (l) => l.measuredAt, "all", now)).toHaveLength(3);
+  });
+
+  it("titles each window for the delta caption", () => {
+    expect(chartRangeTitle("30d")).toBe("last 30 days");
+    expect(chartRangeTitle("all")).toBe("since start");
+  });
+});
+
+describe("muscleKeptStreak", () => {
+  const week = (weekOf: string, retentionLabel: MuscleRetentionSnapshot["retentionLabel"]) =>
+    snapshot({ id: weekOf, weekOf, retentionLabel });
+
+  it("counts trailing protected weeks regardless of input order", () => {
+    const weeks = [
+      week("2026-05-25T00:00:00.000Z", "keeping_muscle"),
+      week("2026-05-04T00:00:00.000Z", "losing_some"),
+      week("2026-06-01T00:00:00.000Z", "maintaining"),
+      week("2026-05-11T00:00:00.000Z", "keeping_muscle"),
+      week("2026-05-18T00:00:00.000Z", "maintaining"),
+    ];
+    // losing_some on May 4 breaks the streak; the four weeks after it count.
+    expect(muscleKeptStreak(weeks)).toBe(4);
+  });
+
+  it("is zero when the latest week lost muscle and when there is no data", () => {
+    expect(muscleKeptStreak([week("2026-06-01T00:00:00.000Z", "losing_muscle")])).toBe(0);
+    expect(muscleKeptStreak([])).toBe(0);
   });
 });
 

@@ -49,7 +49,19 @@ describe("toTodayLog", () => {
 
   it("rounds protein and returns an empty log for no meals", () => {
     expect(toTodayLog([meal({ protein: 30.6 })]).meals[0].grams).toBe(31);
-    expect(toTodayLog([])).toEqual({ meals: [], workoutsDone: 0 });
+    expect(toTodayLog([])).toEqual({ meals: [], workoutsDone: 0, derivedLine: null });
+  });
+
+  it("derives a hydration and fiber line from scan estimates only", () => {
+    const log = toTodayLog([
+      meal({ foodName: "Tofu bowl", protein: 29, fiber: 6.2, waterOz: 11.8 }),
+      meal({ foodName: "Shake", protein: 25, waterOz: 12 }),
+      meal({ foodName: "Old manual meal", protein: 20 }), // no estimates
+    ]);
+    expect(log.derivedLine).toBe("From your meals: ~24 oz water · ~6g fiber");
+
+    // Meals without estimates produce no line rather than a misleading zero.
+    expect(toTodayLog([meal({ protein: 20 })]).derivedLine).toBeNull();
   });
 
   it("counts today's workout logs into the session metric", () => {

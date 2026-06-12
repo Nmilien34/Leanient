@@ -354,6 +354,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                     ) : (
                       <Text style={styles.loggedEmpty}>Nothing logged yet today.</Text>
                     )}
+                    {today.derivedLine ? <Text style={styles.derivedLine}>{today.derivedLine}</Text> : null}
                   </View>
                 </View>
               </StaggeredReveal>
@@ -778,6 +779,7 @@ const styles = StyleSheet.create({
   loggedVal: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep },
   loggedChev: { fontFamily: font.bold, fontSize: 15, color: colors.faint, marginLeft: 2 },
   loggedEmpty: { fontFamily: font.medium, fontSize: 13, color: colors.muted, paddingVertical: 8 },
+  derivedLine: { fontFamily: font.medium, fontSize: 12.5, color: colors.muted, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line, marginTop: 4, paddingBottom: 2 },
 });
 
 export default HomeScreen;

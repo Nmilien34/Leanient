@@ -23,6 +23,8 @@ const mealScanAnalysisSchema = new Schema<MealScanAnalysis>(
     calories: { type: Number, required: true, min: 0 },
     carbs: { type: Number, required: true, min: 0 },
     fat: { type: Number, required: true, min: 0 },
+    fiber: { type: Number, min: 0 },
+    waterOz: { type: Number, min: 0 },
     confidence: { type: Number, required: true, min: 0, max: 1 },
   },
   { _id: false, versionKey: false },

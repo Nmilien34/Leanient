@@ -11,4 +11,5 @@ export const mockTodayLog: TodayLog = {
     { id: "meal_2", name: "Chicken & rice bowl", grams: 26, timeLabel: "1:05p" },
   ],
   workoutsDone: 0,
+  derivedLine: null,
 };
