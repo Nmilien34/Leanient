@@ -51,4 +51,14 @@ describe("toOnboardingCompleteRequest", () => {
   it("throws a clear error when a required slot is missing", () => {
     expect(() => toOnboardingCompleteRequest(emptyDraft)).toThrow(/journeyStage/);
   });
+
+  it("allows completing onboarding without medication details when the user is not on a GLP-1", () => {
+    const req = toOnboardingCompleteRequest({
+      ...completeDraft,
+      notOnGlp: true,
+      medicationProtocol: {},
+    });
+
+    expect(req.medicationProtocol).toBeNull();
+  });
 });

@@ -7,6 +7,14 @@ import {
   type LeanientDataContextValue,
 } from "../../context/LeanientDataContext";
 
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 async function renderDataHarness(api: LeanientDataContextValue["api"]) {
   let current: LeanientDataContextValue | undefined;
 
@@ -190,5 +198,37 @@ describe("LeanientDataContext", () => {
     expect(harness.value().progressOverview).toMatchObject({ chart: { snapshots: [{ id: "snapshot_1" }] } });
     expect(harness.value().weightLogs).toEqual([{ id: "weight_2" }]);
     expect(harness.value().progressPhotos).toEqual([{ id: "photo_2" }]);
+  });
+
+  it("queues a progress-photo refresh requested while progress is already refreshing", async () => {
+    const firstRefresh = deferred();
+    const api = createMockApi({
+      getProgressOverview: vi.fn().mockResolvedValue({ chart: { snapshots: [] } }),
+      getWeightLogs: vi.fn().mockResolvedValue([]),
+      getProgressPhotos: vi
+        .fn()
+        .mockImplementationOnce(async () => {
+          await firstRefresh.promise;
+          return [];
+        })
+        .mockResolvedValueOnce([{ id: "photo_after_upload" }]),
+    });
+    const harness = await renderDataHarness(api);
+
+    let initialRefresh!: Promise<void>;
+    await act(async () => {
+      initialRefresh = harness.value().refreshProgress();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      const queuedRefresh = harness.value().refreshProgressPhotos();
+      firstRefresh.resolve();
+      await initialRefresh;
+      await queuedRefresh;
+    });
+
+    expect(api.getProgressPhotos).toHaveBeenCalledTimes(2);
+    expect(harness.value().progressPhotos).toEqual([{ id: "photo_after_upload" }]);
   });
 });

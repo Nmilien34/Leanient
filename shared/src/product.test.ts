@@ -4,6 +4,7 @@ import {
   FOCUS_CATEGORIES,
   inferEquipmentAccessFromTrainingStatus,
   MUSCLE_RETENTION_LABELS,
+  onboardingCompleteRequestSchema,
   onboardingCompleteResponseSchema,
   progressOverviewResponseSchema,
   progressPhotoResponseSchema,
@@ -230,6 +231,34 @@ describe("product foundation contracts", () => {
         weightLog: parsed.weightLog,
       }),
     ).toThrow();
+  });
+
+  it("accepts onboarding completion without medication details for users not on GLP-1", () => {
+    const parsed = onboardingCompleteRequestSchema.parse({
+      profile: {
+        journeyStage: "active_loss",
+        goalWeight: 165,
+        goalWeightUnit: "lb",
+        goalPace: "steady",
+        biggestFear: "losing_muscle",
+        trainingStatus: "consistent",
+        equipmentAccess: "dumbbells",
+        weeklyWorkoutTarget: 3,
+        sideEffectBaseline: [],
+        timezone: "America/New_York",
+        sex: "female",
+        ageYears: 34,
+        heightInches: 65,
+      },
+      medicationProtocol: null,
+      initialWeight: {
+        value: 184,
+        unit: "lb",
+        measuredAt: "2026-06-02T12:00:00.000Z",
+      },
+    });
+
+    expect(parsed.medicationProtocol).toBeNull();
   });
 
   it("accepts a weekly check-in with replayable health context", () => {

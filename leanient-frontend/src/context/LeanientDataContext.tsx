@@ -109,6 +109,10 @@ interface LeanientDataProviderProps {
   isAuthenticated?: boolean;
 }
 
+interface RunOnceOptions {
+  queueIfInFlight?: boolean;
+}
+
 const LeanientDataContext = createContext<LeanientDataContextValue | undefined>(undefined);
 
 /**
@@ -157,24 +161,62 @@ export function LeanientDataProvider({
   const [homeError, setHomeError] = useState<ApiError | null>(null);
   const [workoutsError, setWorkoutsError] = useState<ApiError | null>(null);
   const [progressPhotosError, setProgressPhotosError] = useState<ApiError | null>(null);
-  const inFlightRef = useRef<Set<string>>(new Set());
+  const inFlightRef = useRef<Map<string, Promise<void>>>(new Map());
+  const queuedRefreshRef = useRef<Set<string>>(new Set());
 
-  const runOnce = useCallback(async (key: string, task: () => Promise<void>): Promise<void> => {
-    if (inFlightRef.current.has(key)) {
-      return;
+  const runOnce = useCallback(
+    async (key: string, task: () => Promise<void>, options: RunOnceOptions = {}): Promise<void> => {
+      const inFlight = inFlightRef.current.get(key);
+      if (inFlight) {
+        if (options.queueIfInFlight) {
+          queuedRefreshRef.current.add(key);
+          await inFlight;
+        }
+
+        return;
+      }
+
+      setIsRefreshing(true);
+
+      const taskPromise = (async () => {
+        do {
+          queuedRefreshRef.current.delete(key);
+          await task();
+        } while (queuedRefreshRef.current.has(key));
+      })();
+
+      inFlightRef.current.set(key, taskPromise);
+
+      try {
+        await taskPromise;
+      } finally {
+        inFlightRef.current.delete(key);
+        setIsRefreshing(inFlightRef.current.size > 0);
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadProgressData = useCallback(async () => {
+    setProgressPhotosError(null);
+    const [nextProgressOverview, nextWeights, nextPhotos] = await Promise.allSettled([
+      api.getProgressOverview(),
+      api.getWeightLogs(),
+      api.getProgressPhotos(),
+    ]);
+
+    const firstRejected = [nextProgressOverview, nextWeights, nextPhotos].find(
+      (result) => result.status === "rejected",
+    );
+    if (firstRejected?.status === "rejected") {
+      setProgressPhotosError(extractApiError(firstRejected.reason));
     }
 
-    inFlightRef.current.add(key);
-    setIsRefreshing(true);
-
-    try {
-      await task();
-    } finally {
-      inFlightRef.current.delete(key);
-      setIsRefreshing(inFlightRef.current.size > 0);
-      setIsLoading(false);
-    }
-  }, []);
+    if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
+    if (nextWeights.status === "fulfilled") setWeightLogs(nextWeights.value);
+    if (nextPhotos.status === "fulfilled") setProgressPhotos(nextPhotos.value);
+  }, [api]);
 
   const refreshHomeData = useCallback(
     async () =>
@@ -288,30 +330,14 @@ export function LeanientDataProvider({
   );
 
   const refreshProgress = useCallback(
-    async () =>
-      runOnce("progress", async () => {
-        setProgressPhotosError(null);
-        const [nextProgressOverview, nextWeights, nextPhotos] = await Promise.allSettled([
-          api.getProgressOverview(),
-          api.getWeightLogs(),
-          api.getProgressPhotos(),
-        ]);
-
-        const firstRejected = [nextProgressOverview, nextWeights, nextPhotos].find(
-          (result) => result.status === "rejected",
-        );
-        if (firstRejected?.status === "rejected") {
-          setProgressPhotosError(extractApiError(firstRejected.reason));
-        }
-
-        if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
-        if (nextWeights.status === "fulfilled") setWeightLogs(nextWeights.value);
-        if (nextPhotos.status === "fulfilled") setProgressPhotos(nextPhotos.value);
-      }),
-    [api, runOnce],
+    async () => runOnce("progress", loadProgressData),
+    [loadProgressData, runOnce],
   );
 
-  const refreshProgressPhotos = useCallback(() => refreshProgress(), [refreshProgress]);
+  const refreshProgressPhotos = useCallback(
+    async () => runOnce("progress", loadProgressData, { queueIfInFlight: true }),
+    [loadProgressData, runOnce],
+  );
 
   const refreshMedicationCatalog = useCallback(
     async () =>

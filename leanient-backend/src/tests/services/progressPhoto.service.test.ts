@@ -92,8 +92,13 @@ const modelMocks = vi.hoisted(() => {
       sort: vi.fn(async () =>
         photos
           .filter((photo) => {
-            const statusFilter = query.status as { $ne?: string } | undefined;
-            return photo.userId === query.userId && (!statusFilter?.$ne || photo.status !== statusFilter.$ne);
+            const statusFilter = query.status as { $ne?: string } | string | undefined;
+            const matchesStatus =
+              typeof statusFilter === "string"
+                ? photo.status === statusFilter
+                : !statusFilter?.$ne || photo.status !== statusFilter.$ne;
+
+            return photo.userId === query.userId && matchesStatus;
           })
           .sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1)),
       ),
@@ -232,6 +237,9 @@ describe("progress photo service", () => {
   it("returns signed view URLs for each listed progress photo", async () => {
     await createProgressPhotoUploadIntent("user_1", makeUploadIntent({ captureDate: "2026-06-01" }));
     await createProgressPhotoUploadIntent("user_1", makeUploadIntent({ captureDate: "2026-06-08" }));
+    modelMocks.photos.forEach((photo) => {
+      photo.status = "uploaded";
+    });
 
     const photos = await listProgressPhotos("user_1");
 
@@ -241,6 +249,18 @@ describe("progress photo service", () => {
       `https://uploads.example.com/${modelMocks.photos[0]?.s3Key}`,
     ]);
     expect(awsMocks.getSignedUrl).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not list pending upload records before the mobile upload is confirmed", async () => {
+    await createProgressPhotoUploadIntent("user_1", makeUploadIntent({ captureDate: "2026-06-01" }));
+    await createProgressPhotoUploadIntent("user_1", makeUploadIntent({ captureDate: "2026-06-08" }));
+    modelMocks.photos[1]!.status = "uploaded";
+
+    const photos = await listProgressPhotos("user_1");
+
+    expect(photos).toHaveLength(1);
+    expect(photos[0]?.id).toBe(modelMocks.photos[1]?._id.toString());
+    expect(awsMocks.getSignedUrl).toHaveBeenCalledTimes(3);
   });
 
   it("returns an empty list without signing when the user has no progress photos", async () => {

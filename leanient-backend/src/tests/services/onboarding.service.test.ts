@@ -533,6 +533,22 @@ describe("onboarding service", () => {
     ]);
   });
 
+  it("completes onboarding without a medication protocol when the user is not on a GLP-1", async () => {
+    const body = { ...makeOnboardingRequest(), medicationProtocol: null };
+
+    const result = await completeOnboarding("user_1", body);
+
+    expect(modelMocks.profiles).toHaveLength(1);
+    expect(modelMocks.medicationProtocols).toHaveLength(0);
+    expect(modelMocks.weightLogs).toHaveLength(1);
+    expect(modelMocks.users[0]).toMatchObject({
+      onboardingComplete: true,
+      onboardingCompletedAt: new Date("2026-06-02T15:00:00.000Z"),
+    });
+    expect(result.medicationProtocol).toBeNull();
+    expect(modelMocks.writeCalls).toEqual(["profile:session", "weightLog:session", "user:session"]);
+  });
+
   it("resolves legacy frontend medication ids to seeded catalog ObjectIds before persisting", async () => {
     const tirzepatide = modelMocks.createMedicationCatalogItem("tirzepatide");
     const body = makeOnboardingRequest();

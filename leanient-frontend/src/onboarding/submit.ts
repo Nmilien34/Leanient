@@ -44,10 +44,30 @@ export function toOnboardingCompleteRequest(draft: OnboardingDraft): OnboardingC
   if (!profile.biggestFear) throw new IncompleteOnboardingError("profile.biggestFear");
   if (!profile.trainingStatus) throw new IncompleteOnboardingError("profile.trainingStatus");
 
-  if (!med.medicationName) throw new IncompleteOnboardingError("medicationProtocol.medicationName");
-  if (!med.doseUnit) throw new IncompleteOnboardingError("medicationProtocol.doseUnit");
-  if (!med.shotDays?.length) throw new IncompleteOnboardingError("medicationProtocol.shotDays");
-  if (!med.startDate) throw new IncompleteOnboardingError("medicationProtocol.startDate");
+  let medicationProtocol: OnboardingCompleteRequest["medicationProtocol"] = null;
+  if (!draft.notOnGlp) {
+    const medicationName = med.medicationName;
+    const doseUnit = med.doseUnit;
+    const shotDays = med.shotDays;
+    const startDate = med.startDate;
+
+    if (!medicationName) throw new IncompleteOnboardingError("medicationProtocol.medicationName");
+    if (!doseUnit) throw new IncompleteOnboardingError("medicationProtocol.doseUnit");
+    if (!shotDays?.length) throw new IncompleteOnboardingError("medicationProtocol.shotDays");
+    if (!startDate) throw new IncompleteOnboardingError("medicationProtocol.startDate");
+
+    medicationProtocol = {
+      medicationCatalogId: med.medicationCatalogId,
+      medicationName,
+      customMedicationName: med.customMedicationName,
+      doseAmount: med.doseAmount,
+      doseUnit,
+      shotDays,
+      startDate,
+      notes: med.notes,
+      active: med.active ?? true,
+    };
+  }
 
   if (!initialWeight || initialWeight.value == null) {
     throw new IncompleteOnboardingError("initialWeight.value");
@@ -84,17 +104,7 @@ export function toOnboardingCompleteRequest(draft: OnboardingDraft): OnboardingC
       ageYears: age,
       heightInches,
     },
-    medicationProtocol: {
-      medicationCatalogId: med.medicationCatalogId,
-      medicationName: med.medicationName,
-      customMedicationName: med.customMedicationName,
-      doseAmount: med.doseAmount,
-      doseUnit: med.doseUnit,
-      shotDays: med.shotDays,
-      startDate: med.startDate,
-      notes: med.notes,
-      active: med.active ?? true,
-    },
+    medicationProtocol,
     initialWeight: {
       value: initialWeight.value,
       unit: initialWeight.unit,

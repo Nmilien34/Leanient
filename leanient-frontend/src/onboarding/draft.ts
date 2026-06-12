@@ -8,7 +8,7 @@ import type { OnboardingCompleteRequest } from "@leanient/shared";
  */
 
 type RequestProfile = OnboardingCompleteRequest["profile"];
-type RequestMedication = OnboardingCompleteRequest["medicationProtocol"];
+type RequestMedication = NonNullable<OnboardingCompleteRequest["medicationProtocol"]>;
 type RequestWeight = OnboardingCompleteRequest["initialWeight"];
 
 /**

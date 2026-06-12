@@ -154,7 +154,7 @@ export function MainTabs() {
       bytes: blob,
       sizeBytes: blob.size || undefined,
     });
-    await data.refreshProgress();
+    await data.refreshProgressPhotos();
   };
 
   const pickAndUploadProgressPhoto = async () => {

@@ -107,7 +107,7 @@ export async function confirmProgressPhotoUpload(
 export async function listProgressPhotos(userId: string) {
   const photos = await ProgressPhotoModel.find({
     userId,
-    status: { $ne: "deleted" },
+    status: "uploaded",
   }).sort({ captureDate: -1 });
 
   return Promise.all(

@@ -66,14 +66,14 @@ async function findCompletedOnboardingState(userId: string, session: ClientSessi
     WeightLogModel.findOne({ userId, source: "onboarding" }).session(session),
   ]);
 
-  if (!user || !profile || !medicationProtocol || !weightLog) {
+  if (!user || !profile || !weightLog) {
     return null;
   }
 
   return {
     user: serializeUser(user),
     profile: serializeUserProfile(profile),
-    medicationProtocol: serializeMedicationProtocol(medicationProtocol),
+    medicationProtocol: medicationProtocol ? serializeMedicationProtocol(medicationProtocol) : null,
     weightLog: serializeWeightLog(weightLog),
   };
 }
@@ -114,15 +114,6 @@ export async function completeOnboarding(userId: string, body: OnboardingComplet
       dailyCalorieTarget: targets.dailyCalorieTarget,
       nutritionEngineVersion: NUTRITION_ENGINE_VERSION,
     };
-    const medicationCatalogId = await resolveMedicationCatalogId(
-      body.medicationProtocol.medicationCatalogId,
-      session,
-    );
-    const medicationProtocolFields = {
-      ...body.medicationProtocol,
-      ...(medicationCatalogId ? { medicationCatalogId } : {}),
-    };
-
     const profile = await UserProfileModel.findOneAndUpdate(
       { userId },
       { $set: profileFields },
@@ -134,17 +125,29 @@ export async function completeOnboarding(userId: string, body: OnboardingComplet
         session,
       },
     );
-    const medicationProtocol = await UserMedicationProtocolModel.findOneAndUpdate(
-      { userId },
-      { $set: medicationProtocolFields },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
+    let medicationProtocol = null;
+    if (body.medicationProtocol) {
+      const medicationCatalogId = await resolveMedicationCatalogId(
+        body.medicationProtocol.medicationCatalogId,
         session,
-      },
-    );
+      );
+      const medicationProtocolFields = {
+        ...body.medicationProtocol,
+        ...(medicationCatalogId ? { medicationCatalogId } : {}),
+      };
+
+      medicationProtocol = await UserMedicationProtocolModel.findOneAndUpdate(
+        { userId },
+        { $set: medicationProtocolFields },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          session,
+        },
+      );
+    }
     const weightLog = await WeightLogModel.findOneAndUpdate(
       { userId, weekOf },
       {
@@ -187,7 +190,7 @@ export async function completeOnboarding(userId: string, body: OnboardingComplet
     return {
       user: serializeUser(user),
       profile: serializeUserProfile(profile),
-      medicationProtocol: serializeMedicationProtocol(medicationProtocol),
+      medicationProtocol: medicationProtocol ? serializeMedicationProtocol(medicationProtocol) : null,
       weightLog: serializeWeightLog(weightLog),
     };
   });

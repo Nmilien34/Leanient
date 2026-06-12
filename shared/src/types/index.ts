@@ -227,7 +227,7 @@ export interface WeightLog {
 export interface OnboardingCompleteResponse {
   user: User;
   profile: UserProfile;
-  medicationProtocol: UserMedicationProtocol;
+  medicationProtocol: UserMedicationProtocol | null;
   weightLog: WeightLog;
 }
 

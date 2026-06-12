@@ -741,7 +741,7 @@ export const coachChatResponseSchema = z
 export const onboardingCompleteRequestSchema = z
   .object({
     profile: userProfileInputSchema,
-    medicationProtocol: userMedicationProtocolCoreSchema,
+    medicationProtocol: userMedicationProtocolCoreSchema.nullable(),
     initialWeight: weightMeasurementSchema,
   })
   .strict();
@@ -750,7 +750,7 @@ export const onboardingCompleteResponseSchema = z
   .object({
     user: userResponseSchema,
     profile: userProfileResponseSchema,
-    medicationProtocol: userMedicationProtocolResponseSchema,
+    medicationProtocol: userMedicationProtocolResponseSchema.nullable(),
     weightLog: weightLogResponseSchema,
   })
   .strict();

@@ -9,7 +9,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.boltzman.leanient",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSHealthShareUsageDescription": "Leanient reads selected Apple Health data like weight, workouts, steps, active energy, and body fat to personalize your weekly verdict.",
+        "NSHealthUpdateUsageDescription": "Leanient saves selected logs to Apple Health when you choose."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      }
     },
     "android": {
       "package": "ai.boltzman.leanient"

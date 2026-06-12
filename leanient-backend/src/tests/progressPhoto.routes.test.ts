@@ -87,12 +87,30 @@ const modelMocks = vi.hoisted(() => {
       sort: vi.fn(async () =>
         photos
           .filter((photo) => {
-            const statusFilter = query.status as { $ne?: string } | undefined;
-            return photo.userId === query.userId && (!statusFilter?.$ne || photo.status !== statusFilter.$ne);
+            const statusFilter = query.status as { $ne?: string } | string | undefined;
+            const matchesStatus =
+              typeof statusFilter === "string"
+                ? photo.status === statusFilter
+                : !statusFilter?.$ne || photo.status !== statusFilter.$ne;
+
+            return photo.userId === query.userId && matchesStatus;
           })
           .sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1)),
       ),
     })),
+    findOneAndUpdate: vi.fn(async (query, update) => {
+      const photo = photos.find(
+        (candidate) => candidate._id.toString() === query._id && candidate.userId === query.userId,
+      );
+
+      if (!photo) {
+        return null;
+      }
+
+      Object.assign(photo, update.$set);
+      photo.updatedAt = new Date("2026-06-01T12:05:00.000Z");
+      return photo;
+    }),
   };
 
   return {
@@ -104,6 +122,7 @@ const modelMocks = vi.hoisted(() => {
       photos.splice(0, photos.length);
       ProgressPhotoModel.create.mockClear();
       ProgressPhotoModel.find.mockClear();
+      ProgressPhotoModel.findOneAndUpdate.mockClear();
     },
   };
 });
@@ -144,6 +163,19 @@ describe("progress photo routes", () => {
     authorization = `Bearer ${issueSessionJwt("user_1")}`;
   });
 
+  async function createAndConfirmProgressPhoto(captureDate: string) {
+    const intentResponse = await request(app)
+      .post("/progress-photos/upload-intent")
+      .set("Authorization", authorization)
+      .send({ ...makeUploadIntent(), captureDate });
+    const photoId = intentResponse.body.data.photo.id as string;
+
+    await request(app)
+      .post("/progress-photos/confirm")
+      .set("Authorization", authorization)
+      .send({ photoId, sizeBytes: 1_024 });
+  }
+
   it("creates a pending photo record after generating an upload URL", async () => {
     const response = await request(app)
       .post("/progress-photos/upload-intent")
@@ -179,14 +211,8 @@ describe("progress photo routes", () => {
   });
 
   it("lists progress photos with signed view URLs", async () => {
-    await request(app)
-      .post("/progress-photos/upload-intent")
-      .set("Authorization", authorization)
-      .send({ ...makeUploadIntent(), captureDate: "2026-06-01" });
-    await request(app)
-      .post("/progress-photos/upload-intent")
-      .set("Authorization", authorization)
-      .send({ ...makeUploadIntent(), captureDate: "2026-06-08" });
+    await createAndConfirmProgressPhoto("2026-06-01");
+    await createAndConfirmProgressPhoto("2026-06-08");
 
     const response = await request(app).get("/progress-photos").set("Authorization", authorization);
 
@@ -199,6 +225,23 @@ describe("progress photo routes", () => {
     expect(response.body.data[1]).toMatchObject({
       captureDate: "2026-06-01",
       viewUrl: `https://uploads.example.com/${modelMocks.photos[0]?.s3Key}`,
+    });
+  });
+
+  it("does not list progress photos until the upload is confirmed", async () => {
+    await request(app)
+      .post("/progress-photos/upload-intent")
+      .set("Authorization", authorization)
+      .send({ ...makeUploadIntent(), captureDate: "2026-06-01" });
+    await createAndConfirmProgressPhoto("2026-06-08");
+
+    const response = await request(app).get("/progress-photos").set("Authorization", authorization);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]).toMatchObject({
+      captureDate: "2026-06-08",
+      status: "uploaded",
     });
   });
 
