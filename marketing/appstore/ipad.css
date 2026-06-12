@@ -1,0 +1,21 @@
+/* iPad 13" App Store canvas (2064×2752) — layered after shared.css.
+   The slide bodies are untouched; this recenters the phone composition on the
+   wider canvas. Floats keep their original phone-relative geometry via a
+   uniform nudge of (2064-1290)/2 = 387px toward the center. */
+
+html, body { width: 2064px; }
+
+.canvas {
+  width: 2064px;
+  height: 2752px;
+}
+
+.head { padding-top: 120px; }
+.head h1 { font-size: 112px; }
+.head .sub { max-width: 1240px; font-size: 41px; }
+
+.float[style*="left:"]  { transform: translateX(387px); }
+.float[style*="right:"] { transform: translateX(-387px); }
+
+/* keep the soft washes covering the wider canvas */
+.wash { transform: scale(1.45); }
