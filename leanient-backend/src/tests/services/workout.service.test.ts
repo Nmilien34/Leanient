@@ -103,7 +103,7 @@ describe("workout service", () => {
 
     const slugs = modelMocks.workouts.map((workout) => workout.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
-    expect(modelMocks.workouts.filter((workout) => workout.active)).toHaveLength(11);
+    expect(modelMocks.workouts.filter((workout) => workout.active)).toHaveLength(14);
     expect(modelMocks.workouts.find((workout) => workout.slug === "shot-day-reset")).toMatchObject({
       active: false,
     });
@@ -123,6 +123,9 @@ describe("workout service", () => {
         "outdoor-muscle-walk",
         "apartment-strength-reset",
         "dumbbell-muscle-base",
+        "chair-strength-circuit",
+        "no-jump-conditioning",
+        "dumbbell-home-circuit",
       ]),
     );
   });
@@ -133,7 +136,9 @@ describe("workout service", () => {
       [
         "apartment-strength-reset",
         "bodyweight-basics",
+        "chair-strength-circuit",
         "core-and-posture",
+        "no-jump-conditioning",
         "outdoor-muscle-walk",
         "shot-day-mobility",
       ],
@@ -143,7 +148,9 @@ describe("workout service", () => {
       [
         "apartment-strength-reset",
         "bodyweight-basics",
+        "chair-strength-circuit",
         "core-and-posture",
+        "no-jump-conditioning",
         "outdoor-muscle-walk",
         "shot-day-mobility",
       ],
@@ -153,8 +160,11 @@ describe("workout service", () => {
       [
         "apartment-strength-reset",
         "bodyweight-basics",
+        "chair-strength-circuit",
         "core-and-posture",
         "dumbbell-muscle-base",
+        "dumbbell-home-circuit",
+        "no-jump-conditioning",
         "outdoor-muscle-walk",
         "shot-day-mobility",
         "upper-body-dumbbell",
