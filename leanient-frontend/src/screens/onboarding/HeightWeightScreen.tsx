@@ -39,20 +39,30 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
   const { setInitialWeight, setBasics } = useOnboarding();
 
   const [system, setSystem] = useState<UnitSystem>("imperial");
-  const [height, setHeight] = useState(DEFAULT_HEIGHT_IN); // in current height unit
-  const [weight, setWeight] = useState(DEFAULT_WEIGHT_LB); // in current weight unit
+  // Value + unit live together so a measurement can never carry the wrong
+  // label. The wheels report through scroll events, and a kg wheel that is
+  // still settling when the user toggles back to Imperial can deliver its
+  // value after the conversion ran; a 270 lb user then continued with 122
+  // ("kg") stamped as lb and the goal slider capped at 122 lb. Converting
+  // from the pair's own unit (and dropping events from a wheel rendered in a
+  // stale unit) closes both orderings of that race.
+  const [height, setHeightSel] = useState({ value: DEFAULT_HEIGHT_IN, unit: heightUnitFor("imperial") });
+  const [weight, setWeightSel] = useState({ value: DEFAULT_WEIGHT_LB, unit: weightUnitFor("imperial") });
 
   const heightUnit = heightUnitFor(system);
   const weightUnit = weightUnitFor(system);
   const heightItems = useMemo(() => buildHeightItems(heightUnit), [heightUnit]);
   const weightItems = useMemo(() => buildWeightItems(weightUnit), [weightUnit]);
 
+  const handleHeightChange = (value: number) =>
+    setHeightSel((prev) => (prev.unit === heightUnit ? { value, unit: heightUnit } : prev));
+  const handleWeightChange = (value: number) =>
+    setWeightSel((prev) => (prev.unit === weightUnit ? { value, unit: weightUnit } : prev));
+
   const handleSystemChange = (next: UnitSystem) => {
     if (next === system) return;
-    const fromH = heightUnitFor(system);
-    const fromW = weightUnitFor(system);
-    setHeight((h) => convertHeight(h, fromH, heightUnitFor(next)));
-    setWeight((w) => convertWeight(w, fromW, weightUnitFor(next)));
+    setHeightSel((prev) => ({ value: convertHeight(prev.value, prev.unit, heightUnitFor(next)), unit: heightUnitFor(next) }));
+    setWeightSel((prev) => ({ value: convertWeight(prev.value, prev.unit, weightUnitFor(next)), unit: weightUnitFor(next) }));
     setSystem(next);
   };
 
@@ -67,10 +77,11 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
   };
 
   const handleContinue = () => {
-    // Current weight → the shared `initialWeight` contract (measuredAt filled at submit).
-    setInitialWeight({ value: weight, unit: weightUnit });
+    // Current weight → the shared `initialWeight` contract (measuredAt filled at
+    // submit). Saved from the pairs, so value and unit always travel together.
+    setInitialWeight({ value: weight.value, unit: weight.unit });
     // Height has no backend field yet → frontend-only basics slice (see TODO doc).
-    setBasics({ heightValue: height, heightUnit });
+    setBasics({ heightValue: height.value, heightUnit: height.unit });
     onContinue?.();
   };
 
@@ -95,8 +106,8 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
               <Wheel
                 key={`height-${heightUnit}`}
                 items={heightItems}
-                value={height}
-                onChange={setHeight}
+                value={height.value}
+                onChange={handleHeightChange}
                 height={240}
                 fontSize={20}
                 centerScale={1.3}
@@ -107,8 +118,8 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
               <Wheel
                 key={`weight-${weightUnit}`}
                 items={weightItems}
-                value={weight}
-                onChange={setWeight}
+                value={weight.value}
+                onChange={handleWeightChange}
                 height={240}
                 fontSize={20}
                 centerScale={1.3}
