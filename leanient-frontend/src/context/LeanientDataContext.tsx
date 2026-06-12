@@ -38,6 +38,7 @@ import type {
 } from "@leanient/shared";
 import apiService from "../services/api.service";
 import { extractApiError } from "../services/apiError";
+import { weekRange } from "../screens/app/weeklyCheckin";
 import { useAuth } from "./AuthContext";
 
 export interface LeanientDataApi {
@@ -52,7 +53,7 @@ export interface LeanientDataApi {
   getTodaysFocus(): Promise<TodaysFocusResponse>;
   getProgressOverview(): Promise<ProgressOverviewResponse>;
   getTrainingToday(): Promise<TrainingTodayResponse>;
-  getMealLogs(query?: { recordedAt?: string }): Promise<MealLog[]>;
+  getMealLogs(query?: { recordedAt?: string; from?: string; to?: string }): Promise<MealLog[]>;
   getWorkoutLogs(query?: { recordedAt?: string }): Promise<WorkoutLog[]>;
   getDoseLogs(query?: { recordedAt?: string; from?: string; to?: string; limit?: number }): Promise<DoseLog[]>;
   createWeightLog(input: CreateWeightLogRequest): Promise<WeightLog>;
@@ -80,6 +81,8 @@ export interface LeanientDataContextValue {
   latestVerdictMessage: string | null;
   todaysFocus: TodaysFocusResponse | null;
   todaysMeals: MealLog[];
+  /** Meal logs for the week `now` falls in; feeds the weekly protein ring. */
+  weekMeals: MealLog[];
   todaysWorkouts: WorkoutLog[];
   recentDoseLogs: DoseLog[];
   progressOverview: ProgressOverviewResponse | null;
@@ -149,6 +152,7 @@ export function LeanientDataProvider({
   const [latestVerdictMessage, setLatestVerdictMessage] = useState<string | null>(null);
   const [todaysFocus, setTodaysFocus] = useState<TodaysFocusResponse | null>(null);
   const [todaysMeals, setTodaysMeals] = useState<MealLog[]>([]);
+  const [weekMeals, setWeekMeals] = useState<MealLog[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutLog[]>([]);
   const [recentDoseLogs, setRecentDoseLogs] = useState<DoseLog[]>([]);
   const [progressOverview, setProgressOverview] = useState<ProgressOverviewResponse | null>(null);
@@ -223,7 +227,8 @@ export function LeanientDataProvider({
       runOnce("home", async () => {
         setIsLoading(true);
         setHomeError(null);
-        const today = new Date().toISOString();
+        const now = new Date();
+        const today = now.toISOString();
         const [
           nextProfile,
           nextProtocol,
@@ -232,6 +237,7 @@ export function LeanientDataProvider({
           nextRecommended,
           nextFocus,
           nextMeals,
+          nextWeekMeals,
           nextWorkouts,
           nextDoses,
           nextProgressOverview,
@@ -244,6 +250,7 @@ export function LeanientDataProvider({
           retryOnce(() => api.getRecommendedWorkouts()),
           retryOnce(() => api.getTodaysFocus()),
           retryOnce(() => api.getMealLogs({ recordedAt: today })),
+          retryOnce(() => api.getMealLogs(weekRange(now))),
           retryOnce(() => api.getWorkoutLogs({ recordedAt: today })),
           retryOnce(() => api.getDoseLogs()),
           retryOnce(() => api.getProgressOverview()),
@@ -258,6 +265,7 @@ export function LeanientDataProvider({
           nextRecommended,
           nextFocus,
           nextMeals,
+          nextWeekMeals,
           nextWorkouts,
           nextDoses,
           nextProgressOverview,
@@ -278,6 +286,7 @@ export function LeanientDataProvider({
         if (nextRecommended.status === "fulfilled") setRecommendedWorkouts(nextRecommended.value);
         if (nextFocus.status === "fulfilled") setTodaysFocus(nextFocus.value);
         if (nextMeals.status === "fulfilled") setTodaysMeals(nextMeals.value);
+        if (nextWeekMeals.status === "fulfilled") setWeekMeals(nextWeekMeals.value);
         if (nextWorkouts.status === "fulfilled") setTodaysWorkouts(nextWorkouts.value);
         if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
         if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
@@ -372,6 +381,7 @@ export function LeanientDataProvider({
       latestVerdictMessage,
       todaysFocus,
       todaysMeals,
+      weekMeals,
       todaysWorkouts,
       recentDoseLogs,
       progressOverview,
@@ -415,6 +425,7 @@ export function LeanientDataProvider({
       refreshWorkouts,
       todaysFocus,
       todaysMeals,
+      weekMeals,
       todaysWorkouts,
       trainingToday,
       weightLogs,

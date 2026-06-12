@@ -61,7 +61,6 @@ export function deriveCheckinPrefill(args: {
   weekMeals: MealLog[];
   weekWorkouts: WorkoutLog[];
   fallbackUnit: WeightUnit;
-  fallbackProtein?: number;
 }): CheckinPrefill {
   const latestWeight = [...args.weightLogs].sort((a, b) => (a.measuredAt < b.measuredAt ? 1 : -1))[0];
   const proteinFromLogs = args.weekMeals.length > 0;
@@ -69,9 +68,10 @@ export function deriveCheckinPrefill(args: {
   return {
     weightValue: latestWeight?.value ?? null,
     weightUnit: latestWeight?.unit ?? args.fallbackUnit,
-    proteinGramsPerDay: proteinFromLogs
-      ? proteinAvgPerLoggedDay(args.weekMeals)
-      : (args.fallbackProtein ?? 0),
+    // With no logged meals the estimate starts at zero and the user dials in
+    // their own number. Seeding the daily target here taught the verdict
+    // perfect protein adherence for anyone who tapped through the check-in.
+    proteinGramsPerDay: proteinFromLogs ? proteinAvgPerLoggedDay(args.weekMeals) : 0,
     proteinFromLogs,
     mealCount: args.weekMeals.length,
     resistanceWorkoutsCompleted: workoutsFromLogs ? resistanceCount(args.weekWorkouts) : 0,

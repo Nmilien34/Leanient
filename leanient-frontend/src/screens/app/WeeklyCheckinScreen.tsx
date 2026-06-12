@@ -117,7 +117,6 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
     }
     let cancelled = false;
     const fallbackUnit = data.profile?.goalWeightUnit ?? "lb";
-    const fallbackProtein = data.profile?.dailyProteinTarget ?? 120;
     const { from, to } = weekRange(now);
 
     void Promise.all([
@@ -130,7 +129,6 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
         weekMeals,
         weekWorkouts,
         fallbackUnit,
-        fallbackProtein,
       });
       setPrefill(p);
       setWeight(p.weightValue ?? data.profile?.goalWeight ?? 0);
@@ -141,7 +139,7 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
     return () => {
       cancelled = true;
     };
-  }, [visible, now, data.profile?.goalWeightUnit, data.profile?.dailyProteinTarget, data.profile?.goalWeight, data.weightLogs]);
+  }, [visible, now, data.profile?.goalWeightUnit, data.profile?.goalWeight, data.weightLogs]);
 
   if (!visible) return null;
 
@@ -255,7 +253,7 @@ export function WeeklyCheckinScreen({ visible, onClose, onComplete }: WeeklyChec
                 <View style={styles.entryValueWrap}>
                   <Text style={styles.entryValue}>{protein}</Text>
                   <Text style={styles.entryUnit}>g</Text>
-                  <Stepper onDec={() => setProtein((p) => Math.max(0, p - 5))} onInc={() => setProtein((p) => Math.min(400, p + 5))} />
+                  <Stepper onDec={() => setProtein((p) => Math.max(0, p - 10))} onInc={() => setProtein((p) => Math.min(400, p + 10))} />
                 </View>
               </View>
             )}

@@ -116,9 +116,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         weightLogs,
         medication,
         doseLogs,
+        weekMeals: data.weekMeals,
+        sessionsThisWeek: data.trainingToday?.sessionsThisWeek ?? null,
         now,
       }),
-    [verdict, profile, weightLogs, medication, doseLogs, now],
+    [verdict, profile, weightLogs, medication, doseLogs, data.weekMeals, data.trainingToday?.sessionsThisWeek, now],
   );
 
   const today = useMemo(
@@ -229,9 +231,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
       setCompleteSaving(false);
     }
   };
-  const weeklyDelta =
-    weight.series.length >= 2 ? weight.series[weight.series.length - 1] - weight.series[weight.series.length - 2] : 0;
-  const arrow = weeklyDelta <= 0 ? "↓" : "↑";
+  // Anchored to the current week; an old delta must never read as "this week".
+  const weeklyDelta = weight.weekDelta;
+  const weekDeltaLabel =
+    weeklyDelta == null
+      ? "No weigh-in yet"
+      : `${weeklyDelta <= 0 ? "↓" : "↑"} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`;
   const w = (n: number) => `${n}${weight.unit === "kg" ? "" : ""}`.replace(/\.0$/, "");
 
   return (
@@ -294,7 +299,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   ) : (
                     <TrendTile
                       series={weight.series}
-                      deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
+                      deltaLabel={weekDeltaLabel}
                       label="This week"
                     />
                   )}
@@ -382,7 +387,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                     />
                     <TrendTile
                       series={weight.series}
-                      deltaLabel={`${arrow} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`}
+                      deltaLabel={weekDeltaLabel}
                       label="This week"
                     />
                   </View>
@@ -529,7 +534,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         visible={explainerOpen}
         verdict={verdict}
         metrics={metrics}
-        weeklyDelta={weeklyDelta}
+        weeklyDelta={weeklyDelta ?? 0}
         onClose={() => setExplainerOpen(false)}
       />
 

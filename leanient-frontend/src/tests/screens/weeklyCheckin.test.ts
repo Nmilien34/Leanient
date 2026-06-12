@@ -81,18 +81,19 @@ describe("deriveCheckinPrefill", () => {
     expect(p.resistanceWorkoutsCompleted).toBe(1);
   });
 
-  it("falls back to entry when there are no logs", () => {
+  it("starts manual entry at zero when there are no logs", () => {
+    // Regression: this used to prefill the daily protein target, so a user who
+    // tapped through the check-in recorded perfect adherence (994/994 on Home).
     const p = deriveCheckinPrefill({
       weightLogs: [],
       weekMeals: [],
       weekWorkouts: [],
       fallbackUnit: "kg",
-      fallbackProtein: 120,
     });
     expect(p.weightValue).toBeNull();
     expect(p.weightUnit).toBe("kg");
     expect(p.proteinFromLogs).toBe(false);
-    expect(p.proteinGramsPerDay).toBe(120);
+    expect(p.proteinGramsPerDay).toBe(0);
     expect(p.workoutsFromLogs).toBe(false);
     expect(p.resistanceWorkoutsCompleted).toBe(0);
   });
