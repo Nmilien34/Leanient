@@ -40,7 +40,7 @@ export function WorkoutSessionsCard({ view, onPress }: WorkoutSessionsCardProps)
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, marginBottom: 12 },
+  wrap: { paddingHorizontal: 20, marginTop: 14, marginBottom: 12 },
   flex: { flex: 1 },
   card: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: "rgba(47,184,122,0.24)", borderRadius: 20, paddingVertical: 16, paddingHorizontal: 16 },
   cardPressed: { opacity: 0.72 },
