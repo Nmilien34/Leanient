@@ -32,6 +32,7 @@ import {
 import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
 import { faceConsentState } from "./faceConsent";
+import { isFaceDetectionAvailable } from "./faceLandmarks";
 import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
 import { buildFaceProtectionSignal } from "./faceProtection";
 import { FaceProtectionCard } from "../../components/app/FaceProtectionCard";
@@ -191,6 +192,9 @@ export function ProgressScreen() {
   const faceProgress = buildFaceProgress(allPhotos, weekOf);
   const faceProtection = buildFaceProtectionSignal(snapshots);
   const faceConsent = faceConsentState(auth.user);
+  // The on-device measurement (and its controls) only exist in a build with the
+  // native module — never in Expo Go, where it would do nothing.
+  const faceDetectionAvailable = isFaceDetectionAvailable();
   const volumeTrend = buildFaceVolumeTrend(faceMetrics);
 
   // Load on-device facial measurements (local only) when tracking is on. Re-run
@@ -360,8 +364,8 @@ export function ProgressScreen() {
             </Text>
           )}
 
-          {/* on-device facial-volume measurement (only when tracking is on) */}
-          {faceConsent.enabled && volumeTrend ? (
+          {/* on-device facial-volume measurement — the result/data stays here */}
+          {faceDetectionAvailable && faceConsent.enabled && volumeTrend ? (
             <View style={styles.volCard}>
               <View style={styles.volTop}>
                 <Text style={styles.volLabel}>FACIAL VOLUME · on-device</Text>
@@ -371,29 +375,27 @@ export function ProgressScreen() {
             </View>
           ) : null}
 
-          {/* on-device facial-volume tracking (opt-in) */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={faceConsent.entryLabel}
-            onPress={() => setFaceConsentOpen(true)}
-            style={({ pressed }) => [styles.trackRow, pressed && styles.trackRowPressed]}
-          >
-            <View style={styles.trackIcon}>
-              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Circle cx={12} cy={12} r={9} />
-                <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
-              </Svg>
-            </View>
-            <View style={styles.flex}>
-              <Text style={styles.trackTitle}>{faceConsent.entryLabel}</Text>
-              <Text style={styles.trackSub}>
-                {faceConsent.enabled
-                  ? "On-device measurement. Manage or turn off."
-                  : "Measure facial volume on-device. Nothing leaves your phone."}
-              </Text>
-            </View>
-            <Text style={styles.trackChev}>›</Text>
-          </Pressable>
+          {/* discovery invite — only when tracking is off; managing it lives in Settings */}
+          {faceDetectionAvailable && !faceConsent.enabled ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Turn on facial volume tracking"
+              onPress={() => setFaceConsentOpen(true)}
+              style={({ pressed }) => [styles.trackRow, pressed && styles.trackRowPressed]}
+            >
+              <View style={styles.trackIcon}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Circle cx={12} cy={12} r={9} />
+                  <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
+                </Svg>
+              </View>
+              <View style={styles.flex}>
+                <Text style={styles.trackTitle}>Turn on facial volume tracking</Text>
+                <Text style={styles.trackSub}>Measure facial volume on-device. Nothing leaves your phone.</Text>
+              </View>
+              <Text style={styles.trackChev}>›</Text>
+            </Pressable>
+          ) : null}
 
           {/* progress photos */}
           <View style={styles.libHead}>

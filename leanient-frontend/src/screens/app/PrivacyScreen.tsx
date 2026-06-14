@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { Alert, Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { useLeanientData } from "../../context/LeanientDataContext";
+import { useAuth } from "../../context/AuthContext";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
 import { Switch } from "../../components/ui/Switch";
 import { ProgressPhotoDownloadScreen } from "./ProgressPhotoDownloadScreen";
+import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
+import { isFaceDetectionAvailable } from "./faceLandmarks";
+import { faceConsentState } from "./faceConsent";
 import { buildPrivacyDataExportPayload, buildPrivacyDataExportShareContent } from "./privacyDataExport";
 import { SHARING_TOGGLES, defaultSharingState, photosLabel, type SharingIcon } from "./privacySettings";
 import { colors } from "../../theme/tokens";
@@ -25,6 +29,12 @@ const Icons = {
   shield: ic(<Path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />),
   download: ic(<Path d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14" />),
   heart: ic(<Path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />),
+  face: ic(
+    <>
+      <Circle cx={12} cy={12} r={9} />
+      <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
+    </>,
+  ),
   trash: (
     <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#C2554E" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
@@ -51,9 +61,15 @@ interface PrivacyScreenProps {
  */
 export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, onDeleteAll }: PrivacyScreenProps) {
   const data = useLeanientData();
+  const auth = useAuth();
   const photoCount = data.progressPhotos.length;
   const [sharing, setSharing] = useState<Record<string, boolean>>(() => defaultSharingState());
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [faceConsentOpen, setFaceConsentOpen] = useState(false);
+  // The on-device measurement only exists in a build with the native module, so
+  // its control only appears there.
+  const showFaceTracking = isFaceDetectionAvailable();
+  const faceConsent = faceConsentState(auth.user);
 
   const toggle = (id: string) => setSharing((s) => ({ ...s, [id]: !s[id] }));
   const exportData = async () => {
@@ -108,6 +124,23 @@ export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, on
               ]}
             />
 
+            {showFaceTracking ? (
+              <>
+                <Text style={styles.glabel}>FACIAL ANALYSIS</Text>
+                <SettingGroup
+                  rows={[
+                    {
+                      key: "faceTracking",
+                      icon: Icons.face,
+                      label: "Facial volume tracking",
+                      value: faceConsent.enabled ? "On" : "Off",
+                      onPress: () => setFaceConsentOpen(true),
+                    },
+                  ]}
+                />
+              </>
+            ) : null}
+
             <Text style={styles.glabel}>SHARING</Text>
             <View style={styles.group}>
               {SHARING_TOGGLES.map((t, i) => (
@@ -145,6 +178,7 @@ export function PrivacyScreen({ visible, onClose, onExport, onDownloadPhotos, on
           onClose={() => setPhotosOpen(false)}
           onRefresh={data.refreshProgressPhotos}
         />
+        <FaceAnalysisConsentScreen visible={faceConsentOpen} onClose={() => setFaceConsentOpen(false)} />
       </View>
     </Modal>
   );
