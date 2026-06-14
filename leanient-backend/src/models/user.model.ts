@@ -23,6 +23,8 @@ export interface UserDocument extends Document<Types.ObjectId> {
   revenueCatEntitlement?: string;
   onboardingComplete: boolean;
   onboardingCompletedAt?: Date;
+  /** When the user opted into on-device facial-volume analysis. Unset = no consent. */
+  faceAnalysisConsentAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,6 +107,10 @@ const userSchema = new Schema<UserDocument>(
     },
     onboardingCompletedAt: {
       type: Date,
+    },
+    faceAnalysisConsentAt: {
+      type: Date,
+      default: null,
     },
   },
   {

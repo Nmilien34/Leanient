@@ -87,8 +87,14 @@ export interface User {
   subscriptionWillRenew: boolean;
   revenueCatCustomerId?: string;
   revenueCatEntitlement?: string;
+  /** When the user opted into on-device facial-volume analysis. Absent = not consented. */
+  faceAnalysisConsentAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FaceAnalysisConsentRequest {
+  granted: boolean;
 }
 
 export interface ApiResponse<T> {

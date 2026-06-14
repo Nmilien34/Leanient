@@ -2,11 +2,13 @@ import { Router } from "express";
 import {
   avatarConfirmRequestSchema,
   avatarUploadIntentRequestSchema,
+  faceAnalysisConsentRequestSchema,
   patchMeRequestSchema,
   patchUserMedicationProtocolRequestSchema,
   patchUserProfileRequestSchema,
   type AvatarConfirmRequest,
   type AvatarUploadIntentRequest,
+  type FaceAnalysisConsentRequest,
   type PatchMeRequest,
   type PatchUserMedicationProtocolRequest,
   type PatchUserProfileRequest,
@@ -15,7 +17,12 @@ import { requireAuth } from "../auth/middleware";
 import { asyncHandler } from "../lib/asyncHandler";
 import { sendData } from "../lib/responses";
 import { validateBody } from "../middleware/validate.middleware";
-import { getUserById, serializeUser, updateUserProfile } from "../services/user.service";
+import {
+  getUserById,
+  serializeUser,
+  setFaceAnalysisConsent,
+  updateUserProfile,
+} from "../services/user.service";
 import { getUserProfile, patchUserProfile } from "../services/userProfile.service";
 import { getMedicationProtocol, patchMedicationProtocol } from "../services/medication.service";
 import {
@@ -42,6 +49,16 @@ router.patch(
   asyncHandler(async (req, res) => {
     const body = req.body as PatchMeRequest;
     const user = await updateUserProfile(req.user!.id, body);
+    sendData(res, serializeUser(user));
+  }),
+);
+
+router.patch(
+  "/face-analysis-consent",
+  validateBody(faceAnalysisConsentRequestSchema),
+  asyncHandler(async (req, res) => {
+    const body = req.body as FaceAnalysisConsentRequest;
+    const user = await setFaceAnalysisConsent(req.user!.id, body.granted);
     sendData(res, serializeUser(user));
   }),
 );

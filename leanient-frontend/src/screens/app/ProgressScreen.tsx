@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import type { MuscleRetentionLabel, SubscriptionStatus } from "@leanient/shared";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
@@ -33,6 +33,8 @@ import {
 } from "./progressMetrics";
 import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
+import { faceConsentState } from "./faceConsent";
+import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -95,6 +97,7 @@ export function ProgressScreen() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
+  const [faceConsentOpen, setFaceConsentOpen] = useState(false);
   const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
   const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
   const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
@@ -185,6 +188,7 @@ export function ProgressScreen() {
       : null;
 
   const faceProgress = buildFaceProgress(allPhotos, weekOf);
+  const faceConsent = faceConsentState(auth.user);
 
   const openWorkoutHistory = () => {
     setWorkoutHistoryOpen(true);
@@ -410,8 +414,34 @@ export function ProgressScreen() {
               Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
             </Text>
           )}
+
+          {/* on-device facial-volume tracking (opt-in) */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={faceConsent.entryLabel}
+            onPress={() => setFaceConsentOpen(true)}
+            style={({ pressed }) => [styles.trackRow, pressed && styles.trackRowPressed]}
+          >
+            <View style={styles.trackIcon}>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <Circle cx={12} cy={12} r={9} />
+                <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
+              </Svg>
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.trackTitle}>{faceConsent.entryLabel}</Text>
+              <Text style={styles.trackSub}>
+                {faceConsent.enabled
+                  ? "On-device measurement. Manage or turn off."
+                  : "Measure facial volume on-device. Nothing leaves your phone."}
+              </Text>
+            </View>
+            <Text style={styles.trackChev}>›</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
+
+      <FaceAnalysisConsentScreen visible={faceConsentOpen} onClose={() => setFaceConsentOpen(false)} />
 
       <CoachChatScreen
         visible={coachOpen}
@@ -487,6 +517,12 @@ const styles = StyleSheet.create({
   libTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
   faceMeta: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep, marginTop: 2 },
   faceTrend: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, paddingHorizontal: 20, paddingTop: 10 },
+  trackRow: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 14 },
+  trackRowPressed: { opacity: 0.6 },
+  trackIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(47,184,122,0.10)", alignItems: "center", justifyContent: "center" },
+  trackTitle: { fontFamily: font.bold, fontSize: 14.5, color: colors.ink },
+  trackSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
+  trackChev: { fontFamily: font.semibold, fontSize: 18, color: colors.faint },
   ptl: { gap: 9, paddingHorizontal: 20, paddingTop: 2 },
 });
 

@@ -33,6 +33,7 @@ import {
   avatarUploadIntentRequestSchema,
   avatarUploadIntentResponseSchema,
   avatarViewUrlResponseSchema,
+  faceAnalysisConsentRequestSchema,
   patchMeRequestSchema,
   patchUserMedicationProtocolRequestSchema,
   patchUserProfileRequestSchema,
@@ -410,6 +411,14 @@ export class LeanientApiClient {
 
   public async patchMe(body: PatchMeRequest): Promise<User> {
     return this.patch("/me", patchMeRequestSchema.parse(body), userResponseSchema);
+  }
+
+  public async setFaceAnalysisConsent(granted: boolean): Promise<User> {
+    return this.patch(
+      "/me/face-analysis-consent",
+      faceAnalysisConsentRequestSchema.parse({ granted }),
+      userResponseSchema,
+    );
   }
 
   public async createAvatarUploadIntent(

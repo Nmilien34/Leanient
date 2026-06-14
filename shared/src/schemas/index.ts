@@ -90,9 +90,16 @@ export const userResponseSchema = z.object({
   subscriptionWillRenew: z.boolean(),
   revenueCatCustomerId: z.string().min(1).optional(),
   revenueCatEntitlement: z.string().min(1).optional(),
+  faceAnalysisConsentAt: z.string().datetime().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+
+export const faceAnalysisConsentRequestSchema = z
+  .object({
+    granted: z.boolean(),
+  })
+  .strict();
 
 export const googleSignInRequestSchema = z.object({
   idToken: z.string().min(1),

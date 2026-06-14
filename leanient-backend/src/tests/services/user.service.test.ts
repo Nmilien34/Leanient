@@ -109,6 +109,16 @@ const userModelMock = vi.hoisted(() => {
     return users.find((user) => user._id.toString() === userId) ?? null;
   }
 
+  async function findByIdAndUpdate(
+    userId: string,
+    update: { $set?: Record<string, unknown> },
+  ): Promise<MockUserDocument | null> {
+    const user = users.find((u) => u._id.toString() === userId);
+    if (!user) return null;
+    Object.assign(user as Record<string, unknown>, update.$set ?? {});
+    return user;
+  }
+
   function MockUserModel(init: MockUserInit): MockUserDocument {
     return createUserDocument(init);
   }
@@ -116,7 +126,7 @@ const userModelMock = vi.hoisted(() => {
   return {
     users,
     findOneCalls,
-    UserModel: Object.assign(MockUserModel, { findOne, findById }),
+    UserModel: Object.assign(MockUserModel, { findOne, findById, findByIdAndUpdate }),
     createUserDocument,
     reset: () => {
       nextId = 1;
@@ -130,7 +140,12 @@ vi.mock("../../models/user.model", () => ({
   UserModel: userModelMock.UserModel,
 }));
 
-import { linkProviderIdentityToUser, upsertUserFromIdentity } from "../../services/user.service";
+import {
+  linkProviderIdentityToUser,
+  serializeUser,
+  setFaceAnalysisConsent,
+  upsertUserFromIdentity,
+} from "../../services/user.service";
 
 function makeIdentity(overrides: Partial<ProviderIdentity> = {}): ProviderIdentity {
   return {
@@ -345,5 +360,25 @@ describe("user service", () => {
       code: ERROR_CODES.conflict,
       statusCode: 409,
     });
+  });
+});
+
+describe("setFaceAnalysisConsent", () => {
+  beforeEach(() => userModelMock.reset());
+
+  it("stamps a consent time when granted and serializes it as ISO", async () => {
+    const created = userModelMock.createUserDocument({ email: "a@b.co" });
+    const when = new Date("2026-06-12T09:00:00.000Z");
+
+    const user = await setFaceAnalysisConsent(created._id.toString(), true, when);
+    expect(serializeUser(user).faceAnalysisConsentAt).toBe("2026-06-12T09:00:00.000Z");
+  });
+
+  it("clears consent when revoked", async () => {
+    const created = userModelMock.createUserDocument({ email: "a@b.co" });
+    await setFaceAnalysisConsent(created._id.toString(), true, new Date("2026-06-12T09:00:00.000Z"));
+
+    const revoked = await setFaceAnalysisConsent(created._id.toString(), false);
+    expect(serializeUser(revoked).faceAnalysisConsentAt).toBeUndefined();
   });
 });

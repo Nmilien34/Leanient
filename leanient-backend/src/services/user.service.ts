@@ -117,6 +117,7 @@ export function serializeUser(user: UserDocument): SharedUser {
     subscriptionWillRenew: user.subscriptionWillRenew,
     revenueCatCustomerId: user.revenueCatCustomerId,
     revenueCatEntitlement: user.revenueCatEntitlement,
+    faceAnalysisConsentAt: user.faceAnalysisConsentAt?.toISOString() ?? undefined,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
@@ -228,6 +229,29 @@ export async function updateUserProfile(
       new: true,
       runValidators: true,
     },
+  );
+
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  return user;
+}
+
+/**
+ * Record (or revoke) consent for on-device facial-volume analysis. Granting
+ * stamps the time so we hold a real consent record; revoking clears it. The
+ * `now` arg keeps the timestamp deterministic in tests.
+ */
+export async function setFaceAnalysisConsent(
+  userId: string,
+  granted: boolean,
+  now = new Date(),
+): Promise<UserDocument> {
+  const user = await UserModel.findByIdAndUpdate(
+    userId,
+    { $set: { faceAnalysisConsentAt: granted ? now : null } },
+    { new: true, runValidators: true },
   );
 
   if (!user) {
