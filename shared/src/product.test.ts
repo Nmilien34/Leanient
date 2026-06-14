@@ -94,6 +94,9 @@ describe("product foundation contracts", () => {
         totalWeightLoss: 4,
         targetWeight: 165,
         remainingToTarget: 15,
+        estimatedFatLostLb: 3.4,
+        estimatedMuscleLostLb: 0.6,
+        fatShareOfLossPct: 85,
       },
       engineVersion: "v1.0",
     });

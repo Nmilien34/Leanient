@@ -17,6 +17,7 @@ import { ScreenGround } from "../../components/layout/ScreenGround";
 import { StaggeredReveal } from "../../components/layout/StaggeredReveal";
 import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
+import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
@@ -42,6 +43,7 @@ import { MedicationScreen } from "./MedicationScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
+import { buildBodyComposition } from "./bodyComp";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -128,6 +130,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const today = useMemo(
     () => deriveTodayView({ profile, medication, recommendedWorkouts, dailyLog: todayLog, now }),
     [profile, medication, recommendedWorkouts, todayLog, now],
+  );
+
+  // Quantified muscle-loss story for the Today hero; null until there's loss to split.
+  const bodyComp = useMemo(
+    () => buildBodyComposition(data.progressOverview?.summary),
+    [data.progressOverview?.summary],
   );
 
   // Sessions for the weekly plan come straight from the live recommendations.
@@ -309,6 +317,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   )}
                 </View>
               </StaggeredReveal>
+
+              {bodyComp ? (
+                <StaggeredReveal index={2}>
+                  <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
 
               <StaggeredReveal index={2}>
                 <Pressable

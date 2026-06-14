@@ -80,6 +80,74 @@ function labelForScore(score: number): MuscleRetentionLabel {
   return "losing_muscle";
 }
 
+// PRODUCT_TUNING: published cohorts put lean mass at ~25-39% of total weight
+// lost on GLP-1 medications without protein + resistance intervention. These
+// bounds frame the muscle-retention score's two ends: a perfect score lands at
+// the achievable floor (high protein + training), a zero score at the upper end
+// of the unmanaged range. Conservative on purpose: we never claim zero muscle
+// loss, and never claim better than the research floor.
+const LEAN_FRACTION_FLOOR = 0.12;
+const LEAN_FRACTION_CEILING = 0.4;
+
+export interface WeightLossComposition {
+  totalLostLb: number;
+  estimatedFatLostLb: number;
+  estimatedMuscleLostLb: number;
+  /** Fat as a share of total loss, 0-100. The headline "X% of your loss was fat". */
+  fatShareOfLossPct: number;
+  /** Lean-mass share of loss, 0-1, before rounding into pounds. */
+  leanFractionOfLoss: number;
+}
+
+/**
+ * Map a muscle-retention score (0-100) to the estimated lean-mass share of weight
+ * lost. Score 100 -> floor (best protection), score 0 -> ceiling (worst). Linear
+ * and explainable by design; this is a heuristic, not a DEXA scan.
+ */
+export function estimateLeanFractionOfLoss(retentionScore: number): number {
+  const score = clampScore(retentionScore);
+  const fraction = LEAN_FRACTION_CEILING - (score / 100) * (LEAN_FRACTION_CEILING - LEAN_FRACTION_FLOOR);
+  return Number(fraction.toFixed(4));
+}
+
+/**
+ * Split a cumulative weight loss into estimated fat and muscle pounds. The lean
+ * fraction is a loss-weighted average across the weeks that actually lost weight
+ * (so a fast, low-protein week contributes more muscle), then applied to the real
+ * cumulative loss so fat + muscle always reconciles to the total. Weeks of
+ * maintenance or gain contribute no muscle loss. Falls back to the latest score
+ * when there are no positive-loss weeks to weight.
+ */
+export function composeWeightLoss(args: {
+  totalLostLb: number;
+  weeklyLosses: { weeklyWeightLossLb: number; muscleRetentionScore: number }[];
+  fallbackScore: number;
+}): WeightLossComposition {
+  const totalLostLb = Number(Math.max(0, args.totalLostLb).toFixed(1));
+
+  let lossSum = 0;
+  let weightedLeanSum = 0;
+  for (const week of args.weeklyLosses) {
+    if (week.weeklyWeightLossLb > 0) {
+      lossSum += week.weeklyWeightLossLb;
+      weightedLeanSum += week.weeklyWeightLossLb * estimateLeanFractionOfLoss(week.muscleRetentionScore);
+    }
+  }
+
+  const leanFraction = lossSum > 0 ? weightedLeanSum / lossSum : estimateLeanFractionOfLoss(args.fallbackScore);
+  const estimatedMuscleLostLb = Number((totalLostLb * leanFraction).toFixed(1));
+  const estimatedFatLostLb = Number((totalLostLb - estimatedMuscleLostLb).toFixed(1));
+  const fatShareOfLossPct = totalLostLb > 0 ? Math.round((estimatedFatLostLb / totalLostLb) * 100) : 0;
+
+  return {
+    totalLostLb,
+    estimatedFatLostLb,
+    estimatedMuscleLostLb,
+    fatShareOfLossPct,
+    leanFractionOfLoss: Number(leanFraction.toFixed(4)),
+  };
+}
+
 export function computeMuscleRetentionScore(
   input: MuscleRetentionScoreInput,
 ): MuscleRetentionScoreResult {

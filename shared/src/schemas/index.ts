@@ -870,6 +870,9 @@ export const progressOverviewResponseSchema = z
         totalWeightLoss: z.number(),
         targetWeight: z.number().positive(),
         remainingToTarget: z.number(),
+        estimatedFatLostLb: z.number().nonnegative(),
+        estimatedMuscleLostLb: z.number().nonnegative(),
+        fatShareOfLossPct: z.number().min(0).max(100),
       })
       .strict(),
     engineVersion: z.string().min(1),

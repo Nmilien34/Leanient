@@ -1,6 +1,7 @@
 import { ERROR_CODES, type ProgressOverviewResponse, type VerdictInputDataSource } from "@leanient/shared";
 import { AppError, NotFoundError } from "../lib/errors";
 import {
+  composeWeightLoss,
   computeMuscleRetentionScore,
   MUSCLE_RETENTION_ENGINE_VERSION,
   type MuscleRetentionLabel,
@@ -319,6 +320,18 @@ export async function getProgressOverview(
   ]);
   const latestSnapshot = chartData.snapshots[chartData.snapshots.length - 1];
 
+  // Estimate how much of the loss was fat vs lean mass, from the per-week
+  // retention scores already on the snapshots. Pure read-time derivation, so it
+  // works for existing users with no migration.
+  const composition = composeWeightLoss({
+    totalLostLb: chartData.totalWeightLoss,
+    weeklyLosses: chartData.snapshots.map((snapshot) => ({
+      weeklyWeightLossLb: snapshot.weeklyWeightLossLb,
+      muscleRetentionScore: snapshot.muscleRetentionScore,
+    })),
+    fallbackScore: latestSnapshot?.muscleRetentionScore ?? 0,
+  });
+
   return {
     chart: {
       snapshots: chartData.snapshots.map(serializeMuscleRetentionSnapshot),
@@ -333,6 +346,9 @@ export async function getProgressOverview(
       totalWeightLoss: chartData.totalWeightLoss,
       targetWeight: profile.goalWeight,
       remainingToTarget: roundOne(chartData.currentWeight - profile.goalWeight),
+      estimatedFatLostLb: composition.estimatedFatLostLb,
+      estimatedMuscleLostLb: composition.estimatedMuscleLostLb,
+      fatShareOfLossPct: composition.fatShareOfLossPct,
     },
     engineVersion: MUSCLE_RETENTION_ENGINE_VERSION,
   };

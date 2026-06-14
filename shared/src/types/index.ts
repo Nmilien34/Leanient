@@ -564,6 +564,12 @@ export interface ProgressOverviewResponse {
     totalWeightLoss: number;
     targetWeight: number;
     remainingToTarget: number;
+    /** Estimated pounds of the total loss that were fat (heuristic, not a scan). */
+    estimatedFatLostLb: number;
+    /** Estimated pounds of the total loss that were lean mass. */
+    estimatedMuscleLostLb: number;
+    /** Fat as a share of total loss, 0-100. The "X% of your loss was fat" headline. */
+    fatShareOfLossPct: number;
   };
   engineVersion: string;
 }
