@@ -85,7 +85,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const navigation = useNavigation();
   const { openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
-  const [scope, setScope] = useState<"week" | "today">("week");
+  const [scope, setScope] = useState<"week" | "today">("today");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
   const [medScheduleOpen, setMedScheduleOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
@@ -251,7 +251,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           <View style={styles.appbar}>
             <Text style={styles.wm}>Leanient</Text>
             <View style={styles.wtog}>
-              {(["week", "today"] as const).map((k) => (
+              {(["today", "week"] as const).map((k) => (
                 <Pressable key={k} onPress={() => setScope(k)} style={[styles.wtogItem, scope === k && styles.wtogOn]}>
                   <Text style={[styles.wtogText, scope === k && styles.wtogTextOn]}>
                     {k === "week" ? "This week" : "Today"}
