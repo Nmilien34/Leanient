@@ -18,6 +18,8 @@ import { StaggeredReveal } from "../../components/layout/StaggeredReveal";
 import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
 import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
+import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
+import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
@@ -44,6 +46,7 @@ import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
+import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -136,6 +139,13 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const bodyComp = useMemo(
     () => buildBodyComposition(data.progressOverview?.summary),
     [data.progressOverview?.summary],
+  );
+
+  // The weekly verdict in numbers (retention + protein/training/pace), from the
+  // latest snapshot. Null until the first check-in produces one.
+  const verdictBreakdown = useMemo(
+    () => buildVerdictBreakdown(data.progressOverview?.chart.snapshots ?? []),
+    [data.progressOverview?.chart.snapshots],
   );
 
   // Sessions for the weekly plan come straight from the live recommendations.
@@ -318,9 +328,21 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </View>
               </StaggeredReveal>
 
+              {verdictBreakdown ? (
+                <StaggeredReveal index={2}>
+                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
               {bodyComp ? (
                 <StaggeredReveal index={2}>
                   <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
+              {todayPlan ? (
+                <StaggeredReveal index={3}>
+                  <TodayPlanCard plan={todayPlan} onPress={() => setTodayPlanOpen(true)} />
                 </StaggeredReveal>
               ) : null}
 
@@ -412,8 +434,14 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </StaggeredReveal>
               ) : null}
 
-              {verdict.status !== "no_data" ? (
+              {verdict.status !== "no_data" && verdictBreakdown ? (
                 <StaggeredReveal index={2}>
+                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
+              {verdict.status !== "no_data" ? (
+                <StaggeredReveal index={3}>
                   <Pressable
                     style={styles.whylinkWrap}
                     accessibilityRole="button"
