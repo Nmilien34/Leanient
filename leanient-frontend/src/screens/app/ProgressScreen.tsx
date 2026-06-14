@@ -250,6 +250,19 @@ export function ProgressScreen() {
             </Pressable>
           </View>
 
+          {/* coach prompt — kept at the top so it isn't buried */}
+          <View style={styles.aiWrap}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={openCoach}>
+              <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
+                <View style={styles.coachdot}>
+                  <Spark />
+                </View>
+                <Text style={styles.aitext}>Wondering why the scale's quiet? Ask the coach.</Text>
+                <Text style={styles.aichev}>›</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+
           {/* muscle retention */}
           {retentionState === "loading" ? (
             <SkeletonCard lines={4} style={styles.cardGap} />
@@ -332,93 +345,7 @@ export function ProgressScreen() {
             </View>
           )}
 
-          {/* workout sessions */}
-          <View style={styles.trainingWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Workout sessions"
-              onPress={openWorkoutHistory}
-              style={({ pressed }) => [styles.trainingCard, pressed && styles.trainingCardPressed]}
-            >
-              <View style={styles.trainingIcon}>
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
-                </Svg>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.trainingEyebrow}>{workoutSessionsCard.eyebrow}</Text>
-                <Text style={styles.trainingTitle}>{workoutSessionsCard.title}</Text>
-                <Text style={styles.trainingSub}>{workoutSessionsCard.detail}</Text>
-              </View>
-              <View style={styles.trainingCta}>
-                <Text style={styles.trainingCtaText}>{workoutSessionsCard.cta}</Text>
-                <Text style={styles.trainingChev}>›</Text>
-              </View>
-            </Pressable>
-          </View>
-
-          {/* weekly check-in history */}
-          <View style={styles.aiWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Weekly check-ins"
-              onPress={() => setCheckinHistoryOpen(true)}
-              style={styles.historyRow}
-            >
-              <View style={styles.flex}>
-                <Text style={styles.historyTitle}>Weekly check-ins</Text>
-                <Text style={styles.historySub}>Every check-in and the verdict it earned</Text>
-              </View>
-              <Text style={styles.historyChev}>›</Text>
-            </Pressable>
-          </View>
-
-          {/* coach prompt */}
-          <View style={styles.aiWrap}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Ask the coach" onPress={openCoach}>
-              <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
-                <View style={styles.coachdot}>
-                  <Spark />
-                </View>
-                <Text style={styles.aitext}>Wondering why the scale's quiet? Ask the coach.</Text>
-                <Text style={styles.aichev}>›</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-
-          {/* progress photos */}
-          <View style={styles.libHead}>
-            <Text style={styles.libTitle}>Progress photos</Text>
-          </View>
-          {photosState === "loading" ? (
-            <SkeletonCard lines={2} style={styles.cardGap} />
-          ) : photosState === "error" ? (
-            <ErrorState onRetry={() => void data.refreshProgress()} style={styles.cardGap} />
-          ) : (
-            <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
-                <AddPhotoThumb onPress={openProgressPhoto} />
-                {photos.map((p) => {
-                  const wk = weekOf(p.captureDate);
-                  return (
-                    <ProgressPhotoThumb
-                      key={p.id}
-                      uri={p.viewUrl}
-                      label={wk != null ? `Wk ${wk}` : "Photo"}
-                    />
-                  );
-                })}
-              </ScrollView>
-              {photos.length === 0 ? (
-                <EmptyState
-                  message="Add your first progress photo to start tracking visual changes."
-                  style={styles.cardGap}
-                />
-              ) : null}
-            </>
-          )}
-
-          {/* face progress — the honest Ozempic-face signal */}
+          {/* face progress — the honest Ozempic-face signal, surfaced high */}
           <View style={styles.libHead}>
             <Text style={styles.libTitle}>Face progress</Text>
             {faceProgress?.latestFullness != null ? (
@@ -476,6 +403,80 @@ export function ProgressScreen() {
             </View>
             <Text style={styles.trackChev}>›</Text>
           </Pressable>
+
+          {/* progress photos */}
+          <View style={styles.libHead}>
+            <Text style={styles.libTitle}>Progress photos</Text>
+          </View>
+          {photosState === "loading" ? (
+            <SkeletonCard lines={2} style={styles.cardGap} />
+          ) : photosState === "error" ? (
+            <ErrorState onRetry={() => void data.refreshProgress()} style={styles.cardGap} />
+          ) : (
+            <>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
+                <AddPhotoThumb onPress={openProgressPhoto} />
+                {photos.map((p) => {
+                  const wk = weekOf(p.captureDate);
+                  return (
+                    <ProgressPhotoThumb
+                      key={p.id}
+                      uri={p.viewUrl}
+                      label={wk != null ? `Wk ${wk}` : "Photo"}
+                    />
+                  );
+                })}
+              </ScrollView>
+              {photos.length === 0 ? (
+                <EmptyState
+                  message="Add your first progress photo to start tracking visual changes."
+                  style={styles.cardGap}
+                />
+              ) : null}
+            </>
+          )}
+
+          {/* history — moved to the bottom */}
+          {/* workout sessions */}
+          <View style={styles.trainingWrap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Workout sessions"
+              onPress={openWorkoutHistory}
+              style={({ pressed }) => [styles.trainingCard, pressed && styles.trainingCardPressed]}
+            >
+              <View style={styles.trainingIcon}>
+                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
+                </Svg>
+              </View>
+              <View style={styles.flex}>
+                <Text style={styles.trainingEyebrow}>{workoutSessionsCard.eyebrow}</Text>
+                <Text style={styles.trainingTitle}>{workoutSessionsCard.title}</Text>
+                <Text style={styles.trainingSub}>{workoutSessionsCard.detail}</Text>
+              </View>
+              <View style={styles.trainingCta}>
+                <Text style={styles.trainingCtaText}>{workoutSessionsCard.cta}</Text>
+                <Text style={styles.trainingChev}>›</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* weekly check-in history */}
+          <View style={styles.aiWrap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Weekly check-ins"
+              onPress={() => setCheckinHistoryOpen(true)}
+              style={styles.historyRow}
+            >
+              <View style={styles.flex}>
+                <Text style={styles.historyTitle}>Weekly check-ins</Text>
+                <Text style={styles.historySub}>Every check-in and the verdict it earned</Text>
+              </View>
+              <Text style={styles.historyChev}>›</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </SafeAreaView>
 
