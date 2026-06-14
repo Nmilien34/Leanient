@@ -375,7 +375,14 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
 
               {todayPlan ? (
                 <StaggeredReveal index={3}>
-                  <TodayPlanCard plan={todayPlan} onPress={() => setTodayPlanOpen(true)} />
+                  <TodayPlanCard
+                    plan={todayPlan}
+                    eatDone={today.protein.ratio >= 1}
+                    moveDone={today.session.done > 0}
+                    onEat={openMealLog}
+                    onMove={() => startWorkout()}
+                    onDetail={() => setTodayPlanOpen(true)}
+                  />
                 </StaggeredReveal>
               ) : null}
 
