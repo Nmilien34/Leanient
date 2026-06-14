@@ -101,6 +101,7 @@ export function ProgressScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [faceConsentOpen, setFaceConsentOpen] = useState(false);
+  const [photoKind, setPhotoKind] = useState<"body" | "face">("body");
   const [faceMetrics, setFaceMetrics] = useState<FaceMetric[]>([]);
   const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
   const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
@@ -196,6 +197,9 @@ export function ProgressScreen() {
   // native module — never in Expo Go, where it would do nothing.
   const faceDetectionAvailable = isFaceDetectionAvailable();
   const volumeTrend = buildFaceVolumeTrend(faceMetrics);
+  // Show the Face & skin analysis section only when it has something in it.
+  const showFaceSkin =
+    Boolean(faceProtection) || (faceDetectionAvailable && (!faceConsent.enabled || Boolean(volumeTrend)));
 
   // Load on-device facial measurements (local only) when tracking is on. Re-run
   // when a new face check lands (photo count changes) or consent flips.
@@ -340,68 +344,91 @@ export function ProgressScreen() {
             </View>
           )}
 
-          {/* face progress — the honest Ozempic-face signal, surfaced high */}
+          {/* face & skin — the analysis signal (not photos), surfaced high */}
+          {showFaceSkin ? (
+            <>
+              <View style={styles.libHead}>
+                <Text style={styles.libTitle}>Face &amp; skin</Text>
+              </View>
+              {faceProtection ? <FaceProtectionCard signal={faceProtection} /> : null}
+
+              {/* on-device facial-volume measurement — the result/data */}
+              {faceDetectionAvailable && faceConsent.enabled && volumeTrend ? (
+                <View style={styles.volCard}>
+                  <View style={styles.volTop}>
+                    <Text style={styles.volLabel}>FACIAL VOLUME · on-device</Text>
+                    <Text style={styles.volIndex}>{volumeTrend.latestIndex}</Text>
+                  </View>
+                  <Text style={styles.volLine}>{volumeTrend.line}</Text>
+                </View>
+              ) : null}
+
+              {/* discovery invite — only when off; managing it lives in Settings */}
+              {faceDetectionAvailable && !faceConsent.enabled ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Turn on facial volume tracking"
+                  onPress={() => setFaceConsentOpen(true)}
+                  style={({ pressed }) => [styles.trackRow, pressed && styles.trackRowPressed]}
+                >
+                  <View style={styles.trackIcon}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <Circle cx={12} cy={12} r={9} />
+                      <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
+                    </Svg>
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.trackTitle}>Turn on facial volume tracking</Text>
+                    <Text style={styles.trackSub}>Measure facial volume on-device. Nothing leaves your phone.</Text>
+                  </View>
+                  <Text style={styles.trackChev}>›</Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* progress photos — body and face in one section, toggled */}
           <View style={styles.libHead}>
-            <Text style={styles.libTitle}>Face progress</Text>
-            {faceProgress?.latestFullness != null ? (
+            <Text style={styles.libTitle}>Progress photos</Text>
+            {photoKind === "face" && faceProgress?.latestFullness != null ? (
               <Text style={styles.faceMeta}>{faceFullnessLabel(faceProgress.latestFullness)}</Text>
             ) : null}
           </View>
-
-          {/* behavioral protection signal — works with zero photos */}
-          {faceProtection ? <FaceProtectionCard signal={faceProtection} /> : null}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
-            <AddPhotoThumb onPress={openFaceCheck} />
-            {faceProgress?.photos.map((p) => (
-              <ProgressPhotoThumb key={p.id} uri={p.viewUrl} label={p.weekLabel} sublabel={p.fullnessLabel ?? undefined} />
-            ))}
-          </ScrollView>
-          {faceProgress?.trend ? (
-            <Text style={styles.faceTrend}>{faceProgress.trend}</Text>
-          ) : (
-            <Text style={styles.faceTrend}>
-              Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
-            </Text>
-          )}
-
-          {/* on-device facial-volume measurement — the result/data stays here */}
-          {faceDetectionAvailable && faceConsent.enabled && volumeTrend ? (
-            <View style={styles.volCard}>
-              <View style={styles.volTop}>
-                <Text style={styles.volLabel}>FACIAL VOLUME · on-device</Text>
-                <Text style={styles.volIndex}>{volumeTrend.latestIndex}</Text>
-              </View>
-              <Text style={styles.volLine}>{volumeTrend.line}</Text>
-            </View>
-          ) : null}
-
-          {/* discovery invite — only when tracking is off; managing it lives in Settings */}
-          {faceDetectionAvailable && !faceConsent.enabled ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Turn on facial volume tracking"
-              onPress={() => setFaceConsentOpen(true)}
-              style={({ pressed }) => [styles.trackRow, pressed && styles.trackRowPressed]}
-            >
-              <View style={styles.trackIcon}>
-                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <Circle cx={12} cy={12} r={9} />
-                  <Path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0" />
-                </Svg>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.trackTitle}>Turn on facial volume tracking</Text>
-                <Text style={styles.trackSub}>Measure facial volume on-device. Nothing leaves your phone.</Text>
-              </View>
-              <Text style={styles.trackChev}>›</Text>
-            </Pressable>
-          ) : null}
-
-          {/* progress photos */}
-          <View style={styles.libHead}>
-            <Text style={styles.libTitle}>Progress photos</Text>
+          <View style={styles.rangeRow}>
+            {(["body", "face"] as const).map((k) => {
+              const on = k === photoKind;
+              return (
+                <Pressable
+                  key={k}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={k === "body" ? "Body photos" : "Face photos"}
+                  onPress={() => setPhotoKind(k)}
+                  style={[styles.rangePill, on && styles.rangePillOn]}
+                >
+                  <Text style={[styles.rangeText, on && styles.rangeTextOn]}>{k === "body" ? "Body" : "Face"}</Text>
+                </Pressable>
+              );
+            })}
           </View>
-          {photosState === "loading" ? (
+
+          {photoKind === "face" ? (
+            <>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
+                <AddPhotoThumb onPress={openFaceCheck} />
+                {faceProgress?.photos.map((p) => (
+                  <ProgressPhotoThumb key={p.id} uri={p.viewUrl} label={p.weekLabel} sublabel={p.fullnessLabel ?? undefined} />
+                ))}
+              </ScrollView>
+              {faceProgress?.trend ? (
+                <Text style={styles.faceTrend}>{faceProgress.trend}</Text>
+              ) : (
+                <Text style={styles.faceTrend}>
+                  Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
+                </Text>
+              )}
+            </>
+          ) : photosState === "loading" ? (
             <SkeletonCard lines={2} style={styles.cardGap} />
           ) : photosState === "error" ? (
             <ErrorState onRetry={() => void data.refreshProgress()} style={styles.cardGap} />
