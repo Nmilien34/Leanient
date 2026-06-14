@@ -16,7 +16,6 @@ import { EmptyState } from "../../components/app/EmptyState";
 import { CoachChatScreen } from "./CoachChatScreen";
 import { SubscriptionScreen } from "./SubscriptionScreen";
 import { CheckinHistoryScreen } from "./CheckinHistoryScreen";
-import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
@@ -25,7 +24,6 @@ import {
   CHART_RANGES,
   buildProgressRetentionChart,
   buildProgressWeightChart,
-  buildWorkoutSessionsCard,
   chartRangeTitle,
   filterByChartRange,
   muscleKeptStreak,
@@ -103,7 +101,6 @@ export function ProgressScreen() {
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [faceConsentOpen, setFaceConsentOpen] = useState(false);
   const [faceMetrics, setFaceMetrics] = useState<FaceMetric[]>([]);
-  const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
   const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
   const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
   const now = new Date();
@@ -185,7 +182,6 @@ export function ProgressScreen() {
 
   const { points: weightPoints, unit, startWeight, todayWeight, lost } = weightChart;
   const { points: retentionPoints } = retentionChart;
-  const workoutSessionsCard = buildWorkoutSessionsCard(data.trainingToday);
 
   const weekOf = (captureDate: string) =>
     medication
@@ -213,11 +209,6 @@ export function ProgressScreen() {
       cancelled = true;
     };
   }, [userId, faceConsent.enabled, allPhotos.length]);
-
-  const openWorkoutHistory = () => {
-    setWorkoutHistoryOpen(true);
-    void data.refreshWorkouts();
-  };
 
   return (
     <View style={styles.root}>
@@ -436,32 +427,6 @@ export function ProgressScreen() {
             </>
           )}
 
-          {/* history — moved to the bottom */}
-          {/* workout sessions */}
-          <View style={styles.trainingWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Workout sessions"
-              onPress={openWorkoutHistory}
-              style={({ pressed }) => [styles.trainingCard, pressed && styles.trainingCardPressed]}
-            >
-              <View style={styles.trainingIcon}>
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
-                </Svg>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.trainingEyebrow}>{workoutSessionsCard.eyebrow}</Text>
-                <Text style={styles.trainingTitle}>{workoutSessionsCard.title}</Text>
-                <Text style={styles.trainingSub}>{workoutSessionsCard.detail}</Text>
-              </View>
-              <View style={styles.trainingCta}>
-                <Text style={styles.trainingCtaText}>{workoutSessionsCard.cta}</Text>
-                <Text style={styles.trainingChev}>›</Text>
-              </View>
-            </Pressable>
-          </View>
-
           {/* weekly check-in history */}
           <View style={styles.aiWrap}>
             <Pressable
@@ -492,11 +457,6 @@ export function ProgressScreen() {
       />
       <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
       <CheckinHistoryScreen visible={checkinHistoryOpen} onClose={() => setCheckinHistoryOpen(false)} />
-      <WorkoutHistoryScreen
-        visible={workoutHistoryOpen}
-        workouts={data.workouts}
-        onClose={() => setWorkoutHistoryOpen(false)}
-      />
     </View>
   );
 }
@@ -529,16 +489,6 @@ const styles = StyleSheet.create({
   axisLabel: { fontFamily: font.semibold, fontSize: 10.5, color: colors.faint },
   axisDark: { fontFamily: font.semibold, fontSize: 12, color: colors.muted },
   // workout sessions
-  trainingWrap: { paddingHorizontal: 20, marginBottom: 12 },
-  trainingCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: "rgba(47,184,122,0.24)", borderRadius: 20, paddingVertical: 16, paddingHorizontal: 16 },
-  trainingCardPressed: { opacity: 0.72 },
-  trainingIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(47,184,122,0.12)" },
-  trainingEyebrow: { fontFamily: font.bold, fontSize: 10.5, letterSpacing: 0.84, color: colors.emeraldDeep },
-  trainingTitle: { fontFamily: font.bold, fontSize: 17, color: colors.ink, marginTop: 3 },
-  trainingSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
-  trainingCta: { flexDirection: "row", alignItems: "center", gap: 4 },
-  trainingCtaText: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
-  trainingChev: { fontFamily: font.semibold, fontSize: 20, color: colors.emeraldDeep },
   // check-in history entry
   flex: { flex: 1 },
   historyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 16, marginBottom: 12 },

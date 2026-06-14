@@ -12,6 +12,8 @@ import { WorkoutDetailSheet } from "../../components/app/WorkoutDetailSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
 import { WorkoutCompleteSheet, type WorkoutFeel } from "../../components/app/WorkoutCompleteSheet";
 import { WorkoutHistoryScreen } from "./WorkoutHistoryScreen";
+import { WorkoutSessionsCard } from "../../components/app/WorkoutSessionsCard";
+import { buildWorkoutSessionsCard } from "./progressMetrics";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
 import { EmptyState } from "../../components/app/EmptyState";
@@ -175,12 +177,12 @@ export function TrainScreen() {
             </View>
           )}
 
+          {/* training proof — this week's sessions, into history */}
+          <WorkoutSessionsCard view={buildWorkoutSessionsCard(trainingToday)} onPress={() => setHistoryOpen(true)} />
+
           {/* library */}
           <View style={styles.libHead}>
             <Text style={styles.libTitle}>Your library</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Workout history" hitSlop={8} onPress={() => setHistoryOpen(true)}>
-              <Text style={styles.libLink}>History ›</Text>
-            </Pressable>
           </View>
           {libraryState === "loading" ? (
             <SkeletonCard lines={3} />
@@ -257,7 +259,6 @@ const styles = StyleSheet.create({
   // library
   libHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 4 },
   libTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
-  libLink: { fontFamily: font.semibold, fontSize: 13.5, color: colors.emeraldDeep },
   wlist: { gap: 10, paddingHorizontal: 20, paddingTop: 6 },
 });
 
