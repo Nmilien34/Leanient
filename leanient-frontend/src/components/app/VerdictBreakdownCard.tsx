@@ -22,17 +22,22 @@ function scoreColor(score: number): string {
  * glance shows which lever is leaking. Tapping opens the prose explainer.
  */
 export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProps) {
+  const isDown = view.retentionDelta != null && view.retentionDelta < 0;
   const deltaLabel =
     view.retentionDelta == null
       ? null
       : view.retentionDelta === 0
         ? "no change"
         : `${view.retentionDelta > 0 ? "up" : "down"} ${Math.abs(view.retentionDelta)} this week`;
+  // The right-side summary doubles as the "why" button, so it gets a pill +
+  // chevron to read as tappable. Falls back to a plain label without onPress.
+  const pillLabel = deltaLabel ?? "Why this score";
 
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={`Muscle retention score ${view.retention} out of 100`}
+      accessibilityHint={onPress ? "Opens the full breakdown of why" : undefined}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && onPress ? styles.pressed : null]}
     >
@@ -44,10 +49,13 @@ export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProp
             <Text style={styles.scoreMax}>/ 100</Text>
           </View>
         </View>
-        {deltaLabel ? (
-          <Text style={[styles.delta, view.retentionDelta != null && view.retentionDelta < 0 ? styles.deltaDown : null]}>
-            {deltaLabel}
-          </Text>
+        {onPress ? (
+          <View style={[styles.whyBtn, isDown ? styles.whyBtnAmber : null]}>
+            <Text style={[styles.whyText, isDown ? styles.whyTextAmber : null]}>{pillLabel}</Text>
+            <Text style={[styles.whyChev, isDown ? styles.whyTextAmber : null]}>›</Text>
+          </View>
+        ) : deltaLabel ? (
+          <Text style={[styles.delta, isDown ? styles.deltaDown : null]}>{deltaLabel}</Text>
         ) : null}
       </View>
 
@@ -79,6 +87,11 @@ const styles = StyleSheet.create({
   scoreMax: { fontFamily: font.semibold, fontSize: 14, color: colors.faint },
   delta: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep, marginTop: 4 },
   deltaDown: { color: colors.amberDeep },
+  whyBtn: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, backgroundColor: "rgba(47,184,122,0.12)", borderWidth: 1, borderColor: "rgba(47,184,122,0.28)" },
+  whyBtnAmber: { backgroundColor: "rgba(227,166,94,0.14)", borderColor: "rgba(227,166,94,0.34)" },
+  whyText: { fontFamily: font.bold, fontSize: 12, color: colors.emeraldDeep },
+  whyTextAmber: { color: colors.amberDeep },
+  whyChev: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep, marginTop: -1 },
   components: { flexDirection: "row", gap: 8, marginTop: 14 },
   comp: { flex: 1, backgroundColor: colors.paper, borderRadius: 12, paddingVertical: 9, alignItems: "center", gap: 3 },
   compScore: { fontFamily: font.extrabold, fontSize: 18 },
