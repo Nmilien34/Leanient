@@ -92,6 +92,11 @@ export const WORKOUT_SELECTION_REASONS = [
 
 export const PROGRESS_PHOTO_STATUSES = ["pending_upload", "uploaded", "deleted"] as const;
 
+// "face" photos are the front-pose face checks that feed the face-progress
+// timeline; everything else is a "body" progress photo. Default is body so
+// existing photos and older clients stay valid.
+export const PROGRESS_PHOTO_KINDS = ["body", "face"] as const;
+
 export const MEAL_LOG_SOURCES = ["photo_scan", "manual", "barcode"] as const;
 
 export const WORKOUT_EFFORTS = ["easy", "normal", "hard"] as const;

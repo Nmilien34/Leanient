@@ -67,6 +67,8 @@ export async function createProgressPhotoUploadIntent(
     contentType: uploadIntent.contentType,
     sizeBytes: uploadIntent.sizeBytes,
     status: "pending_upload",
+    kind: uploadIntent.kind,
+    faceFullness: uploadIntent.faceFullness,
   });
 
   return {

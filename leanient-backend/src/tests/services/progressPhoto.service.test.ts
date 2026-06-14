@@ -83,6 +83,8 @@ const modelMocks = vi.hoisted(() => {
         contentType: data.contentType,
         sizeBytes: data.sizeBytes,
         status: data.status,
+        kind: data.kind ?? "body",
+        faceFullness: data.faceFullness,
         ...timestamps(),
       };
       photos.push(photo);
@@ -145,6 +147,8 @@ function makeUploadIntent(
     captureDate: overrides.captureDate ?? "2026-06-01",
     contentType: overrides.contentType ?? "image/jpeg",
     sizeBytes: overrides.sizeBytes ?? 1_024,
+    ...(overrides.kind ? { kind: overrides.kind } : {}),
+    ...(overrides.faceFullness ? { faceFullness: overrides.faceFullness } : {}),
   };
 }
 
@@ -199,6 +203,21 @@ describe("progress photo service", () => {
     expect(modelMocks.photos).toHaveLength(1);
     expect(result.uploadUrl).toBe(`https://uploads.example.com/${modelMocks.photos[0]?.s3Key}`);
     expect(result.photo.id).toBe(modelMocks.photos[0]?._id.toString());
+  });
+
+  it("defaults a photo to the body kind and stores face checks with their fullness", async () => {
+    const body = await createProgressPhotoUploadIntent("user_1", makeUploadIntent());
+    expect(body.photo.kind).toBe("body");
+
+    const face = await createProgressPhotoUploadIntent(
+      "user_1",
+      makeUploadIntent({ kind: "face", faceFullness: 4 }),
+    );
+    expect(modelMocks.ProgressPhotoModel.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: "face", faceFullness: 4 }),
+    );
+    expect(face.photo.kind).toBe("face");
+    expect(face.photo.faceFullness).toBe(4);
   });
 
   it("does not create a Mongo record when S3 signing fails", async () => {

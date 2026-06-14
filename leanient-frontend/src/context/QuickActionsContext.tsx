@@ -13,6 +13,8 @@ export interface QuickActions {
   openMealLog: () => void;
   openDoseLog: () => void;
   openProgressPhoto: () => void;
+  /** Open the camera in face-check mode (front camera + fullness rating). */
+  openFaceCheck: () => void;
   /** Open the guided workout player. Pass a workout to play it; omit to use the
    * day's recommended workout. */
   startWorkout: (workout?: Workout) => void;

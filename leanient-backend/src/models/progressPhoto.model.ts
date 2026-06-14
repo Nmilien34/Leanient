@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import type { Document, Types } from "mongoose";
-import type { ProgressPhotoStatus } from "@leanient/shared";
+import type { ProgressPhotoKind, ProgressPhotoStatus } from "@leanient/shared";
 
 export interface ProgressPhotoDocument extends Document<Types.ObjectId> {
   userId: Types.ObjectId;
@@ -9,6 +9,8 @@ export interface ProgressPhotoDocument extends Document<Types.ObjectId> {
   contentType: string;
   sizeBytes?: number;
   status: ProgressPhotoStatus;
+  kind: ProgressPhotoKind;
+  faceFullness?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +49,17 @@ const progressPhotoSchema = new Schema<ProgressPhotoDocument>(
       enum: ["pending_upload", "uploaded", "deleted"],
       default: "pending_upload",
       index: true,
+    },
+    kind: {
+      type: String,
+      enum: ["body", "face"],
+      default: "body",
+      index: true,
+    },
+    faceFullness: {
+      type: Number,
+      min: 1,
+      max: 5,
     },
   },
   {

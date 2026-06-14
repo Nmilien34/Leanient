@@ -319,6 +319,8 @@ export function serializeProgressPhoto(photo: ProgressPhotoDocument): ProgressPh
     contentType: photo.contentType,
     sizeBytes: photo.sizeBytes,
     status: photo.status,
+    kind: photo.kind ?? "body",
+    faceFullness: photo.faceFullness,
     createdAt: photo.createdAt.toISOString(),
     updatedAt: photo.updatedAt.toISOString(),
   };

@@ -87,6 +87,7 @@ export function MainTabs() {
   const [weightOpen, setWeightOpen] = useState(false);
   const [measurementOpen, setMeasurementOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoMode, setPhotoMode] = useState<"body" | "face">("body");
   const [sideEffectOpen, setSideEffectOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
@@ -121,13 +122,20 @@ export function MainTabs() {
       openMealScan: () => setCameraOpen(true),
       openMealLog: () => setMealLogOpen(true),
       openDoseLog: () => setDoseOpen(true),
-      openProgressPhoto: () => setPhotoOpen(true),
+      openProgressPhoto: () => {
+        setPhotoMode("body");
+        setPhotoOpen(true);
+      },
+      openFaceCheck: () => {
+        setPhotoMode("face");
+        setPhotoOpen(true);
+      },
       startWorkout: (workout) => {
         setActiveWorkout(workout ?? null);
         setPlayerOpen(true);
       },
     }),
-    [setLogOpen, setCameraOpen, setMealLogOpen, setDoseOpen, setPhotoOpen, setActiveWorkout, setPlayerOpen],
+    [setLogOpen, setCameraOpen, setMealLogOpen, setDoseOpen, setPhotoOpen, setPhotoMode, setActiveWorkout, setPlayerOpen],
   );
 
   const showLogError = (error: unknown) => {
@@ -146,6 +154,7 @@ export function MainTabs() {
   const uploadProgressPhotoFromUri = async (
     uri: string,
     contentType: ProgressPhotoContentType,
+    meta?: { kind?: "body" | "face"; faceFullness?: number },
   ) => {
     const blob = await blobFromUri(uri);
     await progressPhotoService.uploadProgressPhoto({
@@ -153,6 +162,8 @@ export function MainTabs() {
       contentType,
       bytes: blob,
       sizeBytes: blob.size || undefined,
+      kind: meta?.kind ?? "body",
+      faceFullness: meta?.faceFullness,
     });
     await data.refreshProgressPhotos();
   };
@@ -327,11 +338,15 @@ export function MainTabs() {
 
       <ProgressPhotoScreen
         visible={photoOpen}
+        mode={photoMode}
         onClose={() => setPhotoOpen(false)}
-        onCaptured={(uri) =>
+        onCaptured={(uri, captureMeta) =>
           saveAndClose(
             async () => {
-              await uploadProgressPhotoFromUri(uri, "image/jpeg");
+              await uploadProgressPhotoFromUri(uri, "image/jpeg", {
+                kind: captureMeta.kind,
+                faceFullness: captureMeta.faceFullness,
+              });
             },
             () => setPhotoOpen(false),
           )

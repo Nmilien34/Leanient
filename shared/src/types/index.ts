@@ -10,6 +10,7 @@ import type {
   LEANIENT_FOCUS_AREAS,
   MEAL_LOG_SOURCES,
   MEASUREMENT_UNITS,
+  PROGRESS_PHOTO_KINDS,
   PROGRESS_PHOTO_STATUSES,
   SEX_VALUES,
   SIDE_EFFECT_SYMPTOMS,
@@ -51,6 +52,7 @@ export type WorkoutIntensity = (typeof WORKOUT_INTENSITIES)[number];
 export type WorkoutCategory = (typeof WORKOUT_CATEGORIES)[number];
 export type WorkoutSelectionReason = (typeof WORKOUT_SELECTION_REASONS)[number];
 export type ProgressPhotoStatus = (typeof PROGRESS_PHOTO_STATUSES)[number];
+export type ProgressPhotoKind = (typeof PROGRESS_PHOTO_KINDS)[number];
 export type MealLogSource = (typeof MEAL_LOG_SOURCES)[number];
 export type WorkoutEffort = (typeof WORKOUT_EFFORTS)[number];
 export type DoseLogUnit = (typeof DOSE_LOG_UNITS)[number];
@@ -624,6 +626,10 @@ export interface ProgressPhoto {
   contentType: string;
   sizeBytes?: number;
   status: ProgressPhotoStatus;
+  /** "body" progress photo or a front-pose "face" check. */
+  kind: ProgressPhotoKind;
+  /** Self-rated facial fullness at capture, 1 (hollow) to 5 (full). Face checks only. */
+  faceFullness?: number;
   viewUrl?: string;
   createdAt: string;
   updatedAt: string;

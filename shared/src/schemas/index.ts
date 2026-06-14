@@ -11,6 +11,7 @@ import {
   LEANIENT_FOCUS_AREAS,
   MEAL_LOG_SOURCES,
   MEASUREMENT_UNITS,
+  PROGRESS_PHOTO_KINDS,
   PROGRESS_PHOTO_STATUSES,
   SEX_VALUES,
   SIDE_EFFECT_SYMPTOMS,
@@ -56,6 +57,8 @@ export const workoutIntensitySchema = z.enum(WORKOUT_INTENSITIES);
 export const workoutCategorySchema = z.enum(WORKOUT_CATEGORIES);
 export const workoutSelectionReasonSchema = z.enum(WORKOUT_SELECTION_REASONS);
 export const progressPhotoStatusSchema = z.enum(PROGRESS_PHOTO_STATUSES);
+export const progressPhotoKindSchema = z.enum(PROGRESS_PHOTO_KINDS);
+export const faceFullnessSchema = z.number().int().min(1).max(5);
 export const mealLogSourceSchema = z.enum(MEAL_LOG_SOURCES);
 export const workoutEffortSchema = z.enum(WORKOUT_EFFORTS);
 export const doseLogUnitSchema = z.enum(DOSE_LOG_UNITS);
@@ -938,6 +941,8 @@ export const progressPhotoResponseSchema = z
     contentType: z.string().min(1),
     sizeBytes: z.number().int().positive().optional(),
     status: progressPhotoStatusSchema,
+    kind: progressPhotoKindSchema.default("body"),
+    faceFullness: faceFullnessSchema.optional(),
     viewUrl: z.string().url().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -954,6 +959,8 @@ export const progressPhotoUploadIntentRequestSchema = z
       .positive()
       .max(15 * 1024 * 1024)
       .optional(),
+    kind: progressPhotoKindSchema.default("body"),
+    faceFullness: faceFullnessSchema.optional(),
   })
   .strict();
 

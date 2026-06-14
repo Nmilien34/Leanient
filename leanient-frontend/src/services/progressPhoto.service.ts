@@ -92,6 +92,8 @@ export class ProgressPhotoService {
       captureDate: input.captureDate,
       contentType: input.contentType,
       sizeBytes: input.sizeBytes,
+      kind: input.kind,
+      faceFullness: input.faceFullness,
     });
     const response = await this.fetchImpl(intent.uploadUrl, {
       method: "PUT",

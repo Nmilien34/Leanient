@@ -7,6 +7,24 @@
 export const POSES = ["Front", "Side", "Back"] as const;
 export type Pose = (typeof POSES)[number];
 
+/**
+ * Self-rated facial fullness for a face check, 1 (hollow) to 5 (very full). The
+ * "Ozempic face" concern lives at the low end; protein and a gentler loss pace
+ * push it up. Stored as faceFullness on the photo.
+ */
+export const FACE_FULLNESS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Hollow" },
+  { value: 2, label: "Thinner" },
+  { value: 3, label: "Same" },
+  { value: 4, label: "Fuller" },
+  { value: 5, label: "Very full" },
+];
+
+export function faceFullnessLabel(value: number | undefined): string | null {
+  if (value == null) return null;
+  return FACE_FULLNESS_OPTIONS.find((o) => o.value === value)?.label ?? null;
+}
+
 /** Which week of the protocol we're in (1-based), for the "PROGRESS · WK n" pill. */
 export function progressWeekNumber(startDate: string | undefined, now: Date): number {
   if (!startDate) return 1;

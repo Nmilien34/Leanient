@@ -5,9 +5,17 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockMedicationProtocol } from "../../mocks/home";
-import { POSES, progressWeekNumber, type Pose } from "./progressPhotoMeta";
+import type { ProgressPhotoKind } from "@leanient/shared";
+import { FACE_FULLNESS_OPTIONS, POSES, progressWeekNumber, type Pose } from "./progressPhotoMeta";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+
+/** What a capture reports back: the framing, whether it's a body or face check, and the rating. */
+export interface CaptureMeta {
+  pose: Pose;
+  kind: ProgressPhotoKind;
+  faceFullness?: number;
+}
 
 const DARK = "#100F0C";
 
@@ -79,10 +87,22 @@ function PoseSilhouette({ pose }: { pose: Pose }) {
   );
 }
 
+/** Head-and-shoulders oval the user centers their face in for a face check. */
+function FaceSilhouette() {
+  return (
+    <Svg width={210} height={300} viewBox="0 0 210 300" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2.5}>
+      <Path d="M105 22c40 0 60 34 60 84 0 54-30 96-60 96s-60-42-60-96c0-50 20-84 60-84z" fill="rgba(255,255,255,0.16)" />
+      <Path d="M30 300c8-44 38-66 75-66s67 22 75 66" fill="none" />
+    </Svg>
+  );
+}
+
 interface ProgressPhotoScreenProps {
   visible: boolean;
   onClose: () => void;
-  onCaptured?: (uri: string, pose: Pose) => Promise<void>;
+  /** "body" progress photo (back camera, pose tabs) or a "face" check (front camera, fullness step). */
+  mode?: ProgressPhotoKind;
+  onCaptured?: (uri: string, meta: CaptureMeta) => Promise<void>;
   onGallery?: () => void;
 }
 
@@ -91,11 +111,12 @@ interface ProgressPhotoScreenProps {
  * Side / Back, line up with the outline, optionally use the 3s self-timer, and
  * shoot. The week label comes from the protocol start date.
  */
-export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }: ProgressPhotoScreenProps) {
+export function ProgressPhotoScreen({ visible, onClose, mode = "body", onCaptured, onGallery }: ProgressPhotoScreenProps) {
   const data = useLeanientData();
   const medication = data.medicationProtocol ?? mockMedicationProtocol;
   const now = useRef(new Date()).current;
   const week = progressWeekNumber(medication?.startDate, now);
+  const isFace = mode === "face";
 
   const [permission, requestPermission] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
@@ -103,6 +124,8 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
   const [timerOn, setTimerOn] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
+  // Face checks pause on a fullness rating after the shot before saving.
+  const [pendingFaceUri, setPendingFaceUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
@@ -140,6 +163,7 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
     if (!visible) {
       setTorch(false);
       setCount(null);
+      setPendingFaceUri(null);
       if (countdownRef.current) clearInterval(countdownRef.current);
     }
   }, [visible]);
@@ -153,7 +177,13 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
     setCapturing(true);
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.8 });
-      if (photo?.uri) await onCaptured?.(photo.uri, pose);
+      if (!photo?.uri) return;
+      if (isFace) {
+        // Hold the shot and ask how the face feels before saving.
+        setPendingFaceUri(photo.uri);
+      } else {
+        await onCaptured?.(photo.uri, { pose, kind: "body" });
+      }
     } catch {
       // no camera (e.g. web preview) — ignore
     } finally {
@@ -161,8 +191,15 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
     }
   };
 
+  const saveFaceCheck = (faceFullness?: number) => {
+    const uri = pendingFaceUri;
+    if (!uri) return;
+    setPendingFaceUri(null);
+    void onCaptured?.(uri, { pose: "Front", kind: "face", faceFullness });
+  };
+
   const onShutter = () => {
-    if (capturing || count !== null) return;
+    if (capturing || count !== null || pendingFaceUri) return;
     if (!timerOn) {
       void doCapture();
       return;
@@ -214,7 +251,7 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
     <View style={styles.cam}>
       <StatusBar style="light" />
       <View style={styles.feed}>
-        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} />
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={isFace ? "front" : "back"} enableTorch={torch} />
 
         {/* top bar */}
         <View style={styles.camTop}>
@@ -222,42 +259,48 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
             <CloseIcon />
           </Pressable>
           <View style={styles.weekPill}>
-            <Text style={styles.weekPillText}>PROGRESS · WK {week}</Text>
+            <Text style={styles.weekPillText}>{isFace ? "FACE CHECK" : "PROGRESS"} · WK {week}</Text>
           </View>
           <Pressable accessibilityLabel="Toggle flash" onPress={() => setTorch((t) => !t)} style={styles.camIc}>
             <FlashIcon on={torch} />
           </Pressable>
         </View>
 
-        {/* pose tabs */}
-        <View style={styles.poseBar}>
-          {POSES.map((p) => {
-            const on = p === pose;
-            return (
-              <Pressable key={p} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${p} pose`} onPress={() => setPose(p)} style={[styles.poseTab, on && styles.poseTabOn]}>
-                <Text style={[styles.poseText, on && styles.poseTextOn]}>{p}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* pose tabs — body framings only; a face check is a single front framing */}
+        {isFace ? null : (
+          <View style={styles.poseBar}>
+            {POSES.map((p) => {
+              const on = p === pose;
+              return (
+                <Pressable key={p} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${p} pose`} onPress={() => setPose(p)} style={[styles.poseTab, on && styles.poseTabOn]}>
+                  <Text style={[styles.poseText, on && styles.poseTextOn]}>{p}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
-        {/* pose silhouette — turns to mirror the selected framing */}
+        {/* alignment guide */}
         <View style={styles.silhouette} pointerEvents="none">
-          <Animated.View
-            style={{
-              transform: [
-                { perspective: 900 },
-                {
-                  rotateY: spin.interpolate({
-                    inputRange: [-1, 0, 1],
-                    outputRange: ["-90deg", "0deg", "90deg"],
-                  }),
-                },
-              ],
-            }}
-          >
-            <PoseSilhouette pose={displayedPose} />
-          </Animated.View>
+          {isFace ? (
+            <FaceSilhouette />
+          ) : (
+            <Animated.View
+              style={{
+                transform: [
+                  { perspective: 900 },
+                  {
+                    rotateY: spin.interpolate({
+                      inputRange: [-1, 0, 1],
+                      outputRange: ["-90deg", "0deg", "90deg"],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <PoseSilhouette pose={displayedPose} />
+            </Animated.View>
+          )}
         </View>
 
         {/* countdown overlay */}
@@ -267,8 +310,36 @@ export function ProgressPhotoScreen({ visible, onClose, onCaptured, onGallery }:
           </View>
         ) : null}
 
-        <Text style={styles.hint}>Line up with the outline. Same spot, same light each week.</Text>
+        <Text style={styles.hint}>
+          {isFace
+            ? "Center your face in the oval. Same light each week."
+            : "Line up with the outline. Same spot, same light each week."}
+        </Text>
       </View>
+
+      {/* face-check fullness rating */}
+      {pendingFaceUri ? (
+        <View style={styles.fullness}>
+          <Text style={styles.fullnessTitle}>How full does your face feel this week?</Text>
+          <View style={styles.fullnessRow}>
+            {FACE_FULLNESS_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt.value}
+                accessibilityRole="button"
+                accessibilityLabel={opt.label}
+                onPress={() => saveFaceCheck(opt.value)}
+                style={styles.fullnessOpt}
+              >
+                <Text style={styles.fullnessNum}>{opt.value}</Text>
+                <Text style={styles.fullnessLabel}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Skip rating" onPress={() => saveFaceCheck(undefined)} style={styles.fullnessSkip}>
+            <Text style={styles.fullnessSkipText}>Save without rating</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* controls */}
       <View style={styles.ctrls}>
@@ -310,6 +381,15 @@ const styles = StyleSheet.create({
   timerTextOn: { color: colors.emeraldHi },
   shutter: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff", borderWidth: 4, borderColor: DARK },
   privacy: { backgroundColor: DARK, paddingBottom: 30, textAlign: "center", color: "rgba(255,255,255,0.6)", fontFamily: font.semibold, fontSize: 13 },
+  // face-check fullness rating
+  fullness: { ...StyleSheet.absoluteFillObject, zIndex: 6, backgroundColor: "rgba(16,15,12,0.82)", alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  fullnessTitle: { fontFamily: font.extrabold, fontSize: 21, letterSpacing: -0.5, color: "#fff", textAlign: "center", marginBottom: 22 },
+  fullnessRow: { flexDirection: "row", gap: 8, alignSelf: "stretch", justifyContent: "center" },
+  fullnessOpt: { flex: 1, maxWidth: 70, aspectRatio: 0.78, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.10)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", gap: 6 },
+  fullnessNum: { fontFamily: font.extrabold, fontSize: 20, color: colors.emeraldHi },
+  fullnessLabel: { fontFamily: font.semibold, fontSize: 10.5, color: "rgba(255,255,255,0.85)", textAlign: "center", paddingHorizontal: 2 },
+  fullnessSkip: { marginTop: 22, paddingVertical: 12 },
+  fullnessSkipText: { fontFamily: font.medium, fontSize: 14, color: "rgba(255,255,255,0.6)" },
   // permission gate
   gate: { ...StyleSheet.absoluteFillObject, backgroundColor: DARK, zIndex: 100, alignItems: "center", justifyContent: "center", padding: 28 },
   gateClose: { position: "absolute", top: 50, left: 18 },

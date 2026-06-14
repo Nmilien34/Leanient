@@ -22,9 +22,19 @@ export function AddPhotoThumb({ onPress }: { onPress?: () => void }) {
  * A progress-photo thumbnail. Renders the actual photo (`uri`) when available
  * for that week; otherwise a labelled placeholder (e.g. upload still pending).
  */
-export function ProgressPhotoThumb({ uri, label, onPress }: { uri?: string; label: string; onPress?: () => void }) {
+export function ProgressPhotoThumb({
+  uri,
+  label,
+  sublabel,
+  onPress,
+}: {
+  uri?: string;
+  label: string;
+  sublabel?: string;
+  onPress?: () => void;
+}) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Photo ${label}`} onPress={onPress} style={styles.thumb}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Photo ${label}${sublabel ? `, ${sublabel}` : ""}`} onPress={onPress} style={styles.thumb}>
       {uri ? (
         <Image source={{ uri }} style={styles.img} resizeMode="cover" />
       ) : (
@@ -32,6 +42,7 @@ export function ProgressPhotoThumb({ uri, label, onPress }: { uri?: string; labe
       )}
       <LinearGradient colors={["transparent", "rgba(12,16,11,0.55)"]} style={styles.labelStrip}>
         <Text style={styles.label}>{label}</Text>
+        {sublabel ? <Text style={styles.sublabel}>{sublabel}</Text> : null}
       </LinearGradient>
     </Pressable>
   );
@@ -52,8 +63,9 @@ const styles = StyleSheet.create({
   img: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
   add: { borderStyle: "dashed", borderColor: colors.faintest, backgroundColor: colors.card, gap: 6 },
   addText: { fontFamily: font.semibold, fontSize: 10, color: colors.muted },
-  labelStrip: { position: "absolute", left: 0, right: 0, bottom: 0, height: 30, justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 6 },
+  labelStrip: { position: "absolute", left: 0, right: 0, bottom: 0, height: 38, justifyContent: "flex-end", paddingHorizontal: 8, paddingBottom: 6 },
   label: { fontFamily: font.bold, fontSize: 11, color: "#FFFFFF" },
+  sublabel: { fontFamily: font.semibold, fontSize: 9.5, color: "rgba(255,255,255,0.85)" },
 });
 
 export default ProgressPhotoThumb;

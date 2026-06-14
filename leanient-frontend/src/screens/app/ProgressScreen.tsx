@@ -31,6 +31,8 @@ import {
   muscleKeptStreak,
   type ChartRangeId,
 } from "./progressMetrics";
+import { buildFaceProgress } from "./faceProgress";
+import { faceFullnessLabel } from "./progressPhotoMeta";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -87,7 +89,7 @@ function RangeToggle({ value, onChange }: { value: ChartRangeId; onChange: (next
 export function ProgressScreen() {
   const auth = useAuth();
   const data = useLeanientData();
-  const { openProgressPhoto } = useQuickActions();
+  const { openProgressPhoto, openFaceCheck } = useQuickActions();
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
   const [coachOpen, setCoachOpen] = useState(false);
@@ -165,7 +167,8 @@ export function ProgressScreen() {
     isLoading: data.isLoading || data.isRefreshing,
     hasError: !!(data.progressPhotosError ?? data.homeError),
   });
-  const photos = data.progressPhotos.slice().sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1));
+  const allPhotos = data.progressPhotos.slice().sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1));
+  const photos = allPhotos.filter((p) => p.kind !== "face");
   const photosState = resolveSectionState({
     hasData: photos.length > 0,
     isLoading: data.isLoading || data.isRefreshing,
@@ -180,6 +183,8 @@ export function ProgressScreen() {
     medication
       ? Math.max(1, Math.floor((daysSince(medication.startDate, now) - daysSince(captureDate, now)) / 7) + 1)
       : null;
+
+  const faceProgress = buildFaceProgress(allPhotos, weekOf);
 
   const openWorkoutHistory = () => {
     setWorkoutHistoryOpen(true);
@@ -384,6 +389,27 @@ export function ProgressScreen() {
               ) : null}
             </>
           )}
+
+          {/* face progress — the honest Ozempic-face signal */}
+          <View style={styles.libHead}>
+            <Text style={styles.libTitle}>Face progress</Text>
+            {faceProgress?.latestFullness != null ? (
+              <Text style={styles.faceMeta}>{faceFullnessLabel(faceProgress.latestFullness)}</Text>
+            ) : null}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
+            <AddPhotoThumb onPress={openFaceCheck} />
+            {faceProgress?.photos.map((p) => (
+              <ProgressPhotoThumb key={p.id} uri={p.viewUrl} label={p.weekLabel} sublabel={p.fullnessLabel ?? undefined} />
+            ))}
+          </ScrollView>
+          {faceProgress?.trend ? (
+            <Text style={styles.faceTrend}>{faceProgress.trend}</Text>
+          ) : (
+            <Text style={styles.faceTrend}>
+              Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
+            </Text>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -459,6 +485,8 @@ const styles = StyleSheet.create({
   // photos
   libHead: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
   libTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
+  faceMeta: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep, marginTop: 2 },
+  faceTrend: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, paddingHorizontal: 20, paddingTop: 10 },
   ptl: { gap: 9, paddingHorizontal: 20, paddingTop: 2 },
 });
 
