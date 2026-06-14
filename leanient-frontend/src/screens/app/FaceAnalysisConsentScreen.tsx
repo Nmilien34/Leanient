@@ -37,10 +37,12 @@ const stroke = (children: React.ReactNode) => (
 );
 
 /**
- * Phase 2 consent gate for on-device facial-volume analysis. Facial photos are
+ * Phase 2 consent gate for on-device facial-volume analysis. Facial geometry is
  * biometric data, so measurement is strictly opt-in: this screen states plainly
- * what is measured, that it runs on the device and never leaves it, and lets the
- * user revoke at any time. Consent is recorded server-side with a timestamp.
+ * what is measured, that the analysis runs on the device and the measurements
+ * never leave it (the face-check photo is stored like other progress photos),
+ * and lets the user revoke at any time. Consent is recorded server-side with a
+ * timestamp; revoking clears the on-device measurements.
  */
 export function FaceAnalysisConsentScreen({ visible, onClose }: FaceAnalysisConsentScreenProps) {
   const auth = useAuth();
@@ -91,7 +93,7 @@ export function FaceAnalysisConsentScreen({ visible, onClose }: FaceAnalysisCons
               </LinearGradient>
               <Text style={styles.h1}>Track your facial volume, on your device</Text>
               <Text style={styles.sub}>
-                The honest read on "Ozempic face". Strictly optional, and nothing about your face leaves your phone.
+                The honest read on "Ozempic face". Strictly optional, and the analysis runs entirely on your phone.
               </Text>
             </View>
 
@@ -103,8 +105,8 @@ export function FaceAnalysisConsentScreen({ visible, onClose }: FaceAnalysisCons
               />
               <Bullet
                 icon={stroke(<><Path d="M7 11V8a5 5 0 0 1 10 0v3" /><Path d="M5 11h14v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" /></>)}
-                title="It stays on your phone"
-                body="Measurements run entirely on your device. Your face photos and the measurements are never uploaded or sent to our servers."
+                title="Measurements stay on your phone"
+                body="The analysis runs on your device, and the facial measurements are never uploaded to our servers. Your face-check photo is stored privately with your progress photos, where you can delete it anytime."
               />
               <Bullet
                 icon={stroke(<><Path d="M3 12h4l2 5 4-13 2 8h4" /></>)}
