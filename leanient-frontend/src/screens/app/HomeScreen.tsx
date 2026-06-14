@@ -304,11 +304,17 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           {scope === "today" ? (
             /* ---- Today scope: daily, shot-cycle re-skin (screen 15) ---- */
             <>
-              <StaggeredReveal index={0}>
+              {verdictBreakdown ? (
+                <StaggeredReveal index={0}>
+                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
+              <StaggeredReveal index={1}>
                 <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} onAction={() => setTodayPlanOpen(true)} />
               </StaggeredReveal>
 
-              <StaggeredReveal index={1}>
+              <StaggeredReveal index={2}>
                 <View style={styles.rings}>
                   <MetricRing
                     ratio={today.protein.ratio}
@@ -342,21 +348,15 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </View>
               </StaggeredReveal>
 
-              {verdictBreakdown ? (
-                <StaggeredReveal index={2}>
-                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+              {todayPlan ? (
+                <StaggeredReveal index={3}>
+                  <TodayPlanCard plan={todayPlan} onPress={() => setTodayPlanOpen(true)} />
                 </StaggeredReveal>
               ) : null}
 
               {bodyComp ? (
-                <StaggeredReveal index={2}>
+                <StaggeredReveal index={4}>
                   <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
-                </StaggeredReveal>
-              ) : null}
-
-              {todayPlan ? (
-                <StaggeredReveal index={3}>
-                  <TodayPlanCard plan={todayPlan} onPress={() => setTodayPlanOpen(true)} />
                 </StaggeredReveal>
               ) : null}
 
