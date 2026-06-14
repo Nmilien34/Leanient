@@ -83,6 +83,8 @@ export interface LeanientDataContextValue {
   todaysMeals: MealLog[];
   /** Meal logs for the week `now` falls in; feeds the weekly protein ring. */
   weekMeals: MealLog[];
+  /** ~20 weeks of dose logs, for the dose-to-protein insight. */
+  doseHistory: DoseLog[];
   todaysWorkouts: WorkoutLog[];
   recentDoseLogs: DoseLog[];
   progressOverview: ProgressOverviewResponse | null;
@@ -155,6 +157,7 @@ export function LeanientDataProvider({
   const [weekMeals, setWeekMeals] = useState<MealLog[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutLog[]>([]);
   const [recentDoseLogs, setRecentDoseLogs] = useState<DoseLog[]>([]);
+  const [doseHistory, setDoseHistory] = useState<DoseLog[]>([]);
   const [progressOverview, setProgressOverview] = useState<ProgressOverviewResponse | null>(null);
   const [trainingToday, setTrainingToday] = useState<TrainingTodayResponse | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -229,6 +232,9 @@ export function LeanientDataProvider({
         setHomeError(null);
         const now = new Date();
         const today = now.toISOString();
+        // ~20 weeks of dose history, enough to find the last titration step-up
+        // and line it up against the ~12 weeks of retention snapshots.
+        const doseHistoryFrom = new Date(now.getTime() - 140 * 86_400_000).toISOString();
         const [
           nextProfile,
           nextProtocol,
@@ -240,6 +246,7 @@ export function LeanientDataProvider({
           nextWeekMeals,
           nextWorkouts,
           nextDoses,
+          nextDoseHistory,
           nextProgressOverview,
           nextTrainingToday,
         ] = await Promise.allSettled([
@@ -253,6 +260,7 @@ export function LeanientDataProvider({
           retryOnce(() => api.getMealLogs(weekRange(now))),
           retryOnce(() => api.getWorkoutLogs({ recordedAt: today })),
           retryOnce(() => api.getDoseLogs()),
+          retryOnce(() => api.getDoseLogs({ from: doseHistoryFrom })),
           retryOnce(() => api.getProgressOverview()),
           retryOnce(() => api.getTrainingToday()),
         ]);
@@ -268,6 +276,7 @@ export function LeanientDataProvider({
           nextWeekMeals,
           nextWorkouts,
           nextDoses,
+          nextDoseHistory,
           nextProgressOverview,
           nextTrainingToday,
         ].find((result) => result.status === "rejected");
@@ -289,6 +298,7 @@ export function LeanientDataProvider({
         if (nextWeekMeals.status === "fulfilled") setWeekMeals(nextWeekMeals.value);
         if (nextWorkouts.status === "fulfilled") setTodaysWorkouts(nextWorkouts.value);
         if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
+        if (nextDoseHistory.status === "fulfilled") setDoseHistory(nextDoseHistory.value);
         if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
         if (nextTrainingToday.status === "fulfilled") setTrainingToday(nextTrainingToday.value);
       }),
@@ -384,6 +394,7 @@ export function LeanientDataProvider({
       weekMeals,
       todaysWorkouts,
       recentDoseLogs,
+      doseHistory,
       progressOverview,
       trainingToday,
       workouts,
@@ -416,6 +427,7 @@ export function LeanientDataProvider({
       progressOverview,
       progressPhotos,
       recentDoseLogs,
+      doseHistory,
       recommendedWorkouts,
       refreshProgress,
       refreshHomeData,

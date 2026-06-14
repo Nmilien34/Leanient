@@ -20,6 +20,7 @@ import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing
 import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
+import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
@@ -47,6 +48,7 @@ import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHis
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
+import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -146,6 +148,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const verdictBreakdown = useMemo(
     () => buildVerdictBreakdown(data.progressOverview?.chart.snapshots ?? []),
     [data.progressOverview?.chart.snapshots],
+  );
+
+  // How protein adherence moved since the last dose increase — the dose's effect
+  // on the muscle story. Null until there's a step-up with data on both sides.
+  const doseProteinInsight = useMemo(
+    () =>
+      buildDoseProteinInsight({
+        doseLogs: data.doseHistory,
+        snapshots: data.progressOverview?.chart.snapshots ?? [],
+        now,
+      }),
+    [data.doseHistory, data.progressOverview?.chart.snapshots, now],
   );
 
   // Sessions for the weekly plan come straight from the live recommendations.
@@ -491,6 +505,13 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   </View>
                 </View>
               </StaggeredReveal>
+
+              {/* dose → protein connection (only when there's a recent dose increase to read) */}
+              {doseProteinInsight ? (
+                <StaggeredReveal index={5}>
+                  <DoseProteinCard insight={doseProteinInsight} />
+                </StaggeredReveal>
+              ) : null}
 
               {/* dose history — preview the latest few; full list on its own screen */}
               {recentDoses.length > 0 ? (
