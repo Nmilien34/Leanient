@@ -19,6 +19,7 @@ import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
 import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
+import { GettingStartedCard } from "../../components/app/GettingStartedCard";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
@@ -49,6 +50,7 @@ import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
+import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -90,7 +92,7 @@ interface HomeViewProps {
 function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const navigation = useNavigation();
-  const { openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
+  const { openQuickLog, openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("today");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
@@ -149,6 +151,25 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     () => buildVerdictBreakdown(data.progressOverview?.chart.snapshots ?? []),
     [data.progressOverview?.chart.snapshots],
   );
+
+  // First-run guide shown in place of the score until the engine has one, so a
+  // brand-new user understands why it's empty and what to do about it.
+  const gettingStarted = useMemo(
+    () =>
+      buildGettingStarted({
+        hasScore: verdictBreakdown != null,
+        weightLogged: weightLogs.length > 0,
+        mealLoggedToday: today.loggedMeals.length > 0,
+        workoutDoneToday: today.session.done > 0,
+      }),
+    [verdictBreakdown, weightLogs.length, today.loggedMeals.length, today.session.done],
+  );
+
+  const handleGettingStartedStep = (key: GettingStartedKey) => {
+    if (key === "meal") openMealLog();
+    else if (key === "workout") startWorkout();
+    else openQuickLog(); // weight lives in the quick-log sheet
+  };
 
   // How protein adherence moved since the last dose increase — the dose's effect
   // on the muscle story. Null until there's a step-up with data on both sides.
@@ -307,6 +328,10 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               {verdictBreakdown ? (
                 <StaggeredReveal index={0}>
                   <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : gettingStarted ? (
+                <StaggeredReveal index={0}>
+                  <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
                 </StaggeredReveal>
               ) : null}
 
