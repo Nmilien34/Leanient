@@ -38,6 +38,7 @@ import { DoseHistoryScreen } from "./DoseHistoryScreen";
 import { DoseDetailScreen } from "./DoseDetailScreen";
 import { MealDetailScreen } from "./MealDetailScreen";
 import { TargetsScreen } from "./TargetsScreen";
+import { MedicationScreen } from "./MedicationScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
@@ -86,6 +87,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("week");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
+  const [medScheduleOpen, setMedScheduleOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [targetsOpen, setTargetsOpen] = useState(false);
@@ -295,6 +297,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                       }
                       value={today.nextShot.label}
                       label="Next shot"
+                      accessibilityLabel="Edit dose schedule"
+                      onPress={() => setMedScheduleOpen(true)}
                     />
                   ) : (
                     <TrendTile
@@ -431,14 +435,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                     <Text style={styles.mk}>NEXT DOSE</Text>
                     <Text style={styles.mv}>{dose.nextLabel}</Text>
                   </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Log dose"
-                    style={styles.mlogWrap}
-                    onPress={openDoseLog}
-                  >
-                    <Text style={styles.mlog}>Log dose ›</Text>
-                  </Pressable>
+                  <View style={styles.mActions}>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Log dose" onPress={openDoseLog}>
+                      <Text style={styles.mlog}>Log dose ›</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit dose schedule"
+                      onPress={() => setMedScheduleOpen(true)}
+                    >
+                      <Text style={styles.medit}>Edit schedule ›</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </StaggeredReveal>
 
@@ -625,6 +633,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         medicationName={medication?.medicationName}
         onClose={() => setSelectedDose(null)}
       />
+      <MedicationScreen visible={medScheduleOpen} startInEdit onClose={() => setMedScheduleOpen(false)} />
       <MealDetailScreen
         visible={selectedMealId !== null}
         meal={data.todaysMeals.find((m) => m.id === selectedMealId) ?? null}
@@ -751,8 +760,9 @@ const styles = StyleSheet.create({
   mk: { fontFamily: font.semibold, fontSize: 11, letterSpacing: 0.33, color: colors.faint },
   mv: { fontFamily: font.semibold, fontSize: 14, color: colors.ink, marginTop: 1 },
   mdiv: { width: 1, height: 26, backgroundColor: colors.line },
-  mlogWrap: { marginLeft: "auto" },
+  mActions: { marginLeft: "auto", alignItems: "flex-end", gap: 7 },
   mlog: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep },
+  medit: { fontFamily: font.semibold, fontSize: 13, color: colors.faint },
   // dose history
   doseHist: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassLine, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 16 },
   doseHistTitle: { fontFamily: font.semibold, fontSize: 11, letterSpacing: 0.33, color: colors.faint, paddingTop: 8, paddingBottom: 4 },

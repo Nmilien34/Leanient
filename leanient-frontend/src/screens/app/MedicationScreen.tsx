@@ -50,6 +50,12 @@ function TitrationChip({ step }: { step: TitrationStep }) {
 interface MedicationScreenProps {
   visible: boolean;
   onClose: () => void;
+  /**
+   * Open straight into the edit sheet (the Today-tab entry points use this).
+   * In this mode, closing the sheet dismisses the whole screen, so it behaves
+   * like a focused "edit schedule" editor instead of the settings overview.
+   */
+  startInEdit?: boolean;
 }
 
 /**
@@ -58,7 +64,7 @@ interface MedicationScreenProps {
  * protocol via `deriveMedication`. "Edit schedule" opens an in-screen sheet that
  * persists shot day + dose via `patchMedicationProtocol`.
  */
-export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
+export function MedicationScreen({ visible, onClose, startInEdit = false }: MedicationScreenProps) {
   const auth = useAuth();
   const data = useLeanientData();
   const refreshedForUserRef = React.useRef<string | null>(null);
@@ -76,6 +82,7 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const sheet = React.useRef(new Animated.Value(0)).current;
+  const autoEditedRef = React.useRef(false);
 
   const toggleShotDay = (day: Weekday) => {
     setShotDaysInput((current) =>
@@ -92,7 +99,11 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
   };
   const closeEdit = () => {
     if (saving) return;
-    Animated.timing(sheet, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => setEditing(false));
+    Animated.timing(sheet, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
+      setEditing(false);
+      // In focused-edit mode the sheet IS the screen, so dismiss back to Home.
+      if (startInEdit) onClose();
+    });
   };
   const saveEdit = async () => {
     if (saving) return;
@@ -128,7 +139,10 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
         refresh: () => data.refreshHomeData(),
       });
       setSaving(false);
-      Animated.timing(sheet, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => setEditing(false));
+      Animated.timing(sheet, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
+        setEditing(false);
+        if (startInEdit) onClose();
+      });
     } catch (e) {
       setError(extractApiError(e).message);
       setSaving(false);
@@ -145,6 +159,20 @@ export function MedicationScreen({ visible, onClose }: MedicationScreenProps) {
     refreshedForUserRef.current = userId;
     void data.refreshMedicationCatalog();
   }, [auth.user?.id, data.refreshMedicationCatalog, visible]);
+
+  // Today-tab entry points open straight into the edit sheet. Reset the latch
+  // when the screen closes so reopening re-triggers it.
+  React.useEffect(() => {
+    if (!visible) {
+      autoEditedRef.current = false;
+      return;
+    }
+    if (startInEdit && !autoEditedRef.current) {
+      autoEditedRef.current = true;
+      openEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openEdit reopens the sheet on identity change; gate on visible + startInEdit only
+  }, [visible, startInEdit]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>

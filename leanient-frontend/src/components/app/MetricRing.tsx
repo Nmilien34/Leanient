@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Polyline } from "react-native-svg";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -94,17 +94,38 @@ interface InfoTileProps {
   icon: ReactNode;
   value: string;
   label: string;
+  /** When set the tile becomes a button; a chevron on the label hints at it. */
+  onPress?: () => void;
+  accessibilityLabel?: string;
 }
 
 /** A metric tile with a custom icon instead of a ring (e.g. next-shot countdown). */
-export function InfoTile({ icon, value, label }: InfoTileProps) {
-  return (
-    <View style={styles.tile}>
+export function InfoTile({ icon, value, label, onPress, accessibilityLabel }: InfoTileProps) {
+  const inner = (
+    <>
       <View style={styles.infoIcon}>{icon}</View>
       <Text style={styles.value}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
-    </View>
+      <View style={styles.infoLabelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {onPress ? <Text style={styles.infoChevron}>›</Text> : null}
+      </View>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        onPress={onPress}
+        style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.tile}>{inner}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -125,8 +146,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     elevation: 2,
   },
+  tilePressed: { opacity: 0.6 },
   value: { fontFamily: font.bold, fontSize: 13, color: colors.ink, textAlign: "center" },
   label: { fontFamily: font.medium, fontSize: 11, color: colors.muted },
+  infoLabelRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  infoChevron: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep, marginTop: -1 },
   infoIcon: { height: 46, alignItems: "center", justifyContent: "center" },
 });
 
