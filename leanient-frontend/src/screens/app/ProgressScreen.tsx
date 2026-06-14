@@ -35,6 +35,8 @@ import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
 import { faceConsentState } from "./faceConsent";
 import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
+import { buildFaceVolumeTrend, type FaceMetric } from "./faceMetrics";
+import { loadFaceMetrics } from "./faceMetricsStore";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -98,6 +100,7 @@ export function ProgressScreen() {
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [faceConsentOpen, setFaceConsentOpen] = useState(false);
+  const [faceMetrics, setFaceMetrics] = useState<FaceMetric[]>([]);
   const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false);
   const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
   const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
@@ -189,6 +192,24 @@ export function ProgressScreen() {
 
   const faceProgress = buildFaceProgress(allPhotos, weekOf);
   const faceConsent = faceConsentState(auth.user);
+  const volumeTrend = buildFaceVolumeTrend(faceMetrics);
+
+  // Load on-device facial measurements (local only) when tracking is on. Re-run
+  // when a new face check lands (photo count changes) or consent flips.
+  const userId = auth.user?.id;
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId || !faceConsent.enabled) {
+      setFaceMetrics([]);
+      return;
+    }
+    void loadFaceMetrics(userId).then((metrics) => {
+      if (!cancelled) setFaceMetrics(metrics);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, faceConsent.enabled, allPhotos.length]);
 
   const openWorkoutHistory = () => {
     setWorkoutHistoryOpen(true);
@@ -415,6 +436,17 @@ export function ProgressScreen() {
             </Text>
           )}
 
+          {/* on-device facial-volume measurement (only when tracking is on) */}
+          {faceConsent.enabled && volumeTrend ? (
+            <View style={styles.volCard}>
+              <View style={styles.volTop}>
+                <Text style={styles.volLabel}>FACIAL VOLUME · on-device</Text>
+                <Text style={styles.volIndex}>{volumeTrend.latestIndex}</Text>
+              </View>
+              <Text style={styles.volLine}>{volumeTrend.line}</Text>
+            </View>
+          ) : null}
+
           {/* on-device facial-volume tracking (opt-in) */}
           <Pressable
             accessibilityRole="button"
@@ -523,6 +555,11 @@ const styles = StyleSheet.create({
   trackTitle: { fontFamily: font.bold, fontSize: 14.5, color: colors.ink },
   trackSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
   trackChev: { fontFamily: font.semibold, fontSize: 18, color: colors.faint },
+  volCard: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 16 },
+  volTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  volLabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.6, color: colors.emeraldDeep },
+  volIndex: { fontFamily: font.extrabold, fontSize: 22, letterSpacing: -0.5, color: colors.ink },
+  volLine: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, marginTop: 6 },
   ptl: { gap: 9, paddingHorizontal: 20, paddingTop: 2 },
 });
 

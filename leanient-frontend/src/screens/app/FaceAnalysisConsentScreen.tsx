@@ -9,6 +9,7 @@ import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import apiService from "../../services/api.service";
 import { extractApiError } from "../../services/apiError";
 import { faceConsentState } from "./faceConsent";
+import { clearFaceMetrics } from "./faceMetricsStore";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -52,6 +53,10 @@ export function FaceAnalysisConsentScreen({ visible, onClose }: FaceAnalysisCons
     try {
       const user = await apiService.setFaceAnalysisConsent(granted);
       await auth.updateCachedUser(user);
+      // Turning it off removes the on-device measurements too, so nothing lingers.
+      if (!granted && user.id) {
+        await clearFaceMetrics(user.id).catch(() => {});
+      }
       onClose();
     } catch (error) {
       Alert.alert("Couldn't update", extractApiError(error).message);

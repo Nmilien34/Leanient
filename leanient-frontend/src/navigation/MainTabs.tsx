@@ -24,6 +24,10 @@ import { ProfileScreen } from "../screens/app/ProfileScreen";
 import { CoachChatScreen } from "../screens/app/CoachChatScreen";
 import { SubscriptionScreen } from "../screens/app/SubscriptionScreen";
 import { useLeanientData } from "../context/LeanientDataContext";
+import { useAuth } from "../context/AuthContext";
+import { runFaceMetricCapture } from "../screens/app/faceMetricsCapture";
+import { detectFaceLandmarks } from "../screens/app/faceLandmarks";
+import { saveFaceMetric } from "../screens/app/faceMetricsStore";
 import { mockRecommendedWorkout } from "../mocks/workouts";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "../screens/app/workoutCompleteMetrics";
 import type { CompletedWorkout } from "../screens/app/workoutSession";
@@ -78,6 +82,7 @@ function buildMealLogFromScan(
 /** Bottom-tab navigator with the custom TabBar + the quick-log sheet + meal camera. */
 export function MainTabs() {
   const data = useLeanientData();
+  const auth = useAuth();
   const guidedWorkout = data.recommendedWorkouts[0] ?? mockRecommendedWorkout;
   const [logOpen, setLogOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -166,6 +171,22 @@ export function MainTabs() {
       faceFullness: meta?.faceFullness,
     });
     await data.refreshProgressPhotos();
+  };
+
+  // On-device facial measurement, gated on consent. Best-effort and never
+  // blocks the photo save; it stays entirely on the device.
+  const captureFaceMetric = async (uri: string) => {
+    const user = auth.user;
+    if (!user) return;
+    await runFaceMetricCapture({
+      userId: user.id,
+      uri,
+      captureDate: todayDateOnly(),
+      computedAt: new Date().toISOString(),
+      consentGranted: Boolean(user.faceAnalysisConsentAt),
+      detect: detectFaceLandmarks,
+      persist: saveFaceMetric,
+    });
   };
 
   const pickAndUploadProgressPhoto = async () => {
@@ -347,6 +368,9 @@ export function MainTabs() {
                 kind: captureMeta.kind,
                 faceFullness: captureMeta.faceFullness,
               });
+              if (captureMeta.kind === "face") {
+                await captureFaceMetric(uri);
+              }
             },
             () => setPhotoOpen(false),
           )
