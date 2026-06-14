@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { CountUpText } from "../ui/CountUpText";
 import type { VerdictBreakdown } from "../../screens/app/verdictBreakdown";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -45,7 +46,7 @@ export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProp
         <View>
           <Text style={styles.eyebrow}>MUSCLE RETENTION</Text>
           <View style={styles.scoreRow}>
-            <Text style={styles.score}>{view.retention}</Text>
+            <CountUpText value={view.retention} style={styles.score} />
             <Text style={styles.scoreMax}>/ 100</Text>
           </View>
         </View>
@@ -62,7 +63,7 @@ export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProp
       <View style={styles.components}>
         {view.components.map((c) => (
           <View key={c.key} style={styles.comp}>
-            <Text style={[styles.compScore, { color: scoreColor(c.score) }]}>{c.score}</Text>
+            <CountUpText value={c.score} style={[styles.compScore, { color: scoreColor(c.score) }]} />
             <Text style={styles.compLabel}>{c.label}</Text>
           </View>
         ))}

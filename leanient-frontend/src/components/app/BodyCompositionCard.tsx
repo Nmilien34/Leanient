@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { CountUpText } from "../ui/CountUpText";
 import type { BodyCompositionView } from "../../screens/app/bodyComp";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -34,7 +35,7 @@ export function BodyCompositionCard({ view, onPress }: BodyCompositionCardProps)
       </View>
 
       <View style={styles.totalRow}>
-        <Text style={styles.total}>{view.totalLostLb} lb</Text>
+        <CountUpText value={view.totalLostLb} decimals={1} suffix=" lb" style={styles.total} />
         <Text style={styles.totalSub}>{view.context}</Text>
       </View>
 
