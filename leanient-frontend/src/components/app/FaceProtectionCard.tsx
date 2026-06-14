@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { CountUpText } from "../ui/CountUpText";
 import type { FaceProtectionSignal } from "../../screens/app/faceProtection";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -39,11 +40,11 @@ export function FaceProtectionCard({ signal }: FaceProtectionCardProps) {
 
       <View style={styles.factors}>
         <View style={styles.factor}>
-          <Text style={styles.factorScore}>{signal.proteinScore}</Text>
+          <CountUpText value={signal.proteinScore} style={styles.factorScore} />
           <Text style={styles.factorLabel}>Protein</Text>
         </View>
         <View style={styles.factor}>
-          <Text style={styles.factorScore}>{signal.paceScore}</Text>
+          <CountUpText value={signal.paceScore} style={styles.factorScore} />
           <Text style={styles.factorLabel}>Loss pace</Text>
         </View>
       </View>

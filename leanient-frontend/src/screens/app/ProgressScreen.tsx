@@ -36,6 +36,7 @@ import { isFaceDetectionAvailable } from "./faceLandmarks";
 import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
 import { buildFaceProtectionSignal } from "./faceProtection";
 import { FaceProtectionCard } from "../../components/app/FaceProtectionCard";
+import { CountUpText } from "../../components/ui/CountUpText";
 import { buildFaceVolumeTrend, type FaceMetric } from "./faceMetrics";
 import { loadFaceMetrics } from "./faceMetricsStore";
 import { colors } from "../../theme/tokens";
@@ -357,7 +358,7 @@ export function ProgressScreen() {
                 <View style={styles.volCard}>
                   <View style={styles.volTop}>
                     <Text style={styles.volLabel}>FACIAL VOLUME · on-device</Text>
-                    <Text style={styles.volIndex}>{volumeTrend.latestIndex}</Text>
+                    <CountUpText value={volumeTrend.latestIndex} style={styles.volIndex} />
                   </View>
                   <Text style={styles.volLine}>{volumeTrend.line}</Text>
                 </View>

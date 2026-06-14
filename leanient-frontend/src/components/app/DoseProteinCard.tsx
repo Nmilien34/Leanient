@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { CountUpText } from "../ui/CountUpText";
 import type { DoseProteinInsight } from "../../screens/app/doseProteinInsight";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -32,14 +33,14 @@ export function DoseProteinCard({ insight }: DoseProteinCardProps) {
 
       <View style={styles.compareRow}>
         <View style={styles.stat}>
-          <Text style={styles.statPct}>{insight.beforePct}%</Text>
+          <CountUpText value={insight.beforePct} suffix="%" style={styles.statPct} />
           <Text style={styles.statLabel}>before</Text>
         </View>
         <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M5 12h14M13 6l6 6-6 6" />
         </Svg>
         <View style={styles.stat}>
-          <Text style={[styles.statPct, { color: accent }]}>{insight.afterPct}%</Text>
+          <CountUpText value={insight.afterPct} suffix="%" style={[styles.statPct, { color: accent }]} />
           <Text style={styles.statLabel}>since {insight.toDose} {insight.doseUnit}</Text>
         </View>
       </View>
