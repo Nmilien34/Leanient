@@ -35,6 +35,8 @@ import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
 import { faceConsentState } from "./faceConsent";
 import { FaceAnalysisConsentScreen } from "./FaceAnalysisConsentScreen";
+import { buildFaceProtectionSignal } from "./faceProtection";
+import { FaceProtectionCard } from "../../components/app/FaceProtectionCard";
 import { buildFaceVolumeTrend, type FaceMetric } from "./faceMetrics";
 import { loadFaceMetrics } from "./faceMetricsStore";
 import { colors } from "../../theme/tokens";
@@ -191,6 +193,7 @@ export function ProgressScreen() {
       : null;
 
   const faceProgress = buildFaceProgress(allPhotos, weekOf);
+  const faceProtection = buildFaceProtectionSignal(snapshots);
   const faceConsent = faceConsentState(auth.user);
   const volumeTrend = buildFaceVolumeTrend(faceMetrics);
 
@@ -422,6 +425,9 @@ export function ProgressScreen() {
               <Text style={styles.faceMeta}>{faceFullnessLabel(faceProgress.latestFullness)}</Text>
             ) : null}
           </View>
+
+          {/* behavioral protection signal — works with zero photos */}
+          {faceProtection ? <FaceProtectionCard signal={faceProtection} /> : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
             <AddPhotoThumb onPress={openFaceCheck} />
             {faceProgress?.photos.map((p) => (
