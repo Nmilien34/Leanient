@@ -40,15 +40,11 @@ interface PlanStep {
   expandedContent?: ReactNode;
 }
 
-function DoneBadge() {
-  return (
-    <View style={styles.doneBadge}>
-      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M5 12.5l5 5 9-11" />
-      </Svg>
-    </View>
-  );
-}
+const checkMark = (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M5 12.5l5 5 9-11" />
+  </Svg>
+);
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -65,12 +61,15 @@ function StepRow({
   step,
   isFirst,
   isLast,
+  prevDone,
   expanded,
   onToggle,
 }: {
   step: PlanStep;
   isFirst: boolean;
   isLast: boolean;
+  /** Whether the step above this one is complete (colors the incoming trail). */
+  prevDone: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -82,17 +81,17 @@ function StepRow({
   const header = (
     <View style={styles.row}>
       <View style={styles.rail}>
-        {isFirst ? null : <View style={[styles.line, styles.lineTop]} />}
-        {showBottom ? <View style={[styles.line, styles.lineBottom]} /> : null}
-        <View style={[styles.node, step.amber ? styles.nodeAmber : null]}>{step.icon}</View>
+        {isFirst ? null : <View style={[styles.line, styles.lineTop, prevDone && styles.lineDone]} />}
+        {showBottom ? <View style={[styles.line, styles.lineBottom, step.done && styles.lineDone]} /> : null}
+        <View style={[styles.node, step.done ? styles.nodeDone : step.amber ? styles.nodeAmber : null]}>{step.done ? checkMark : step.icon}</View>
       </View>
       <View style={styles.body}>
         <Text style={[styles.rowTitle, step.done ? styles.rowTitleDone : null]}>{step.title}</Text>
         <Text style={styles.rowSub}>{step.sub}</Text>
       </View>
       <View style={styles.trailing}>
-        {step.done ? <DoneBadge /> : step.trailing ? <Text style={styles.trailingPct}>{step.trailing}</Text> : null}
-        {expandable ? <Chevron open={expanded} /> : step.onPress ? <Text style={styles.chev}>›</Text> : null}
+        {!step.done && step.trailing ? <Text style={styles.trailingPct}>{step.trailing}</Text> : null}
+        {expandable ? <Chevron open={expanded} /> : !step.done && step.onPress ? <Text style={styles.chev}>›</Text> : null}
       </View>
     </View>
   );
@@ -117,7 +116,7 @@ function StepRow({
 
       {expandable && expanded ? (
         <View style={styles.expandRow}>
-          <View style={styles.railSpacer}>{isLast ? null : <View style={[styles.line, styles.lineFull]} />}</View>
+          <View style={styles.railSpacer}>{isLast ? null : <View style={[styles.line, styles.lineFull, step.done && styles.lineDone]} />}</View>
           <View style={styles.panel}>{step.expandedContent}</View>
         </View>
       ) : null}
@@ -218,6 +217,7 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
           step={step}
           isFirst={i === 0}
           isLast={i === steps.length - 1}
+          prevDone={i > 0 && steps[i - 1].done}
           expanded={openKey === step.key}
           onToggle={() => toggle(step.key)}
         />
@@ -242,8 +242,10 @@ const styles = StyleSheet.create({
   lineTop: { top: 0, height: "50%" },
   lineBottom: { top: "50%", bottom: 0 },
   lineFull: { top: 0, bottom: 0 },
+  lineDone: { backgroundColor: colors.emerald },
   node: { width: NODE, height: NODE, borderRadius: 11, backgroundColor: "#E7F4EC", alignItems: "center", justifyContent: "center" },
   nodeAmber: { backgroundColor: "#F7ECDB" },
+  nodeDone: { backgroundColor: colors.emerald },
   body: { flex: 1, paddingVertical: 11, justifyContent: "center" },
   rowTitle: { fontFamily: font.bold, fontSize: 14.5, color: colors.ink, letterSpacing: -0.15 },
   rowTitleDone: { color: colors.faint, textDecorationLine: "line-through" },
@@ -251,7 +253,6 @@ const styles = StyleSheet.create({
   trailing: { flexDirection: "row", alignItems: "center", gap: 7, alignSelf: "center" },
   trailingPct: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep },
   chev: { fontFamily: font.semibold, fontSize: 19, color: colors.faint },
-  doneBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.emerald, alignItems: "center", justifyContent: "center" },
   expandRow: { flexDirection: "row", gap: 12 },
   railSpacer: { width: NODE, alignItems: "center", position: "relative" },
   panel: { flex: 1, paddingBottom: 12, paddingTop: 2 },
