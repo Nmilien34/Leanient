@@ -9,6 +9,8 @@ import { useNavigation } from "@react-navigation/native";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { LineChart } from "../../components/app/LineChart";
+import { ProjectedPathCard } from "../../components/app/ProjectedPathCard";
+import { buildProjectedPath } from "./projectedPath";
 import { AddPhotoThumb, ProgressPhotoThumb } from "../../components/app/ProgressPhotoThumb";
 import { SkeletonCard } from "../../components/app/LoadingSkeleton";
 import { ErrorState } from "../../components/app/ErrorState";
@@ -186,6 +188,22 @@ export function ProgressScreen() {
   const { points: weightPoints, unit, startWeight, todayWeight, lost } = weightChart;
   const { points: retentionPoints } = retentionChart;
 
+  // Cold start: while there's no retention data yet, draw the road ahead instead
+  // of a blank chart — the projected weight path to goal + the muscle at stake.
+  const projectedPath = useMemo(() => {
+    const current = weightLogs.length ? weightLogs[weightLogs.length - 1].value : null;
+    if (current == null || !profile?.goalWeight) return null;
+    return buildProjectedPath({
+      currentWeight: current,
+      goalWeight: profile.goalWeight,
+      goalWeightUnit: profile.goalWeightUnit,
+      goalPace: profile.goalPace,
+      medicationName: medName,
+      now,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is a per-render Date
+  }, [weightLogs, profile?.goalWeight, profile?.goalWeightUnit, profile?.goalPace, medName]);
+
   const weekOf = (captureDate: string) =>
     medication
       ? Math.max(1, Math.floor((daysSince(medication.startDate, now) - daysSince(captureDate, now)) / 7) + 1)
@@ -269,11 +287,15 @@ export function ProgressScreen() {
           ) : retentionState === "error" ? (
             <ErrorState onRetry={() => void data.refreshProgress()} style={styles.cardGap} />
           ) : retentionState === "empty" ? (
-            <EmptyState
-              title="Muscle retention is gathering"
-              message="Your first weekly check-in starts this chart. Log meals and workouts to begin."
-              style={styles.cardGap}
-            />
+            projectedPath ? (
+              <ProjectedPathCard path={projectedPath} style={styles.cardGap} />
+            ) : (
+              <EmptyState
+                title="Muscle retention is gathering"
+                message="Your first weekly check-in starts this chart. Log meals and workouts to begin."
+                style={styles.cardGap}
+              />
+            )
           ) : (
             <View style={styles.chartcard}>
               <View style={styles.ctitle}>

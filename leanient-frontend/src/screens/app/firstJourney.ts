@@ -45,10 +45,10 @@ const FEAR_LINE: Record<string, string> = {
 
 const DEFAULT_FEAR_LINE = "Most GLP-1 plans only watch the scale. We watch the muscle underneath it.";
 
-type DrugClass = "semaglutide" | "tirzepatide" | "liraglutide";
+export type DrugClass = "semaglutide" | "tirzepatide" | "liraglutide";
 
 /** Map a brand or generic name to its molecule (for drug-aware framing). */
-function classifyDrug(name?: string | null): DrugClass | null {
+export function classifyDrug(name?: string | null): DrugClass | null {
   const n = (name ?? "").toLowerCase();
   if (!n) return null;
   if (/semaglutide|ozempic|wegovy|rybelsus/.test(n)) return "semaglutide";
@@ -67,6 +67,13 @@ function stakeStatFor(drug: DrugClass | null): string {
   if (drug === "semaglutide") return "~40%";
   if (drug === "tirzepatide") return "~25%";
   return "25–40%";
+}
+
+/** Numeric lean-mass-of-loss fraction for math (e.g. the projected muscle at risk). */
+export function leanFractionFor(drug: DrugClass | null): number {
+  if (drug === "semaglutide") return 0.4;
+  if (drug === "tirzepatide") return 0.25;
+  return 0.33; // hedged midpoint of the 25–40% range
 }
 
 export function buildFirstJourney(args: {
