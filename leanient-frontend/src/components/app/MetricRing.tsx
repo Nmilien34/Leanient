@@ -94,17 +94,24 @@ interface InfoTileProps {
   icon: ReactNode;
   value: string;
   label: string;
+  /** Small emphasis pill under the value (e.g. the dose "1.7 mg"). */
+  badge?: string;
   /** When set the tile becomes a button; a chevron on the label hints at it. */
   onPress?: () => void;
   accessibilityLabel?: string;
 }
 
 /** A metric tile with a custom icon instead of a ring (e.g. next-shot countdown). */
-export function InfoTile({ icon, value, label, onPress, accessibilityLabel }: InfoTileProps) {
+export function InfoTile({ icon, value, label, badge, onPress, accessibilityLabel }: InfoTileProps) {
   const inner = (
     <>
       <View style={styles.infoIcon}>{icon}</View>
       <Text style={styles.value}>{value}</Text>
+      {badge ? (
+        <View style={styles.infoBadge}>
+          <Text style={styles.infoBadgeText}>{badge}</Text>
+        </View>
+      ) : null}
       <View style={styles.infoLabelRow}>
         <Text style={styles.label}>{label}</Text>
         {onPress ? <Text style={styles.infoChevron}>›</Text> : null}
@@ -149,6 +156,8 @@ const styles = StyleSheet.create({
   tilePressed: { opacity: 0.6 },
   value: { fontFamily: font.bold, fontSize: 13, color: colors.ink, textAlign: "center" },
   label: { fontFamily: font.medium, fontSize: 11, color: colors.muted },
+  infoBadge: { backgroundColor: "rgba(47,184,122,0.12)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: -2 },
+  infoBadgeText: { fontFamily: font.extrabold, fontSize: 12, letterSpacing: -0.2, color: colors.emeraldDeep },
   infoLabelRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   infoChevron: { fontFamily: font.semibold, fontSize: 13, color: colors.emeraldDeep, marginTop: -1 },
   infoIcon: { height: 46, alignItems: "center", justifyContent: "center" },

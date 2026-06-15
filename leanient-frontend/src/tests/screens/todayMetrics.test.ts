@@ -34,7 +34,7 @@ describe("deriveTodayView", () => {
     expect(today.hero.tone).toBe("on_track");
     expect(today.hero.actionLabel).toBe("See today's plan");
     expect(today.contextLabel).toBe("Tuesday, Jun 2 · Day 44 on Wegovy");
-    expect(today.nextShot).toEqual({ label: "in 5 days", onProtocol: true });
+    expect(today.nextShot).toEqual({ label: "in 5 days", onProtocol: true, dose: "1 mg" });
   });
 
   it("derives daily protein from the day's meals and the profile target", () => {

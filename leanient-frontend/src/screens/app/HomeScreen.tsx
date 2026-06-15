@@ -388,8 +388,9 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                         </Svg>
                       }
                       value={today.nextShot.label}
+                      badge={today.nextShot.dose}
                       label="Next shot"
-                      accessibilityLabel="Edit dose schedule"
+                      accessibilityLabel={`Next shot ${today.nextShot.label}${today.nextShot.dose ? `, ${today.nextShot.dose}` : ""}. Edit dose schedule`}
                       onPress={() => setMedScheduleOpen(true)}
                     />
                   ) : (

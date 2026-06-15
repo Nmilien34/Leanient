@@ -83,7 +83,7 @@ export interface TodayView {
   protein: { logged: number; target: number; ratio: number };
   session: { done: number; target: number; ratio: number };
   /** Next-dose countdown tile; hidden when the user isn't on a protocol. */
-  nextShot: { label: string; onProtocol: boolean };
+  nextShot: { label: string; onProtocol: boolean; dose?: string };
   loggedMeals: TodayLog["meals"];
   /** Derived hydration/fiber line under the logged list; null when unknown. */
   derivedLine: string | null;
@@ -239,6 +239,7 @@ export function deriveTodayView(args: {
     nextShot = {
       label: cycle.daysUntilNext === 0 ? "Today" : `in ${plural(cycle.daysUntilNext, "day")}`,
       onProtocol: true,
+      dose: medication.doseAmount != null ? `${medication.doseAmount} ${medication.doseUnit ?? "mg"}` : undefined,
     };
   }
 
