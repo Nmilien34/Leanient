@@ -21,6 +21,7 @@ import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
 import { GettingStartedCard } from "../../components/app/GettingStartedCard";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
+import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
@@ -457,9 +458,16 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} />
               </StaggeredReveal>
 
+              {/* quantify the verdict right under it (its own "Why this score" affordance) */}
+              {verdict.status !== "no_data" && verdictBreakdown ? (
+                <StaggeredReveal index={1}>
+                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
               {/* metric rings */}
               {verdict.status !== "no_data" ? (
-                <StaggeredReveal index={1}>
+                <StaggeredReveal index={2}>
                   <View style={styles.rings}>
                     <MetricRing
                       ratio={protein.ratio}
@@ -480,22 +488,15 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </StaggeredReveal>
               ) : null}
 
-              {verdict.status !== "no_data" && verdictBreakdown ? (
-                <StaggeredReveal index={2}>
-                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
-                </StaggeredReveal>
-              ) : null}
-
+              {/* this week's plan as the same journey as Today */}
               {verdict.status !== "no_data" ? (
                 <StaggeredReveal index={3}>
-                  <Pressable
-                    style={styles.whylinkWrap}
-                    accessibilityRole="button"
-                    accessibilityLabel="Why this verdict?"
-                    onPress={() => setExplainerOpen(true)}
-                  >
-                    <Text style={styles.whylink}>Why this verdict?</Text>
-                  </Pressable>
+                  <WeekPlanCard
+                    plan={weekPlan}
+                    onLogMeal={openMealScan}
+                    onStartWorkout={() => startWorkout()}
+                    onDetail={() => setPlanOpen(true)}
+                  />
                 </StaggeredReveal>
               ) : null}
 
