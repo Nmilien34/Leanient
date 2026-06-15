@@ -200,3 +200,50 @@ body { font-family: 'Geist', -apple-system, sans-serif; }
   position: absolute; z-index: 5; bottom: 60px; left: 0; right: 0;
   text-align: center; font-size: 26px; font-weight: 600; color: #9A9B95; letter-spacing: 0.5px;
 }
+
+/* =====================================================
+   NEW (2026-06) — redesigned Home/Progress components
+   ===================================================== */
+
+/* slim shot-aware verdict (Today scope) */
+.vcard.slim { padding: 18px; border-radius: 20px; box-shadow: 0 8px 18px rgba(23,25,27,0.06); }
+.vcard.slim .vhead { font-size: 23px; line-height: 27px; letter-spacing: -0.6px; margin-top: 10px; }
+.vcard.slim .vmsg  { font-size: 13.5px; line-height: 19px; margin-top: 7px; }
+.pill.amber { color: #C8843A; background: rgba(227,166,94,0.16); }
+.pill.amber .dot { background: #E3A65E; }
+
+/* dose badge on a metric tile */
+.tbadge { font-size: 12px; font-weight: 800; letter-spacing: -0.2px; color: #1F9E63;
+  background: rgba(47,184,122,0.12); border-radius: 8px; padding: 2px 8px; }
+
+/* today's plan — journey timeline card */
+.plan { margin: 12px 20px 0; background: #FCFCFA; border: 1px solid #E4E3DD; border-radius: 20px;
+  padding: 16px; box-shadow: 0 8px 18px rgba(23,25,27,0.06); }
+.phead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.phead .pe { font-size: 11px; font-weight: 700; letter-spacing: 0.77px; color: #6E6F6A; }
+.phead .pd { font-size: 12.5px; font-weight: 600; color: #1F9E63; }
+.pstep { display: flex; gap: 12px; align-items: stretch; }
+.prail { width: 34px; position: relative; display: flex; align-items: center; justify-content: center; }
+.pline { position: absolute; width: 2px; left: 16px; background: #D7E2DA; }
+.pline.top { top: 0; height: 50%; }
+.pline.bot { top: 50%; bottom: 0; }
+.pline.done { background: #2FB87A; }
+.pnode { width: 34px; height: 34px; border-radius: 11px; background: #E7F4EC; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center; }
+.pnode.amber { background: #F7ECDB; }
+.pnode.done  { background: #2FB87A; }
+.pbody { flex: 1; padding: 11px 0; align-self: center; }
+.pbody b { display: block; font-size: 14.5px; font-weight: 700; letter-spacing: -0.15px; color: #17191B; }
+.pbody.done b { color: #B7B7B0; text-decoration: line-through; }
+.pbody span { display: block; margin-top: 1px; font-size: 12.5px; line-height: 17px; color: #6E6F6A; }
+.ptrail { display: flex; align-items: center; gap: 7px; align-self: center; }
+.ptrail .pct  { font-size: 13px; font-weight: 700; color: #1F9E63; }
+.ptrail .pchev { font-size: 19px; font-weight: 600; color: #CBCBC4; }
+.pcoach { font-size: 12.5px; font-weight: 500; line-height: 18px; color: #3D3F3B;
+  margin-top: 10px; border-top: 1px solid #ECECE6; padding-top: 12px; }
+
+/* body-composition "muscle protected" badge (Progress) */
+.protect { display: flex; align-items: center; gap: 8px; margin-top: 13px;
+  background: rgba(47,184,122,0.10); border-radius: 12px; padding: 9px 11px; }
+.protect span { font-size: 12.5px; line-height: 17px; color: #6E6F6A; }
+.protect span b { font-weight: 800; color: #1F9E63; }

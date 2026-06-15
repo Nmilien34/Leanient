@@ -9,7 +9,7 @@
   <div class="head">
     <div class="eyebrow">The scale only tells half the story</div>
     <h1>Track lean mass,<br>not just weight.</h1>
-    <div class="sub">A weekly verdict on <strong>whether the weight you're losing is fat or muscle</strong> — and what to do about it.</div>
+    <div class="sub">See <strong>how much muscle you've protected</strong> — measured against the average for your exact medication.</div>
   </div>
 
   <div class="stage" style="top:880px">
@@ -30,69 +30,56 @@
         <span class="avatar">N</span>
       </div>
 
-      <div class="vcard" style="padding:18px 18px 14px">
+      <!-- body composition with drug-aware muscle-protected badge -->
+      <div class="vcard" style="padding:16px;box-shadow:0 8px 18px rgba(23,25,27,0.06)">
+        <div style="display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2 5 4-13 2 8h4"/></svg>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.77px;color:#1F9E63">BODY COMPOSITION</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px">
+          <span style="font-size:30px;font-weight:800;letter-spacing:-0.9px;color:#17191B">14.2 lb</span>
+          <span style="font-size:13px;color:#6E6F6A">lost over 9 weeks</span>
+        </div>
+        <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:14px;background:#F0C079">
+          <div style="background:#2FB87A;height:14px;width:74%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:11px">
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6E6F6A"><i style="width:8px;height:8px;border-radius:2px;background:#2FB87A;display:inline-block"></i>Fat <b style="color:#17191B">10.5 lb</b></span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6E6F6A"><i style="width:8px;height:8px;border-radius:2px;background:#F0C079;display:inline-block"></i>Muscle <b style="color:#17191B">3.7 lb</b></span>
+        </div>
+        <div class="protect">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z"/><path d="M9 11.5l2 2 4-4.5"/></svg>
+          <span><b>~2.0 lb of muscle protected</b> vs the Ozempic average</span>
+        </div>
+        <div style="font-size:13px;line-height:19px;color:#6E6F6A;margin-top:13px;border-top:1px solid #ECECE6;padding-top:12px"><b style="color:#17191B">74% of your loss has been fat.</b> On Ozempic, about 5.7 lb of that would usually be muscle. You've held it to 3.7 — roughly 2.0 lb protected.</div>
+      </div>
+
+      <!-- muscle retention trend -->
+      <div class="vcard" style="margin-top:12px;padding:18px 18px 14px;box-shadow:0 8px 18px rgba(23,25,27,0.06)">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:16px;font-weight:700;letter-spacing:-0.16px;color:#17191B">Muscle retention</div>
           <span class="pill"><span class="dot"></span>HOLDING</span>
         </div>
-        <svg width="100%" height="120" viewBox="0 0 318 120" style="margin-top:12px">
-          <line x1="0" y1="30" x2="318" y2="30" stroke="#E4E3DD" stroke-dasharray="3 4"/>
-          <line x1="0" y1="70" x2="318" y2="70" stroke="#ECECE6" stroke-dasharray="3 4"/>
+        <svg width="100%" height="116" viewBox="0 0 318 116" style="margin-top:12px">
+          <line x1="0" y1="28" x2="318" y2="28" stroke="#E4E3DD" stroke-dasharray="3 4"/>
+          <line x1="0" y1="66" x2="318" y2="66" stroke="#ECECE6" stroke-dasharray="3 4"/>
           <path d="M10 44 L54 40 L98 50 L142 72 L186 48 L230 38 L274 34 L308 30" fill="none" stroke="#2FB87A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="10" cy="44" r="4.5" fill="#2FB87A"/><circle cx="54" cy="40" r="4.5" fill="#2FB87A"/><circle cx="98" cy="50" r="4.5" fill="#2FB87A"/><circle cx="142" cy="72" r="4.5" fill="#E3A65E"/><circle cx="186" cy="48" r="4.5" fill="#2FB87A"/><circle cx="230" cy="38" r="4.5" fill="#2FB87A"/><circle cx="274" cy="34" r="4.5" fill="#2FB87A"/>
           <circle cx="308" cy="30" r="6.5" fill="#2FB87A"/><circle cx="308" cy="30" r="11" fill="none" stroke="#2FB87A" opacity=".35" stroke-width="2"/>
-          <text x="10" y="108" font-family="Geist" font-size="10.5" font-weight="600" fill="#9A9B95">Wk 2</text>
-          <text x="142" y="108" font-family="Geist" font-size="10.5" font-weight="600" fill="#C8843A">Wk 5 · drifted</text>
-          <text x="276" y="108" font-family="Geist" font-size="10.5" font-weight="600" fill="#1F9E63">Wk 9</text>
+          <text x="10" y="106" font-family="Geist" font-size="10.5" font-weight="600" fill="#9A9B95">Wk 2</text>
+          <text x="142" y="106" font-family="Geist" font-size="10.5" font-weight="600" fill="#C8843A">Wk 5 · drifted</text>
+          <text x="276" y="106" font-family="Geist" font-size="10.5" font-weight="600" fill="#1F9E63">Wk 9</text>
         </svg>
         <div style="font-size:12.5px;line-height:17px;color:#6E6F6A;border-top:1px solid #ECECE6;padding-top:10px">Week 5 drifted — protein slipped on shot days. You fixed it in one week.</div>
-      </div>
-
-      <div class="vcard" style="margin-top:12px;padding:18px 18px 14px;box-shadow:0 8px 18px rgba(23,25,27,0.06)">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="font-size:16px;font-weight:700;letter-spacing:-0.16px;color:#17191B">Weight</div>
-          <div style="font-size:15px;font-weight:800;color:#1F9E63">−14.2 lb</div>
-        </div>
-        <svg width="100%" height="86" viewBox="0 0 318 86" style="margin-top:10px">
-          <defs><linearGradient id="wfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FB87A" stop-opacity=".18"/><stop offset="1" stop-color="#2FB87A" stop-opacity="0"/></linearGradient></defs>
-          <path d="M8 14 C60 18 90 30 140 42 C190 54 240 58 310 66 L310 86 L8 86 Z" fill="url(#wfill)"/>
-          <path d="M8 14 C60 18 90 30 140 42 C190 54 240 58 310 66" fill="none" stroke="#2FB87A" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="310" cy="66" r="5.5" fill="#2FB87A"/>
-          <text x="8" y="10" font-family="Geist" font-size="10.5" font-weight="600" fill="#9A9B95">212 lb</text>
-          <text x="262" y="56" font-family="Geist" font-size="10.5" font-weight="600" fill="#1F9E63">197.8 lb</text>
-        </svg>
-      </div>
-
-      <div class="ringrow" style="margin-top:12px">
-        <div class="tile">
-          <span class="tval" style="font-size:20px;letter-spacing:-0.5px">9 wks</span>
-          <span class="tlabel">streak</span>
-        </div>
-        <div class="tile">
-          <span class="tval" style="font-size:20px;letter-spacing:-0.5px">17 of 18</span>
-          <span class="tlabel">sessions done</span>
-        </div>
-        <div class="tile">
-          <span class="tval" style="font-size:20px;letter-spacing:-0.5px">~96%</span>
-          <span class="tlabel">est. lean mass kept</span>
-        </div>
-      </div>
-
-      <div class="seyebrow">THIS WEEK'S VERDICT</div>
-      <div class="focus">
-        <span class="ficon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>
-        </span>
-        <div><b>Keeping your muscle</b><span>Weight down 1.6 lb, strength steady, protein on target.</span></div>
       </div>
     </div></div>
   </div>
 
-  <div class="float" style="top:2180px;left:44px">
-    <span class="fi"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 9 11l3.5 3.5L20 6"/></svg></span>
-    <div>Fat down, muscle held<small>The trend that actually matters</small></div>
+  <div class="float" style="top:1700px;right:38px">
+    <span class="fi"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z"/><path d="M9 11.5l2 2 4-4.5"/></svg></span>
+    <div>~2 lb of muscle, kept<small>Measured against your med's average</small></div>
   </div>
-  <div class="float" style="top:905px;right:48px">
+  <div class="float" style="top:2450px;left:40px">
     <span class="fi amber"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
     <div>Catches drift early<small>One bad week never becomes four</small></div>
   </div>
