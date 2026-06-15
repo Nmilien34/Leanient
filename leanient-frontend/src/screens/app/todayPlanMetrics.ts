@@ -24,9 +24,27 @@ export interface TodayPlanSteady {
   subline: string;
 }
 
+/** A protein-forward meal idea, sized so a couple of them close the gap. */
+export interface EatSuggestion {
+  name: string; // "Grilled chicken bowl"
+  protein: number; // grams
+  calories: number;
+}
+
+export interface TodayPlanEat {
+  logged: number;
+  target: number;
+  remaining: number; // grams of protein left for the day
+  ratio: number;
+  pct: number;
+  subline: string;
+  /** Ideas to hit the remaining protein, tuned to today's appetite. */
+  suggestions: EatSuggestion[];
+}
+
 export interface TodayPlan {
   subtitle: string; // "Tuesday · Day 44 · 2 days after your shot"
-  eat: { logged: number; target: number; ratio: number; pct: number; subline: string };
+  eat: TodayPlanEat;
   move: TodayPlanMove | null;
   steady: TodayPlanSteady | null;
   coachLine: string;
@@ -39,6 +57,36 @@ const APPROX_GRAMS_PER_MEAL = 30;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const numberWord = (n: number) => (n >= 0 && n < NUMBER_WORD.length ? NUMBER_WORD[n] : String(n));
+
+/**
+ * Protein-forward meal ideas. `light` marks small, easy-to-stomach options that
+ * suit a quiet GLP-1 appetite; the rest lean on a bigger appetite window.
+ */
+const MEAL_IDEAS: Array<EatSuggestion & { light: boolean }> = [
+  { name: "Protein shake", protein: 30, calories: 160, light: true },
+  { name: "Greek yogurt + berries", protein: 20, calories: 180, light: true },
+  { name: "Cottage cheese + fruit", protein: 24, calories: 200, light: true },
+  { name: "Two eggs + turkey slices", protein: 26, calories: 290, light: false },
+  { name: "Tuna + whole-grain crackers", protein: 28, calories: 300, light: false },
+  { name: "Tofu + edamame stir-fry", protein: 24, calories: 280, light: false },
+  { name: "Salmon + greens", protein: 35, calories: 400, light: false },
+  { name: "Grilled chicken bowl", protein: 40, calories: 450, light: false },
+];
+
+/**
+ * Picks three meal ideas for the protein still owed today, tuned to appetite:
+ * low energy favors small, sippable options; a good window favors bigger
+ * protein hits to use the appetite while it's there.
+ */
+function eatSuggestions(remaining: number, energy: ShotEnergy): EatSuggestion[] {
+  if (remaining <= 0) return [];
+  const ranked = [...MEAL_IDEAS].sort((a, b) => {
+    if (energy === "low") return Number(b.light) - Number(a.light) || a.protein - b.protein;
+    if (energy === "good") return b.protein - a.protein;
+    return Math.abs(a.protein - 30) - Math.abs(b.protein - 30); // mid: middle-sized first
+  });
+  return ranked.slice(0, 3).map(({ name, protein, calories }) => ({ name, protein, calories }));
+}
 
 /** STEADY pillar advice — what the shot cycle asks of today. */
 function steadyAdvice(energy: ShotEnergy, nextShotDayName: string): { title: string; subline: string } {
@@ -123,7 +171,7 @@ export function deriveTodayPlan(args: {
 
   return {
     subtitle,
-    eat: { logged, target, ratio, pct: Math.round(ratio * 100), subline: eatSubline },
+    eat: { logged, target, remaining, ratio, pct: Math.round(ratio * 100), subline: eatSubline, suggestions: eatSuggestions(remaining, energy) },
     move,
     steady,
     coachLine: `Two protein meals and the ${sessionName}, and that's today won. I'll fold it into Sunday's verdict.`,
