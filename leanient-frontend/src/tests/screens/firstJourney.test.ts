@@ -15,6 +15,7 @@ describe("buildFirstJourney", () => {
       now,
     });
     expect(v.medLabel).toBe("Mounjaro");
+    expect(v.stakeStat).toBe("~25%"); // tirzepatide (SURMOUNT-1)
     expect(v.stakeCaption).toContain("Mounjaro");
     expect(v.startLabel).toBe("228 lb");
     expect(v.goalLabel).toBe("180 lb");
@@ -26,6 +27,8 @@ describe("buildFirstJourney", () => {
   it("falls back gracefully with no medication, weight, or fear", () => {
     const v = buildFirstJourney({ now });
     expect(v.medLabel).toBe("your GLP-1");
+    expect(v.stakeStat).toBe("25–40%"); // unknown drug → hedged range
+    expect(v.stakeCaption).toContain("GLP-1 medications");
     expect(v.startLabel).toBeNull();
     expect(v.goalLabel).toBeNull();
     expect(v.etaLabel).toBeNull();

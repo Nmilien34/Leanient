@@ -45,6 +45,30 @@ const FEAR_LINE: Record<string, string> = {
 
 const DEFAULT_FEAR_LINE = "Most GLP-1 plans only watch the scale. We watch the muscle underneath it.";
 
+type DrugClass = "semaglutide" | "tirzepatide" | "liraglutide";
+
+/** Map a brand or generic name to its molecule (for drug-aware framing). */
+function classifyDrug(name?: string | null): DrugClass | null {
+  const n = (name ?? "").toLowerCase();
+  if (!n) return null;
+  if (/semaglutide|ozempic|wegovy|rybelsus/.test(n)) return "semaglutide";
+  if (/tirzepatide|mounjaro|zepbound/.test(n)) return "tirzepatide";
+  if (/liraglutide|saxenda|victoza/.test(n)) return "liraglutide";
+  return null;
+}
+
+/**
+ * Share of lost weight that's typically lean mass, by drug — from DEXA trial
+ * data (see docs/glp1-clinical-reference.md). Semaglutide (STEP-1) runs higher
+ * than tirzepatide (SURMOUNT-1); unknown/unverified drugs fall back to the range.
+ * "~" and "usually" keep it honestly hedged.
+ */
+function stakeStatFor(drug: DrugClass | null): string {
+  if (drug === "semaglutide") return "~40%";
+  if (drug === "tirzepatide") return "~25%";
+  return "25–40%";
+}
+
 export function buildFirstJourney(args: {
   medicationName?: string | null;
   currentWeight?: number | null;
@@ -76,10 +100,12 @@ export function buildFirstJourney(args: {
     }
   }
 
+  const captionSubject = medicationName?.trim() ? medLabel : "GLP-1 medications";
+
   return {
     medLabel,
-    stakeStat: "25–40%",
-    stakeCaption: `of the weight people lose on ${medLabel} is usually muscle, not fat.`,
+    stakeStat: stakeStatFor(classifyDrug(medicationName)),
+    stakeCaption: `of the weight people lose on ${captionSubject} is usually muscle, not fat.`,
     fearLine: (biggestFear && FEAR_LINE[biggestFear]) || DEFAULT_FEAR_LINE,
     startLabel,
     goalLabel,
