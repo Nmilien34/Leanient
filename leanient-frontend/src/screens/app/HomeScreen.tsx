@@ -336,7 +336,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               ) : null}
 
               <StaggeredReveal index={1}>
-                <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} onAction={() => setTodayPlanOpen(true)} />
+                <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} compact />
               </StaggeredReveal>
 
               <StaggeredReveal index={2}>

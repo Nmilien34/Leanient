@@ -81,11 +81,17 @@ interface VerdictCardProps {
   onAction?: () => void;
   /** Compact variant (no context line, no action button) for the states grid. */
   mini?: boolean;
+  /**
+   * Slim full-width variant: smaller headline, lighter shadow, no action button.
+   * Used on Home's Today scope where it frames the day and the plan lives in its
+   * own card below, so the hero shouldn't compete with the data cards.
+   */
+  compact?: boolean;
   /** Drives the card from non-verdict data (e.g. the daily shot-cycle hero). */
   override?: VerdictCardOverride;
 }
 
-export function VerdictCard({ verdict, contextLabel, onAction, mini, override }: VerdictCardProps) {
+export function VerdictCard({ verdict, contextLabel, onAction, mini, compact, override }: VerdictCardProps) {
   const s = STATUS[override?.tone ?? verdict.status];
   const press = useRef(new Animated.Value(0)).current;
   const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
@@ -93,13 +99,13 @@ export function VerdictCard({ verdict, contextLabel, onAction, mini, override }:
   const headline = override?.headline ?? verdict.headline;
   const message = override?.message ?? verdict.message;
   const actionLabel = override?.actionLabel ?? ACTION_LABELS[verdict.nextActionCode] ?? "See this week's plan";
-  const showAction = shouldShowVerdictCardAction({ mini, onAction });
+  const showAction = !compact && shouldShowVerdictCardAction({ mini, onAction });
 
   return (
-    <View style={[styles.card, mini && styles.cardMini]}>
+    <View style={[styles.card, mini && styles.cardMini, compact && styles.cardCompact]}>
       {s.halo ? (
         <RadialGlow
-          size={mini ? 160 : 220}
+          size={mini || compact ? 160 : 220}
           position={{ top: -50, right: -40 }}
           stops={[
             { offset: 0, color: s.halo, opacity: 1 },
@@ -108,15 +114,15 @@ export function VerdictCard({ verdict, contextLabel, onAction, mini, override }:
         />
       ) : null}
 
-      {!mini && contextLabel ? <Text style={styles.ctx}>{contextLabel}</Text> : null}
+      {!mini && contextLabel ? <Text style={[styles.ctx, compact && styles.ctxCompact]}>{contextLabel}</Text> : null}
 
-      <View style={[styles.pill, mini && styles.pillMini, { backgroundColor: s.pillBg }]}>
+      <View style={[styles.pill, mini && styles.pillMini, compact && styles.pillCompact, { backgroundColor: s.pillBg }]}>
         <View style={[styles.dot, { backgroundColor: s.dot }]} />
         <Text style={[styles.pillText, { color: s.pillText }]}>{pillText}</Text>
       </View>
 
-      <Text style={[styles.head, mini && styles.headMini, { color: s.headColor }]}>{headline}</Text>
-      <Text style={[styles.reason, mini && styles.reasonMini]} numberOfLines={mini ? 3 : undefined}>
+      <Text style={[styles.head, mini && styles.headMini, compact && styles.headCompact, { color: s.headColor }]}>{headline}</Text>
+      <Text style={[styles.reason, mini && styles.reasonMini, compact && styles.reasonCompact]} numberOfLines={mini ? 3 : undefined}>
         {message}
       </Text>
 
@@ -157,7 +163,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   cardMini: { marginHorizontal: 0, marginTop: 0, flex: 1, padding: 15, paddingBottom: 16, borderRadius: 18 },
+  cardCompact: { padding: 18, paddingTop: 18, borderRadius: 20, shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
   ctx: { fontFamily: font.medium, fontSize: 13, color: colors.muted },
+  ctxCompact: { fontSize: 12 },
   pill: {
     flexDirection: "row",
     alignItems: "center",
@@ -169,6 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   pillMini: { marginTop: 0 },
+  pillCompact: { marginTop: 12 },
   dot: { width: 7, height: 7, borderRadius: 4 },
   pillText: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 0.8 },
   head: {
@@ -179,6 +188,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   headMini: { fontSize: 19, lineHeight: 22, letterSpacing: -0.57, marginTop: 10 },
+  headCompact: { fontSize: 23, lineHeight: 27, letterSpacing: -0.6, marginTop: 10 },
   reason: {
     fontFamily: font.regular,
     fontSize: 15,
@@ -187,6 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
   },
   reasonMini: { fontSize: 12, lineHeight: 16, marginTop: 8 },
+  reasonCompact: { fontSize: 13.5, lineHeight: 19, marginTop: 7 },
   btn: {
     height: 54,
     borderRadius: 27,
