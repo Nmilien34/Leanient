@@ -379,7 +379,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                     plan={todayPlan}
                     eatDone={today.protein.ratio >= 0.9}
                     moveDone={today.session.done > 0}
-                    onEat={openMealLog}
+                    onEat={openMealScan}
                     onMove={() => startWorkout()}
                     onDetail={() => setTodayPlanOpen(true)}
                   />
