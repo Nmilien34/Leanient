@@ -13,7 +13,9 @@ interface CountUpTextProps {
   accessibilityLabel?: string;
 }
 
-const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
+// Stronger ease-out than cubic: rises quickly, then settles slowly into the
+// final number so the count reads as smooth rather than abrupt.
+const easeOutQuart = (t: number): number => 1 - Math.pow(1 - t, 4);
 
 /**
  * Counts a number up to `value` on mount (and re-animates from the previous
@@ -22,7 +24,7 @@ const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
  */
 export function CountUpText({
   value,
-  durationMs = 900,
+  durationMs = 1600,
   decimals = 0,
   prefix = "",
   suffix = "",
@@ -44,7 +46,7 @@ export function CountUpText({
     const tick = (now: number) => {
       if (start === undefined) start = now;
       const t = Math.min(1, (now - start) / durationMs);
-      setDisplay(from + (to - from) * easeOutCubic(t));
+      setDisplay(from + (to - from) * easeOutQuart(t));
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
