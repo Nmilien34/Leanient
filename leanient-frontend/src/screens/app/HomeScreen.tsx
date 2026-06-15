@@ -20,6 +20,7 @@ import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing
 import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
 import { GettingStartedCard } from "../../components/app/GettingStartedCard";
+import { FirstJourneyCard } from "../../components/app/FirstJourneyCard";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
@@ -52,6 +53,7 @@ import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
+import { buildFirstJourney } from "./firstJourney";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -171,6 +173,24 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     else if (key === "workout") startWorkout();
     else openQuickLog(); // weight lives in the quick-log sheet
   };
+
+  // Cold-start "mirror moment" — only while the new user has no score. Reflects
+  // their drug, goal, and fear back so the empty app reads as understood, not blank.
+  const firstJourney = useMemo(
+    () =>
+      gettingStarted
+        ? buildFirstJourney({
+            medicationName: medication?.medicationName,
+            currentWeight: metrics.weight.current,
+            goalWeight: profile.goalWeight,
+            goalWeightUnit: profile.goalWeightUnit,
+            goalPace: profile.goalPace,
+            biggestFear: profile.biggestFear,
+            now,
+          })
+        : null,
+    [gettingStarted, medication, metrics.weight.current, profile, now],
+  );
 
   // How protein adherence moved since the last dose increase — the dose's effect
   // on the muscle story. Null until there's a step-up with data on both sides.
@@ -331,9 +351,16 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                   <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
                 </StaggeredReveal>
               ) : gettingStarted ? (
-                <StaggeredReveal index={0}>
-                  <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
-                </StaggeredReveal>
+                <>
+                  {firstJourney ? (
+                    <StaggeredReveal index={0}>
+                      <FirstJourneyCard view={firstJourney} />
+                    </StaggeredReveal>
+                  ) : null}
+                  <StaggeredReveal index={1}>
+                    <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
+                  </StaggeredReveal>
+                </>
               ) : null}
 
               <StaggeredReveal index={1}>
@@ -457,6 +484,20 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               <StaggeredReveal index={0}>
                 <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} />
               </StaggeredReveal>
+
+              {/* cold-start: fill the barren no-data week with the mirror + checklist */}
+              {gettingStarted ? (
+                <>
+                  {firstJourney ? (
+                    <StaggeredReveal index={1}>
+                      <FirstJourneyCard view={firstJourney} />
+                    </StaggeredReveal>
+                  ) : null}
+                  <StaggeredReveal index={2}>
+                    <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
+                  </StaggeredReveal>
+                </>
+              ) : null}
 
               {/* quantify the verdict right under it (its own "Why this score" affordance) */}
               {verdict.status !== "no_data" && verdictBreakdown ? (
