@@ -39,14 +39,29 @@ describe("buildBodyComposition", () => {
     expect(view!.context).toBe("12.4 lb lost over 8 weeks");
   });
 
-  it("frames a better-than-average split as ahead, and a worse one as a nudge", () => {
-    const ahead = buildBodyComposition(summary({ fatShareOfLossPct: 80 }));
+  it("frames a better-than-average split as muscle protected, and a worse one as a nudge", () => {
+    // Wegovy = semaglutide → ~40% baseline muscle share.
+    const ahead = buildBodyComposition(summary({ fatShareOfLossPct: 80 })); // 20% muscle < 40%
     expect(ahead!.aheadOfAverage).toBe(true);
-    expect(ahead!.comparison).toContain("Ahead of the GLP-1 average");
+    expect(ahead!.baselineMusclePct).toBe(40);
+    expect(ahead!.comparison).toContain("protected");
+    expect(ahead!.comparison).toContain("Wegovy");
 
-    const behind = buildBodyComposition(summary({ fatShareOfLossPct: 60 }));
+    const behind = buildBodyComposition(summary({ fatShareOfLossPct: 55 })); // 45% muscle > 40%
     expect(behind!.aheadOfAverage).toBe(false);
     expect(behind!.comparison).toContain("More protein");
+  });
+
+  it("sizes muscle protected against the drug's typical share", () => {
+    // 12.4 lb lost, semaglutide ~40% → ~5.0 lb typically muscle; actual 3.1 → ~1.9 protected.
+    const view = buildBodyComposition(summary({ fatShareOfLossPct: 80 }))!;
+    expect(view.typicalMuscleLostLb).toBe(5);
+    expect(view.protectedLb).toBe(1.9);
+
+    // Tirzepatide preserves better → lower baseline, so the same split clears a lower bar.
+    const tirz = buildBodyComposition(summary({ medicationName: "Mounjaro", fatShareOfLossPct: 80 }))!;
+    expect(tirz.baselineMusclePct).toBe(25);
+    expect(tirz.drugLabel).toBe("Mounjaro");
   });
 
   it("singularizes the week count", () => {

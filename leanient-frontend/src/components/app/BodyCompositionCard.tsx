@@ -59,6 +59,18 @@ export function BodyCompositionCard({ view, onPress }: BodyCompositionCardProps)
         </View>
       </View>
 
+      {view.aheadOfAverage && view.protectedLb >= 0.5 ? (
+        <View style={styles.protect}>
+          <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z" />
+            <Path d="M9 11.5l2 2 4-4.5" />
+          </Svg>
+          <Text style={styles.protectText}>
+            <Text style={styles.protectStrong}>~{view.protectedLb} lb of muscle protected</Text> vs the {view.drugLabel} average
+          </Text>
+        </View>
+      ) : null}
+
       <Text style={styles.story}>
         <Text style={styles.storyLead}>{view.headline}</Text> {view.comparison}
       </Text>
@@ -83,6 +95,9 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 2 },
   legendText: { fontFamily: font.medium, fontSize: 12.5, color: colors.muted },
   legendVal: { fontFamily: font.bold, color: colors.ink },
+  protect: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 13, backgroundColor: "rgba(47,184,122,0.10)", borderRadius: 12, paddingVertical: 9, paddingHorizontal: 11 },
+  protectText: { flex: 1, fontFamily: font.medium, fontSize: 12.5, lineHeight: 17, color: colors.muted },
+  protectStrong: { fontFamily: font.extrabold, color: colors.emeraldDeep },
   story: { fontFamily: font.regular, fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: 13, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 },
   storyLead: { fontFamily: font.bold, color: colors.ink },
   disc: { fontFamily: font.regular, fontSize: 11, color: colors.faint, marginTop: 8 },
