@@ -35,6 +35,19 @@ describe("buildGettingStarted", () => {
     expect(view.allDone).toBe(false);
   });
 
+  it("leads with the fear's anchor step and tailors its hint", () => {
+    const face = buildGettingStarted({ hasScore: false, weightLogged: false, mealLoggedToday: false, workoutDoneToday: false, biggestFear: "ozempic_face" })!;
+    expect(face.steps[0].key).toBe("meal");
+    expect(face.steps[0].hint).toContain("fullness in your face");
+
+    const muscle = buildGettingStarted({ hasScore: false, weightLogged: false, mealLoggedToday: false, workoutDoneToday: false, biggestFear: "losing_muscle" })!;
+    expect(muscle.steps[0].key).toBe("workout");
+
+    // Unknown/absent fear keeps the default order.
+    const dflt = buildGettingStarted({ hasScore: false, weightLogged: false, mealLoggedToday: false, workoutDoneToday: false, biggestFear: "something_else" })!;
+    expect(dflt.steps.map((s) => s.key)).toEqual(["weight", "meal", "workout"]);
+  });
+
   it("celebrates and points to the check-in once all steps are done", () => {
     const view = buildGettingStarted({
       hasScore: false,

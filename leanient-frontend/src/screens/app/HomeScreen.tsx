@@ -164,8 +164,9 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         weightLogged: weightLogs.length > 0,
         mealLoggedToday: today.loggedMeals.length > 0,
         workoutDoneToday: today.session.done > 0,
+        biggestFear: profile.biggestFear,
       }),
-    [verdictBreakdown, weightLogs.length, today.loggedMeals.length, today.session.done],
+    [verdictBreakdown, weightLogs.length, today.loggedMeals.length, today.session.done, profile.biggestFear],
   );
 
   const handleGettingStartedStep = (key: GettingStartedKey) => {
