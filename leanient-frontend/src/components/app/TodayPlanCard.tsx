@@ -132,7 +132,7 @@ function EatPanel({ remaining, suggestions, onScan }: { remaining: number; sugge
       <Text style={styles.panelGoal}>
         {remaining > 0 ? (
           <>
-            <Text style={styles.panelGoalNum}>{remaining}g</Text> protein left today — try one of these:
+            <Text style={styles.panelGoalNum}>{remaining}g</Text> protein left today. A few ideas — swap for whatever you've got:
           </>
         ) : (
           "You're at your protein goal. Anything more is a bonus."
@@ -141,9 +141,10 @@ function EatPanel({ remaining, suggestions, onScan }: { remaining: number; sugge
 
       {suggestions.map((s) => (
         <View key={s.name} style={styles.sugg}>
+          <View style={styles.suggDot} />
           <Text style={styles.suggName}>{s.name}</Text>
           <Text style={styles.suggMacros}>
-            <Text style={styles.suggProtein}>{s.protein}g</Text> · {s.calories} cal
+            <Text style={styles.suggProtein}>~{s.protein}g</Text> · ~{s.calories} cal
           </Text>
         </View>
       ))}
@@ -256,8 +257,9 @@ const styles = StyleSheet.create({
   panel: { flex: 1, paddingBottom: 12, paddingTop: 2 },
   panelGoal: { fontFamily: font.medium, fontSize: 12.5, lineHeight: 18, color: colors.muted, marginBottom: 8 },
   panelGoalNum: { fontFamily: font.extrabold, color: colors.emeraldDeep },
-  sugg: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line },
-  suggName: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink, flexShrink: 1, paddingRight: 10 },
+  sugg: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
+  suggDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#BFD6C7", marginRight: 9 },
+  suggName: { fontFamily: font.medium, fontSize: 13.5, color: colors.inkSoft, flex: 1, paddingRight: 10 },
   suggMacros: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted },
   suggProtein: { fontFamily: font.bold, color: colors.ink },
   scanBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, height: 44, borderRadius: 22, backgroundColor: colors.emeraldDeep },
