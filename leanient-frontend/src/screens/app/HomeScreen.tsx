@@ -21,6 +21,7 @@ import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
 import { GettingStartedCard } from "../../components/app/GettingStartedCard";
 import { FirstJourneyCard } from "../../components/app/FirstJourneyCard";
+import { HomeStateBanner } from "../../components/app/HomeStateBanner";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
@@ -54,6 +55,7 @@ import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
+import { resolveHomeLayout, daysSinceLatest, type HomeSection } from "./homeLayout";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { deriveTodayPlan } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
@@ -193,6 +195,32 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     [gettingStarted, medication, metrics.weight.current, profile, now],
   );
 
+  // Dynamic Today ordering: arrange the score/verdict/plan trio to match the
+  // user's situation (lapsed, shot-day, drifting, thriving) instead of a fixed
+  // layout. Null for no-score users — the cold-start cards handle them.
+  const daysSinceLastActivity = useMemo(
+    () =>
+      daysSinceLatest(
+        [
+          ...weightLogs.map((w) => w.measuredAt),
+          ...data.weekMeals.map((m) => m.recordedAt),
+          ...data.doseHistory.map((d) => d.recordedAt),
+        ],
+        now,
+      ),
+    [weightLogs, data.weekMeals, data.doseHistory, now],
+  );
+  const homeLayout = useMemo(
+    () =>
+      resolveHomeLayout({
+        hasScore: verdictBreakdown != null,
+        retentionDelta: verdictBreakdown?.retentionDelta ?? null,
+        daysSinceLastActivity,
+        shotContext: medication ? computeShotCycle(medication, now).phase.energy !== "good" : false,
+      }),
+    [verdictBreakdown, daysSinceLastActivity, medication, now],
+  );
+
   // How protein adherence moved since the last dose increase — the dose's effect
   // on the muscle story. Null until there's a step-up with data on both sides.
   const doseProteinInsight = useMemo(
@@ -316,6 +344,48 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
       : `${weeklyDelta <= 0 ? "↓" : "↑"} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`;
   const w = (n: number) => `${n}${weight.unit === "kg" ? "" : ""}`.replace(/\.0$/, "");
 
+  // The reorderable Today "hero trio" — composed into homeLayout.order below.
+  const scoreCard = verdictBreakdown ? (
+    <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+  ) : null;
+  const verdictHeroCard = (
+    <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} compact />
+  );
+  const planCard = todayPlan ? (
+    <TodayPlanCard
+      plan={todayPlan}
+      eatDone={today.protein.ratio >= 0.9}
+      moveDone={today.session.done > 0}
+      onEat={openMealScan}
+      onMove={() => startWorkout()}
+      onDetail={() => setTodayPlanOpen(true)}
+    />
+  ) : null;
+  const trio: Record<HomeSection, React.ReactNode> = { score: scoreCard, verdict: verdictHeroCard, plan: planCard };
+  // Shared supporting metrics, rendered below the trio in either layout.
+  const ringsCard = (
+    <View style={styles.rings}>
+      <MetricRing ratio={today.protein.ratio} value={`${today.protein.logged} / ${today.protein.target}g`} label="Protein today" />
+      <MetricRing ratio={today.session.ratio} value={`${today.session.done} / ${today.session.target}`} label="Session today" />
+      {today.nextShot.onProtocol ? (
+        <InfoTile
+          icon={
+            <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.emerald} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
+            </Svg>
+          }
+          value={today.nextShot.label}
+          badge={today.nextShot.dose}
+          label="Next shot"
+          accessibilityLabel={`Next shot ${today.nextShot.label}${today.nextShot.dose ? `, ${today.nextShot.dose}` : ""}. Edit dose schedule`}
+          onPress={() => setMedScheduleOpen(true)}
+        />
+      ) : (
+        <TrendTile series={weight.series} deltaLabel={weekDeltaLabel} label="This week" />
+      )}
+    </View>
+  );
+
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
@@ -347,77 +417,57 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           {scope === "today" ? (
             /* ---- Today scope: daily, shot-cycle re-skin (screen 15) ---- */
             <>
-              {verdictBreakdown ? (
-                <StaggeredReveal index={0}>
-                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
-                </StaggeredReveal>
-              ) : gettingStarted ? (
+              {homeLayout ? (
+                (() => {
+                  // Scored user — order the hero trio to the situation, metrics after the "why".
+                  const items: React.ReactNode[] = [];
+                  let idx = 0;
+                  if (homeLayout.banner) {
+                    items.push(
+                      <StaggeredReveal key="banner" index={idx++}>
+                        <HomeStateBanner banner={homeLayout.banner} onPress={openQuickLog} />
+                      </StaggeredReveal>,
+                    );
+                  }
+                  homeLayout.order.forEach((key) => {
+                    if (trio[key]) {
+                      items.push(
+                        <StaggeredReveal key={key} index={idx++}>
+                          {trio[key]}
+                        </StaggeredReveal>,
+                      );
+                    }
+                    if (key === "verdict") {
+                      items.push(
+                        <StaggeredReveal key="rings" index={idx++}>
+                          {ringsCard}
+                        </StaggeredReveal>,
+                      );
+                    }
+                  });
+                  return items;
+                })()
+              ) : (
+                /* cold start: no score yet — mirror, checklist, then verdict, metrics, plan */
                 <>
                   {firstJourney ? (
                     <StaggeredReveal index={0}>
                       <FirstJourneyCard view={firstJourney} />
                     </StaggeredReveal>
                   ) : null}
-                  <StaggeredReveal index={1}>
-                    <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
-                  </StaggeredReveal>
+                  {gettingStarted ? (
+                    <StaggeredReveal index={1}>
+                      <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
+                    </StaggeredReveal>
+                  ) : null}
+                  <StaggeredReveal index={2}>{verdictHeroCard}</StaggeredReveal>
+                  <StaggeredReveal index={3}>{ringsCard}</StaggeredReveal>
+                  {planCard ? <StaggeredReveal index={4}>{planCard}</StaggeredReveal> : null}
                 </>
-              ) : null}
-
-              <StaggeredReveal index={1}>
-                <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} compact />
-              </StaggeredReveal>
-
-              <StaggeredReveal index={2}>
-                <View style={styles.rings}>
-                  <MetricRing
-                    ratio={today.protein.ratio}
-                    value={`${today.protein.logged} / ${today.protein.target}g`}
-                    label="Protein today"
-                  />
-                  <MetricRing
-                    ratio={today.session.ratio}
-                    value={`${today.session.done} / ${today.session.target}`}
-                    label="Session today"
-                  />
-                  {today.nextShot.onProtocol ? (
-                    <InfoTile
-                      icon={
-                        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={colors.emerald} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
-                        </Svg>
-                      }
-                      value={today.nextShot.label}
-                      badge={today.nextShot.dose}
-                      label="Next shot"
-                      accessibilityLabel={`Next shot ${today.nextShot.label}${today.nextShot.dose ? `, ${today.nextShot.dose}` : ""}. Edit dose schedule`}
-                      onPress={() => setMedScheduleOpen(true)}
-                    />
-                  ) : (
-                    <TrendTile
-                      series={weight.series}
-                      deltaLabel={weekDeltaLabel}
-                      label="This week"
-                    />
-                  )}
-                </View>
-              </StaggeredReveal>
-
-              {todayPlan ? (
-                <StaggeredReveal index={3}>
-                  <TodayPlanCard
-                    plan={todayPlan}
-                    eatDone={today.protein.ratio >= 0.9}
-                    moveDone={today.session.done > 0}
-                    onEat={openMealScan}
-                    onMove={() => startWorkout()}
-                    onDetail={() => setTodayPlanOpen(true)}
-                  />
-                </StaggeredReveal>
-              ) : null}
+              )}
 
               {bodyComp ? (
-                <StaggeredReveal index={4}>
+                <StaggeredReveal index={7}>
                   <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
                 </StaggeredReveal>
               ) : null}
