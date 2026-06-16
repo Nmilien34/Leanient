@@ -7,6 +7,12 @@ interface CountUpTextProps {
   durationMs?: number;
   /** Decimal places to show (default 0). */
   decimals?: number;
+  /**
+   * Where the count starts on first mount, as a fraction of the target (0-1).
+   * Starting partway up means it sweeps a shorter range in the same time, so the
+   * digits change slower and it reads as a calm settle instead of a fast blur.
+   */
+  startFraction?: number;
   prefix?: string;
   suffix?: string;
   style?: StyleProp<TextStyle>;
@@ -20,19 +26,21 @@ const easeInOutSine = (t: number): number => -(Math.cos(Math.PI * t) - 1) / 2;
 /**
  * Counts a number up to `value` on mount (and re-animates from the previous
  * value when it changes), so data feels like it builds in as the app loads. The
- * final accessibility label is the resolved value, not the in-flight tween.
+ * first mount begins at `startFraction` of the target so the climb reads calm;
+ * the final accessibility label is the resolved value, not the in-flight tween.
  */
 export function CountUpText({
   value,
   durationMs = 2200,
   decimals = 0,
+  startFraction = 0.6,
   prefix = "",
   suffix = "",
   style,
   accessibilityLabel,
 }: CountUpTextProps) {
-  const [display, setDisplay] = useState(0);
-  const fromRef = useRef(0);
+  const [display, setDisplay] = useState(() => value * startFraction);
+  const fromRef = useRef(value * startFraction);
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
