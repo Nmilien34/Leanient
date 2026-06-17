@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Text as RNText, TextInput as RNTextInput } from "react-native";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+// Render at the designed point sizes regardless of the device's text-scale setting,
+// so the tuned card layouts don't inflate. (OS-level Display Zoom can't be overridden
+// from here; this pins the Dynamic-Type font scaling the app honors by default.)
+const textDefaults = RNText as unknown as { defaultProps?: { allowFontScaling?: boolean } };
+textDefaults.defaultProps = { ...textDefaults.defaultProps, allowFontScaling: false };
+const textInputDefaults = RNTextInput as unknown as { defaultProps?: { allowFontScaling?: boolean } };
+textInputDefaults.defaultProps = { ...textInputDefaults.defaultProps, allowFontScaling: false };
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { LeanientDataProvider, useLeanientData } from "./src/context/LeanientDataContext";
 import { OnboardingProvider } from "./src/context/OnboardingContext";
