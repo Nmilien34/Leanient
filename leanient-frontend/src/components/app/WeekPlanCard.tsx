@@ -83,6 +83,7 @@ export function WeekPlanCard({ plan, onLogMeal, onStartWorkout, onDetail }: Week
       sub: plan.protein.subline,
       done: plan.protein.pct >= 100,
       trailing: `${plan.protein.pct}%`,
+      focus: plan.focus === "protein",
       onPress: onLogMeal,
     },
     {
@@ -92,6 +93,7 @@ export function WeekPlanCard({ plan, onLogMeal, onStartWorkout, onDetail }: Week
       sub: `${plan.training.done} of ${plan.training.target} sessions done`,
       done: trainingDone,
       trailing: `${plan.training.done}/${plan.training.target}`,
+      focus: plan.focus === "training",
       expandedContent: <SessionsPanel sessions={plan.training.sessions} allDone={trainingDone} onStart={onStartWorkout} />,
     },
     {
@@ -101,8 +103,12 @@ export function WeekPlanCard({ plan, onLogMeal, onStartWorkout, onDetail }: Week
       sub: plan.pace.subline,
       done: false,
       trailing: <StatusChip label={plan.pace.statusLabel} status={PACE_STATUS[plan.pace.statusLabel] ?? "upcoming"} />,
+      focus: plan.focus === "pace",
     },
   ];
+  // Lead with last week's leaking lever so the most important move is first.
+  const focusKey = plan.focus === "training" ? "train" : plan.focus;
+  const ordered = focusKey ? [steps.find((s) => s.key === focusKey)!, ...steps.filter((s) => s.key !== focusKey)] : steps;
 
   return (
     <View style={styles.card}>
@@ -114,7 +120,9 @@ export function WeekPlanCard({ plan, onLogMeal, onStartWorkout, onDetail }: Week
         {onDetail ? <Text style={styles.detail}>Details ›</Text> : null}
       </Pressable>
 
-      <PlanTimeline steps={steps} />
+      {plan.recap ? <Text style={styles.recap}>{plan.recap}</Text> : null}
+
+      <PlanTimeline steps={ordered} />
 
       <Text style={styles.coach}>{plan.coachLine}</Text>
     </View>
@@ -126,6 +134,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 },
   eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.muted },
   range: { fontFamily: font.medium, fontSize: 12, color: colors.faint, marginTop: 2 },
+  recap: { fontFamily: font.medium, fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, backgroundColor: colors.sageFill, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12, marginBottom: 6, marginTop: 2 },
   detail: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep },
   chip: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11 },
   chipText: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.1 },

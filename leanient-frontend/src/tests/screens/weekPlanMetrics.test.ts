@@ -17,6 +17,38 @@ function plan() {
   });
 }
 
+function planWith(lastWeek: Parameters<typeof deriveWeekPlan>[0]["lastWeek"]) {
+  return deriveWeekPlan({
+    profile: mockProfile,
+    verdict: mockVerdictOnTrack,
+    medication: mockMedicationProtocol,
+    weightLogs: mockWeightLogs,
+    sessions: mockWorkouts,
+    lastWeek,
+    now,
+  });
+}
+
+describe("deriveWeekPlan last-week estimation", () => {
+  it("inherits last week's leaking lever as this week's focus + recap + coaching", () => {
+    const p = planWith({ retention: 62, focus: "training", focusScore: 48 });
+    expect(p.focus).toBe("training");
+    expect(p.recap).toContain("Training was the soft spot");
+    expect(p.coachLine).toContain("Training slipped last week");
+  });
+
+  it("recaps an all-strong week with no focus", () => {
+    const p = planWith({ retention: 88, focus: null, focusScore: null });
+    expect(p.focus).toBeNull();
+    expect(p.recap).toContain("held strong");
+    expect(p.coachLine).toContain("Nail these three");
+  });
+
+  it("has no recap for a first week (no prior data)", () => {
+    expect(planWith(null).recap).toBeNull();
+  });
+});
+
 describe("deriveWeekPlan", () => {
   it("scales the daily protein target to the week from verdict inputs", () => {
     const p = plan().protein;

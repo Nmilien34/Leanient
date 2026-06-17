@@ -236,8 +236,23 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   // Sessions for the weekly plan come straight from the live recommendations.
   const planSessions = recommendedWorkouts;
   const weekPlan = useMemo(
-    () => deriveWeekPlan({ profile, verdict, medication, weightLogs, sessions: planSessions, now }),
-    [profile, verdict, medication, weightLogs, planSessions, now],
+    () =>
+      deriveWeekPlan({
+        profile,
+        verdict,
+        medication,
+        weightLogs,
+        sessions: planSessions,
+        lastWeek: verdictBreakdown
+          ? {
+              retention: verdictBreakdown.retention,
+              focus: verdictBreakdown.weakestLine ? (verdictBreakdown.weakest.key as DayFocus) : null,
+              focusScore: verdictBreakdown.weakest.score,
+            }
+          : null,
+        now,
+      }),
+    [profile, verdict, medication, weightLogs, planSessions, verdictBreakdown, now],
   );
 
   // Today's session + plan adapt to the muscle score: the weakest lever sets the

@@ -1,4 +1,16 @@
 import type { GoalPace, UserMedicationProtocol, UserProfile, WeeklyVerdict, WeightLog, Workout } from "@leanient/shared";
+import type { DayFocus } from "./todayPlanMetrics";
+
+/** What last week's verdict looked like — drives this week's focus and recap. */
+export interface LastWeekRead {
+  retention: number;
+  /** The leaking component last week, or null when everything held. */
+  focus: DayFocus | null;
+  /** That component's score (for the recap line). */
+  focusScore: number | null;
+}
+
+const FOCUS_LABEL: Record<DayFocus, string> = { protein: "Protein", training: "Training", pace: "Pace" };
 
 /**
  * FRONTEND-ONLY display aggregate for the "This week's plan" screen — the three
@@ -37,7 +49,26 @@ export interface WeekPlan {
     headline: string;
     subline: string;
   };
+  /** This week's lever, estimated from last week's verdict; null for a first week / all-strong. */
+  focus: DayFocus | null;
+  /** One line recapping last week, or null when there's no prior week. */
+  recap: string | null;
   coachLine: string;
+}
+
+/** Recap of last week, naming the lever this week inherits. */
+function weekRecap(lastWeek: LastWeekRead | null): string | null {
+  if (!lastWeek) return null;
+  if (!lastWeek.focus) return `Last week held strong (muscle ${lastWeek.retention}). Keep the rhythm.`;
+  return `Last week: muscle ${lastWeek.retention}. ${FOCUS_LABEL[lastWeek.focus]} was the soft spot — that's this week's focus.`;
+}
+
+/** Coach line set by last week's leaking lever. */
+function weekCoachLine(focus: DayFocus | null): string {
+  if (focus === "training") return "Training slipped last week. Three solid sessions this week pulls your number back up.";
+  if (focus === "protein") return "Protein dipped last week. Two protein-forward meals a day gets it back.";
+  if (focus === "pace") return "Last week's loss ran fast. Ease the pace and lock protein to protect the muscle.";
+  return "Nail these three and the muscle under your face stays put. I'll send your next verdict Sunday.";
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -72,10 +103,13 @@ export function deriveWeekPlan(args: {
   medication?: UserMedicationProtocol;
   weightLogs: WeightLog[];
   sessions: Workout[];
+  /** Last week's verdict read, so this week's plan estimates off what happened. */
+  lastWeek?: LastWeekRead | null;
   now: Date;
 }): WeekPlan {
-  const { profile, verdict, medication, weightLogs, sessions, now } = args;
+  const { profile, verdict, medication, weightLogs, sessions, lastWeek = null, now } = args;
   const inputs = verdict.inputsUsed;
+  const focus = lastWeek?.focus ?? null;
 
   // 1 · Protein — daily target scaled to the week.
   const dailyTarget = profile.dailyProteinTarget;
@@ -131,6 +165,8 @@ export function deriveWeekPlan(args: {
       headline: `${remaining} ${unit} to your goal`,
       subline: `Reaching ${profile.goalWeight} ${unit} by ${etaLabel}. Slow enough to keep muscle.`,
     },
-    coachLine: "Nail these three and the muscle under your face stays put. I'll send your next verdict Sunday.",
+    focus,
+    recap: weekRecap(lastWeek),
+    coachLine: weekCoachLine(focus),
   };
 }
