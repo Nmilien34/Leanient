@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Weekday } from "@leanient/shared";
-import { deriveTodayPlan } from "../../screens/app/todayPlanMetrics";
+import type { Weekday, Workout } from "@leanient/shared";
+import { deriveTodayPlan, pickWorkout } from "../../screens/app/todayPlanMetrics";
 import { mockProfile, mockMedicationProtocol } from "../../mocks/home";
 import { mockTodayLog } from "../../mocks/todayLog";
 import { mockRecommendedWorkout } from "../../mocks/workouts";
@@ -21,7 +21,46 @@ function plan(overrides = {}) {
   });
 }
 
+const wk = (title: string, intensity: string, category: string): Workout =>
+  ({ title, intensity, category }) as unknown as Workout;
+
+describe("pickWorkout", () => {
+  const pool = [wk("Strong", "hard", "strength"), wk("Flow", "recovery", "mobility"), wk("Mod", "moderate", "conditioning")];
+
+  it("returns null for an empty pool", () => {
+    expect(pickWorkout([], { focus: "training", energy: "good", daySeed: 0 })).toBeNull();
+  });
+
+  it("leans into hard strength when training is the leak and energy's up", () => {
+    expect(pickWorkout(pool, { focus: "training", energy: "good", daySeed: 0 })!.title).toBe("Strong");
+  });
+
+  it("eases into recovery on a quiet shot day regardless of focus", () => {
+    expect(pickWorkout(pool, { focus: "training", energy: "low", daySeed: 0 })!.title).toBe("Flow");
+  });
+
+  it("rotates among equally-good sessions by day so it doesn't repeat", () => {
+    const twins = [wk("A", "hard", "strength"), wk("B", "hard", "strength")];
+    expect(pickWorkout(twins, { focus: "training", energy: "good", daySeed: 0 })!.title).toBe("A");
+    expect(pickWorkout(twins, { focus: "training", energy: "good", daySeed: 1 })!.title).toBe("B");
+  });
+});
+
 describe("deriveTodayPlan", () => {
+  it("adapts the coach line and focus to the muscle-retention score", () => {
+    const drift = plan({ retention: { score: 65, focus: "training" } });
+    expect(drift.focus).toBe("training");
+    expect(drift.coachLine).toContain("Training");
+
+    const losingPace = plan({ retention: { score: 48, focus: "pace" } });
+    expect(losingPace.focus).toBe("pace");
+    expect(losingPace.coachLine).toContain("pace");
+
+    const strong = plan({ retention: { score: 88, focus: null } });
+    expect(strong.focus).toBeNull();
+    expect(strong.coachLine).toContain("keeping your muscle");
+  });
+
   it("builds the shot-aware subtitle from date + cycle", () => {
     expect(plan().subtitle).toBe("Tuesday · Day 44 · 2 days after your shot");
   });

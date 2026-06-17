@@ -49,7 +49,7 @@ import { TargetsScreen } from "./TargetsScreen";
 import { MedicationScreen } from "./MedicationScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
-import { deriveTodayView, toTodayLog, type TodayLog } from "./todayMetrics";
+import { deriveTodayView, toTodayLog, type ShotEnergy, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
@@ -57,7 +57,7 @@ import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
 import { resolveHomeLayout, daysSinceLatest, type HomeSection } from "./homeLayout";
 import { deriveWeekPlan } from "./weekPlanMetrics";
-import { deriveTodayPlan } from "./todayPlanMetrics";
+import { deriveTodayPlan, pickWorkout, type DayFocus } from "./todayPlanMetrics";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
 import type { CompletedWorkout } from "./workoutSession";
 import { extractApiError } from "../../services/apiError";
@@ -240,16 +240,33 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     [profile, verdict, medication, weightLogs, planSessions, now],
   );
 
-  // Today's plan is built from the top recommended session, when one exists.
-  const recommendedWorkout = recommendedWorkouts[0] ?? null;
+  // Today's session + plan adapt to the muscle score: the weakest lever sets the
+  // focus, which (with shot energy) picks the right session from the pool. Stable
+  // within a day, shifting across days and as the score moves.
+  const dayFocus: DayFocus | null = verdictBreakdown?.weakestLine ? (verdictBreakdown.weakest.key as DayFocus) : null;
+  const shotEnergy: ShotEnergy = medication ? computeShotCycle(medication, now).phase.energy : "good";
+  const daySeed = Math.floor(now.getTime() / 86_400_000);
+  const planWorkout = useMemo(
+    () => pickWorkout(recommendedWorkouts, { focus: dayFocus, energy: shotEnergy, daySeed }),
+    [recommendedWorkouts, dayFocus, shotEnergy, daySeed],
+  );
+  // The player and completion handler use the same picked session as the plan.
+  const recommendedWorkout = planWorkout;
   // Rest cue follows the shot cycle so the player coaches the same shot-aware story.
   const restCue = restCueForEnergy(medication ? computeShotCycle(medication, now).phase.energy : null);
   const todayPlan = useMemo(
     () =>
-      recommendedWorkout
-        ? deriveTodayPlan({ profile, medication, recommendedWorkout, dailyLog: todayLog, now })
+      planWorkout
+        ? deriveTodayPlan({
+            profile,
+            medication,
+            recommendedWorkout: planWorkout,
+            retention: verdictBreakdown ? { score: verdictBreakdown.retention, focus: dayFocus } : null,
+            dailyLog: todayLog,
+            now,
+          })
         : null,
-    [profile, medication, recommendedWorkout, todayLog, now],
+    [profile, medication, planWorkout, verdictBreakdown, dayFocus, todayLog, now],
   );
 
   const contextLabel = useMemo(() => {
@@ -357,7 +374,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
       eatDone={today.protein.ratio >= 0.9}
       moveDone={today.session.done > 0}
       onEat={openMealScan}
-      onMove={() => startWorkout()}
+      onMove={() => startWorkout(planWorkout ?? undefined)}
       onDetail={() => setTodayPlanOpen(true)}
     />
   ) : null;

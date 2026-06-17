@@ -25,6 +25,8 @@ export interface PlanStep {
   onPress?: () => void;
   /** Presence makes the step expandable into this content. */
   expandedContent?: ReactNode;
+  /** Marks this as the day's priority lever — gets a "TODAY'S FOCUS" eyebrow. */
+  focus?: boolean;
 }
 
 const checkMark = (
@@ -77,6 +79,7 @@ function StepRow({
         <View style={[styles.node, step.done ? styles.nodeDone : step.amber ? styles.nodeAmber : null]}>{step.done ? checkMark : step.icon}</View>
       </View>
       <View style={styles.body}>
+        {step.focus && !step.done ? <Text style={styles.focusEyebrow}>TODAY'S FOCUS</Text> : null}
         <Text style={[styles.rowTitle, step.done ? styles.rowTitleDone : null]}>{step.title}</Text>
         <Text style={styles.rowSub}>{step.sub}</Text>
       </View>
@@ -162,6 +165,7 @@ const styles = StyleSheet.create({
   nodeAmber: { backgroundColor: "#F7ECDB" },
   nodeDone: { backgroundColor: colors.emerald },
   body: { flex: 1, paddingVertical: 11, justifyContent: "center" },
+  focusEyebrow: { fontFamily: font.bold, fontSize: 9.5, letterSpacing: 0.7, color: colors.emeraldDeep, marginBottom: 2 },
   rowTitle: { fontFamily: font.bold, fontSize: 14.5, color: colors.ink, letterSpacing: -0.15 },
   rowTitleDone: { color: colors.faint, textDecorationLine: "line-through" },
   rowSub: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, marginTop: 1 },

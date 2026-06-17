@@ -1,5 +1,8 @@
-import type { UserMedicationProtocol, UserProfile, Workout } from "@leanient/shared";
+import type { UserMedicationProtocol, UserProfile, Workout, WorkoutIntensity } from "@leanient/shared";
 import { computeShotCycle, type ShotEnergy, type TodayLog } from "./todayMetrics";
+
+/** The muscle-retention lever that's leaking most — what today should fix. */
+export type DayFocus = "protein" | "training" | "pace";
 
 /**
  * FRONTEND-ONLY display aggregate for the "Today's plan" screen — the three
@@ -47,6 +50,8 @@ export interface TodayPlan {
   eat: TodayPlanEat;
   move: TodayPlanMove | null;
   steady: TodayPlanSteady | null;
+  /** The lever today should pull (the leaking score component); null when on track / no score. */
+  focus: DayFocus | null;
   coachLine: string;
 }
 
@@ -88,6 +93,59 @@ function eatSuggestions(remaining: number, energy: ShotEnergy): EatSuggestion[] 
   return ranked.slice(0, 3).map(({ name, protein, calories }) => ({ name, protein, calories }));
 }
 
+const INTENSITY_RANK: Record<WorkoutIntensity, number> = { recovery: 0, easy: 1, moderate: 2, hard: 3 };
+
+/**
+ * Picks the day's session from the recommended pool by what the user's score
+ * needs and what their shot cycle allows: a quiet shot day eases into recovery;
+ * a "training is the leak" day with energy to spare leans into harder strength;
+ * a "losing too fast" (pace) day stays light. Ties rotate by day so the same
+ * session doesn't repeat — stable within a day, fresh across days.
+ */
+export function pickWorkout(
+  pool: Workout[],
+  opts: { focus: DayFocus | null; energy: ShotEnergy; daySeed: number },
+): Workout | null {
+  if (pool.length === 0) return null;
+  const { focus, energy, daySeed } = opts;
+  const target =
+    energy === "low" ? 0.5 : focus === "pace" ? 1 : focus === "training" ? (energy === "good" ? 3 : 2) : 2;
+
+  const scored = pool.map((w) => {
+    let s = -Math.abs((INTENSITY_RANK[w.intensity] ?? 2) - target);
+    if (focus === "training" && w.category === "strength") s += 0.6;
+    if ((focus === "pace" || energy === "low") && (w.category === "recovery" || w.category === "mobility")) s += 0.6;
+    return { w, s };
+  });
+  const best = Math.max(...scored.map((x) => x.s));
+  const top = scored.filter((x) => x.s >= best - 0.001).map((x) => x.w);
+  return top[((daySeed % top.length) + top.length) % top.length];
+}
+
+type Band = "strong" | "drifting" | "losing";
+
+function scoreBand(score: number | null): Band | null {
+  if (score == null) return null;
+  if (score >= 80) return "strong";
+  if (score >= 55) return "drifting";
+  return "losing";
+}
+
+/** The coach line, keyed to how the score's doing and which lever today should pull. */
+function coachLineFor(band: Band | null, focus: DayFocus | null, sessionName: string): string {
+  if (band === "losing") {
+    if (focus === "training") return `Your score slipped. One ${sessionName} today is the fastest way back. I'll fold it into Sunday's verdict.`;
+    if (focus === "pace") return "Weight's coming off fast. Ease the pace and lock protein today to protect muscle. Verdict updates Sunday.";
+    return "Your score slipped. Two protein meals today is the fastest way back. Verdict updates Sunday.";
+  }
+  if (band === "drifting") {
+    if (focus === "training") return `Training's the leak this week. Today's ${sessionName} moves your number most. Verdict Sunday.`;
+    if (focus === "pace") return "You're losing a touch fast. Hold protein and keep it steady today. Verdict Sunday.";
+    return "Protein's the lever this week. Hit it today and your number climbs. Verdict Sunday.";
+  }
+  return `You're keeping your muscle. Two protein meals and the ${sessionName} holds the line. I'll fold it into Sunday's verdict.`;
+}
+
 /** STEADY pillar advice — what the shot cycle asks of today. */
 function steadyAdvice(energy: ShotEnergy, nextShotDayName: string): { title: string; subline: string } {
   switch (energy) {
@@ -114,10 +172,14 @@ export function deriveTodayPlan(args: {
   profile: UserProfile;
   medication?: UserMedicationProtocol;
   recommendedWorkout?: Workout;
+  /** The latest muscle-retention read, so the day's coaching and focus adapt to it. */
+  retention?: { score: number; focus: DayFocus | null } | null;
   dailyLog: TodayLog;
   now: Date;
 }): TodayPlan {
-  const { profile, medication, recommendedWorkout, dailyLog, now } = args;
+  const { profile, medication, recommendedWorkout, retention, dailyLog, now } = args;
+  const focus = retention?.focus ?? null;
+  const band = scoreBand(retention?.score ?? null);
   const weekday = WEEKDAYS_LONG[now.getDay()];
 
   // Subtitle + STEADY pillar both come from the shot cycle.
@@ -174,6 +236,7 @@ export function deriveTodayPlan(args: {
     eat: { logged, target, remaining, ratio, pct: Math.round(ratio * 100), subline: eatSubline, suggestions: eatSuggestions(remaining, energy) },
     move,
     steady,
-    coachLine: `Two protein meals and the ${sessionName}, and that's today won. I'll fold it into Sunday's verdict.`,
+    focus,
+    coachLine: coachLineFor(band, focus, sessionName),
   };
 }

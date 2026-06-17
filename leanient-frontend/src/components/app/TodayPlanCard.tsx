@@ -74,6 +74,7 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
       sub: plan.eat.subline,
       done: eatDone,
       trailing: `${plan.eat.pct}%`,
+      focus: plan.focus === "protein",
       expandedContent: <EatPanel remaining={plan.eat.remaining} suggestions={plan.eat.suggestions} onScan={onEat} />,
     },
   ];
@@ -84,6 +85,7 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
       title: `${plan.move.title} · ${plan.move.duration}`,
       sub: plan.move.subline,
       done: moveDone,
+      focus: plan.focus === "training",
       onPress: onMove,
     });
   }
@@ -95,6 +97,7 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
       title: `${plan.steady.shotLabel} · ${plan.steady.title}`,
       sub: plan.steady.subline,
       done: false,
+      focus: plan.focus === "pace",
     });
   }
 
