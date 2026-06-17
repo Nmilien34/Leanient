@@ -33,12 +33,15 @@ const checkMark = (
   </Svg>
 );
 
+/** Accented expand affordance — an emerald pill so a collapsed step reads as tappable. */
 function Chevron({ open }: { open: boolean }) {
   return (
-    <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
-      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M6 9l6 6 6-6" />
-      </Svg>
+    <View style={[styles.chevBtn, open && styles.chevBtnOpen]}>
+      <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+        <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M6 9l6 6 6-6" />
+        </Svg>
+      </View>
     </View>
   );
 }
@@ -119,7 +122,11 @@ function StepRow({
  * opens inline with the rail running through it. One stop opens at a time.
  */
 export function PlanTimeline({ steps }: { steps: PlanStep[] }) {
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  // Open the first not-yet-done expandable stop on mount, so its detail is right
+  // there grabbing attention instead of hidden behind a chevron the user might miss.
+  const [openKey, setOpenKey] = useState<string | null>(
+    () => steps.find((s) => s.expandedContent !== undefined && !s.done)?.key ?? null,
+  );
   const toggle = (key: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.create(180, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
     setOpenKey((k) => (k === key ? null : key));
@@ -161,6 +168,8 @@ const styles = StyleSheet.create({
   trailing: { flexDirection: "row", alignItems: "center", gap: 7, alignSelf: "center" },
   trailingPct: { fontFamily: font.bold, fontSize: 13, color: colors.emeraldDeep },
   chev: { fontFamily: font.semibold, fontSize: 19, color: colors.faint },
+  chevBtn: { width: 27, height: 27, borderRadius: 14, backgroundColor: "rgba(47,184,122,0.12)", alignItems: "center", justifyContent: "center" },
+  chevBtnOpen: { backgroundColor: "rgba(47,184,122,0.20)" },
   expandRow: { flexDirection: "row", gap: 12 },
   railSpacer: { width: NODE, alignItems: "center", position: "relative" },
   panel: { flex: 1, paddingBottom: 12, paddingTop: 2 },
