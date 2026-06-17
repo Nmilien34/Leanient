@@ -6,6 +6,7 @@ import { QuickActionsProvider, type QuickActions } from "../context/QuickActions
 import { TabBar } from "../components/layout/TabBar";
 import { QuickLogSheet } from "../components/app/QuickLogSheet";
 import type { QuickLogActionKey } from "../components/app/quickLogActions";
+import apiService from "../services/api.service";
 import { MealCameraScreen } from "../screens/app/MealCameraScreen";
 import { MealScanScreen } from "../screens/app/MealScanScreen";
 import { MealLogScreen } from "../screens/app/MealLogScreen";
@@ -291,6 +292,7 @@ export function MainTabs() {
           setMealLogOpen(false);
           setCameraOpen(true);
         }}
+        onParse={(text) => apiService.parseMeal(text).catch(() => null)}
         onSave={(draft) =>
           saveAndClose(
             async () => {

@@ -384,6 +384,33 @@ export const mealScanRequestSchema = z
   })
   .strict();
 
+/** Free-text meal the user types ("rice, beans and chicken") for the LLM to parse. */
+export const mealParseRequestSchema = z
+  .object({
+    text: z.string().trim().min(2).max(200),
+  })
+  .strict();
+
+/** One part of a parsed composite meal. */
+export const mealParseComponentSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    protein: z.number().nonnegative(),
+    calories: z.number().nonnegative(),
+  })
+  .strict();
+
+/** What the LLM returns for a typed meal: the whole meal plus its parts. */
+export const mealParseResponseSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    components: z.array(mealParseComponentSchema).min(1).max(8),
+    protein: z.number().nonnegative(),
+    calories: z.number().nonnegative(),
+    confidence: z.number().min(0).max(1),
+  })
+  .strict();
+
 export const mealScanAnalysisSchema = z
   .object({
     foodName: z.string().trim().min(1),
@@ -1029,6 +1056,9 @@ export type LogListQuery = z.infer<typeof logListQuerySchema>;
 export type CreateMealLogRequest = z.infer<typeof createMealLogRequestSchema>;
 export type PatchMealLogRequest = z.infer<typeof patchMealLogRequestSchema>;
 export type MealScanRequestBody = z.infer<typeof mealScanRequestSchema>;
+export type MealParseRequestBody = z.infer<typeof mealParseRequestSchema>;
+export type MealParseComponent = z.infer<typeof mealParseComponentSchema>;
+export type MealParseResponse = z.infer<typeof mealParseResponseSchema>;
 export type CreateWorkoutLogRequest = z.infer<typeof createWorkoutLogRequestSchema>;
 export type PatchWorkoutLogRequest = z.infer<typeof patchWorkoutLogRequestSchema>;
 export type CreateDoseLogRequest = z.infer<typeof createDoseLogRequestSchema>;

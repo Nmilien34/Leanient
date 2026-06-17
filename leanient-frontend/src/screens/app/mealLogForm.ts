@@ -53,6 +53,11 @@ export function customItem(name: string): MealItem {
   return { key: `custom:${name.trim().toLowerCase()}`, name: name.trim(), protein: 0, calories: 0, isCustom: true };
 }
 
+/** A composite meal the LLM parsed from typed text — one named part with its macros. */
+export function itemFromParsed(name: string, protein: number, calories: number): MealItem {
+  return { key: `parsed:${name.trim().toLowerCase()}`, name: name.trim(), protein: Math.round(protein), calories: Math.round(calories), isCustom: true };
+}
+
 export function itemTotals(items: MealItem[]): { protein: number; calories: number; fiber: number; waterOz: number } {
   return {
     protein: Math.round(items.reduce((sum, i) => sum + i.protein, 0)),

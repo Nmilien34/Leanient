@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { isValidObjectId } from "mongoose";
 import type {
   MealLogScanDetailResponse,
+  MealParseResponse,
   MealScanAnalysis,
   MealScanCoachContent,
   MealScanImageMimeType,
@@ -17,6 +18,7 @@ import { MealScanModel, type MealScanDocument } from "../models/mealScan.model";
 import { UserProfileModel, type UserProfileDocument } from "../models/userProfile.model";
 import {
   CoachContentError,
+  generateMealParse,
   generateMealScanCoachContent,
   generateMealScanVision,
   MEAL_SCAN_COACH_COPY_VERSION,
@@ -274,6 +276,22 @@ async function persistSuccessfulScan(input: {
   }
 
   return MealScanModel.create(payload);
+}
+
+/** Parse a typed meal phrase into a composite meal (name + parts + macros) via the LLM. */
+export async function parseMealText(text: string): Promise<MealParseResponse> {
+  try {
+    return await generateMealParse(text);
+  } catch (error) {
+    logger.warn({ error }, "[meal-parse] text parse failed");
+    throw new AppError({
+      code: ERROR_CODES.mealScanVisionFailed,
+      message: "Could not read that meal. Try rephrasing or add it by hand.",
+      statusCode: 503,
+      details: { retryable: true },
+      expose: true,
+    });
+  }
 }
 
 export async function analyzeMealScan(

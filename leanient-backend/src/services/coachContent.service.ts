@@ -1,5 +1,6 @@
 import type {
   CoachChatMessage,
+  MealParseResponse,
   MealScanAnalysis,
   MealScanImageMimeType,
   MealScanMode,
@@ -32,6 +33,10 @@ export const MEAL_SCAN_VISION_MODEL = "gpt-4o-mini";
 export const MEAL_SCAN_VISION_MAX_TOKENS = 300;
 export const MEAL_SCAN_VISION_TIMEOUT_MS = 8000;
 export const MEAL_SCAN_VISION_COPY_VERSION = "v1.0-gpt-4o-mini-vision";
+export const MEAL_PARSE_MODEL = "gpt-4o-mini";
+export const MEAL_PARSE_MAX_TOKENS = 320;
+export const MEAL_PARSE_TIMEOUT_MS = 7000;
+export const MEAL_PARSE_COPY_VERSION = "v1.0-gpt-4o-mini";
 export const MEAL_SCAN_COACH_MODEL = "gpt-4o-mini";
 export const MEAL_SCAN_COACH_TEMPERATURE = 0.5;
 export const MEAL_SCAN_COACH_MAX_TOKENS = 300;
@@ -1231,6 +1236,113 @@ export async function generateMealScanVision(
   }
 
   throw new CoachContentError("OpenAI meal scan vision request failed", "network");
+}
+
+const MEAL_PARSE_SYSTEM_PROMPT = `
+You turn a short free-text meal description into structured nutrition JSON for a GLP-1 muscle-retention app.
+
+The text describes ONE meal that may have several parts. "Rice, beans and chicken" is one meal with three components, not three meals. "Chipotle chicken sandwich" is one meal; break it into sensible components (e.g. grilled chicken, bread/bun, cheese) when it helps the estimate, otherwise keep it as a single component.
+
+Return JSON only, this exact shape:
+{"name": string, "components": [{"name": string, "protein": number, "calories": number}], "protein": number, "calories": number, "confidence": number}
+
+Rules:
+- "name" is a short, natural label for the whole meal (Title Case), e.g. "Chipotle chicken sandwich" or "Rice, beans & chicken bowl".
+- 1 to 6 components. Each component's protein (grams) and calories (kcal) are conservative estimates for a normal portion.
+- Top-level "protein" and "calories" are the SUM of the components, rounded to whole numbers.
+- "confidence" is 0 to 1: how sure you are about the macros given the description.
+- Protein matters most for this app; estimate it carefully. Never invent foods the user did not mention.
+`.trim();
+
+function parseMealParseJson(content: string): MealParseResponse {
+  try {
+    const parsed = JSON.parse(content) as {
+      name?: unknown;
+      components?: unknown;
+      protein?: unknown;
+      calories?: unknown;
+      confidence?: unknown;
+    };
+
+    if (typeof parsed.name !== "string" || !parsed.name.trim() || !Array.isArray(parsed.components)) {
+      throw new Error("Meal parse JSON missing name or components");
+    }
+
+    const components = parsed.components
+      .map((c) => c as { name?: unknown; protein?: unknown; calories?: unknown })
+      .filter((c) => typeof c.name === "string" && c.name.trim() && typeof c.protein === "number" && typeof c.calories === "number")
+      .slice(0, 8)
+      .map((c) => ({
+        name: (c.name as string).trim(),
+        protein: Math.max(0, Math.round(c.protein as number)),
+        calories: Math.max(0, Math.round(c.calories as number)),
+      }));
+
+    if (components.length === 0) {
+      throw new Error("Meal parse JSON had no usable components");
+    }
+
+    const protein = Math.max(0, Math.round(components.reduce((s, c) => s + c.protein, 0)));
+    const calories = Math.max(0, Math.round(components.reduce((s, c) => s + c.calories, 0)));
+    const confidence =
+      typeof parsed.confidence === "number" ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5;
+
+    return { name: parsed.name.trim(), components, protein, calories, confidence };
+  } catch (error) {
+    throw new CoachContentError("OpenAI returned malformed meal parse JSON", "parse_error", error);
+  }
+}
+
+/** Turns a typed meal phrase into a composite meal with parts + estimated macros. */
+export async function generateMealParse(text: string): Promise<MealParseResponse> {
+  if (!env.openai.apiKey) {
+    throw new CoachContentError("OPENAI_API_KEY is not configured", "missing_api_key");
+  }
+
+  const openai = createOpenAIClient(env.openai.apiKey);
+  let attempt = 0;
+
+  while (attempt < 2) {
+    try {
+      const completion = (await openai.chat.completions.create(
+        {
+          model: MEAL_PARSE_MODEL,
+          messages: [
+            { role: "system", content: MEAL_PARSE_SYSTEM_PROMPT },
+            { role: "user", content: `Meal: ${text.trim()}\nReturn JSON only.` },
+          ],
+          max_tokens: MEAL_PARSE_MAX_TOKENS,
+          response_format: { type: "json_object" },
+        },
+        { timeout: MEAL_PARSE_TIMEOUT_MS },
+      )) as OpenAIChatCompletionResponse;
+
+      const firstChoice = completion.choices?.[0];
+      if (firstChoice?.finish_reason === "content_filter") {
+        throw new CoachContentError("OpenAI filtered the meal parse response", "content_filter");
+      }
+      const content = firstChoice?.message?.content?.trim();
+      if (!content) {
+        throw new CoachContentError("OpenAI returned an empty meal parse response", "empty_response");
+      }
+      return parseMealParseJson(content);
+    } catch (error) {
+      if (error instanceof CoachContentError) {
+        throw error;
+      }
+      if (attempt === 0 && isOpenAIConnectionError(error)) {
+        attempt += 1;
+        continue;
+      }
+      const openAIError = mapOpenAIError(error, "meal parse");
+      if (openAIError) {
+        throw openAIError;
+      }
+      throw new CoachContentError("OpenAI meal parse request failed", "network", error);
+    }
+  }
+
+  throw new CoachContentError("OpenAI meal parse request failed", "network");
 }
 
 export async function generateMealScanCoachContent(

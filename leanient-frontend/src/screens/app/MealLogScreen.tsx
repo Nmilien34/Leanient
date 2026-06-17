@@ -5,11 +5,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
+import type { MealParseResponse } from "@leanient/shared";
 import {
   addItem,
   buildManualMealLogDraft,
   customItem,
   initialMealLogForm,
+  itemFromParsed,
   itemFromPreset,
   removeItem,
   resetMacrosToEstimate,
@@ -25,6 +27,8 @@ interface MealLogScreenProps {
   onSave?: (draft: ReturnType<typeof buildManualMealLogDraft>) => Promise<void>;
   /** Launches the camera meal scan — the consolidated "Scan" method tile. */
   onScan?: () => void;
+  /** LLM parse of typed text into a composite meal; null on failure. */
+  onParse?: (text: string) => Promise<MealParseResponse | null>;
 }
 
 const CATEGORY_ORDER: FoodPreset["category"][] = ["breakfast", "sandwiches", "meals", "snacks"];
@@ -53,11 +57,45 @@ function MethodTile({ label, sub, soon, onPress, icon }: { label: string; sub?: 
  * protein/calorie fields prefill from the picks (still editable for odd
  * portions). Anything we don't know stays one tap away as a custom entry.
  */
-export function MealLogScreen({ visible, onClose, onSave, onScan }: MealLogScreenProps) {
+export function MealLogScreen({ visible, onClose, onSave, onScan, onParse }: MealLogScreenProps) {
   const [form, setForm] = useState(initialMealLogForm);
   const [query, setQuery] = useState("");
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [parse, setParse] = useState<{ q: string; result: MealParseResponse } | null>(null);
+  const [parsing, setParsing] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const onParseRef = useRef(onParse);
+  onParseRef.current = onParse;
+
+  // Debounced LLM read of the typed phrase into a composite meal with macros.
+  // Fires only for multi-word phrases, so single-food typeahead stays instant.
+  useEffect(() => {
+    const q = query.trim();
+    setParse((p) => (p && p.q === q ? p : null));
+    if (!onParseRef.current || q.length < 4 || !/[ ,+&]/.test(q)) {
+      setParsing(false);
+      return;
+    }
+    let cancelled = false;
+    setParsing(true);
+    const timer = setTimeout(async () => {
+      const result = await onParseRef.current!(q);
+      if (cancelled) return;
+      setParsing(false);
+      if (result) setParse({ q, result });
+    }, 650);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const addParsedMeal = () => {
+    if (!parse) return;
+    setForm((f) => addItem(f, itemFromParsed(parse.result.name, parse.result.protein, parse.result.calories)));
+    setQuery("");
+    setParse(null);
+  };
 
   // Composite meal: a typed phrase can be one meal with parts ("rice, beans and
   // chicken"), so we resolve each part to a catalog match or a custom item.
@@ -87,6 +125,7 @@ export function MealLogScreen({ visible, onClose, onSave, onScan }: MealLogScree
       setForm(initialMealLogForm);
       setQuery("");
       setBrowseOpen(false);
+      setParse(null);
     }
   }, [visible]);
 
@@ -180,6 +219,26 @@ export function MealLogScreen({ visible, onClose, onSave, onScan }: MealLogScree
 
             {query.trim().length > 0 ? (
               <View style={styles.suggestCard}>
+                {parse && parse.q === query.trim() ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Log ${parse.result.name}`}
+                    onPress={addParsedMeal}
+                    style={({ pressed }) => [styles.suggestRow, styles.smartRow, pressed && styles.rowPressed]}
+                  >
+                    <View style={styles.flex}>
+                      <Text style={styles.suggestName}>{parse.result.name}</Text>
+                      <Text style={styles.suggestMeta} numberOfLines={1}>
+                        ~{parse.result.protein}g protein · ~{parse.result.calories} cal · {parse.result.components.map((c) => c.name).join(", ")}
+                      </Text>
+                    </View>
+                    <Text style={styles.suggestAdd}>Add</Text>
+                  </Pressable>
+                ) : parsing ? (
+                  <View style={[styles.suggestRow, styles.smartRow]}>
+                    <Text style={styles.suggestMeta}>Reading your meal…</Text>
+                  </View>
+                ) : null}
                 {isComposite ? (
                   <Pressable
                     accessibilityRole="button"
@@ -383,6 +442,7 @@ const styles = StyleSheet.create({
   tileSub: { fontFamily: font.medium, fontSize: 10.5, color: colors.muted, marginTop: -3 },
   tileSoonTag: { fontFamily: font.bold, fontSize: 9, letterSpacing: 0.4, color: colors.faint, marginTop: -2 },
   compositeRow: { borderTopWidth: 0 },
+  smartRow: { borderTopWidth: 0, backgroundColor: "rgba(47,184,122,0.07)", borderRadius: 12, marginVertical: 4, paddingHorizontal: 10 },
   suggestCard: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingHorizontal: 14 },
   suggestRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.sageFill },
   rowPressed: { opacity: 0.55 },

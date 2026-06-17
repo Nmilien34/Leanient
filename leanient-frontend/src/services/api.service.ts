@@ -22,6 +22,8 @@ import {
   mealLogScanDetailResponseSchema,
   coachChatRequestSchema,
   coachChatResponseSchema,
+  mealParseRequestSchema,
+  mealParseResponseSchema,
   mealScanRequestSchema,
   mealScanResponseSchema,
   measurementLogResponseSchema,
@@ -74,6 +76,7 @@ import {
   type MealLog,
   type MealLogScanDetailResponse,
   type MealScanRequest,
+  type MealParseResponse,
   type MealScanResponse,
   type MeasurementLog,
   type ProgressOverviewResponse,
@@ -449,6 +452,10 @@ export class LeanientApiClient {
 
   public async scanMeal(body: MealScanRequest): Promise<MealScanResponse> {
     return this.post("/meal-scans/analyze", mealScanRequestSchema.parse(body), mealScanResponseSchema);
+  }
+
+  public async parseMeal(text: string): Promise<MealParseResponse> {
+    return this.post("/meal-scans/parse-text", mealParseRequestSchema.parse({ text }), mealParseResponseSchema);
   }
 
   public async getMealLogScan(mealLogId: string): Promise<MealLogScanDetailResponse> {
