@@ -286,6 +286,11 @@ export function MainTabs() {
       <MealLogScreen
         visible={mealLogOpen}
         onClose={() => setMealLogOpen(false)}
+        onScan={() => {
+          // The "Scan" tile in the hub hands off to the camera.
+          setMealLogOpen(false);
+          setCameraOpen(true);
+        }}
         onSave={(draft) =>
           saveAndClose(
             async () => {

@@ -140,3 +140,22 @@ export function searchFoods(query: string, excludeIds: string[] = [], limit = 6)
     .slice(0, limit)
     .map((s) => s.food);
 }
+
+/**
+ * Splits a typed phrase into a meal's parts: "rice, beans and chicken" becomes
+ * three components of ONE meal, not three meals. A phrase with no separators
+ * ("chipotle chicken sandwich") stays a single part. Trims, drops empties, and
+ * dedupes case-insensitively so "egg, egg" doesn't double up.
+ */
+export function splitMealParts(text: string): string[] {
+  const seen = new Set<string>();
+  return text
+    .split(/\s*(?:,|\band\b|\+|&|\bwith\b)\s*/i)
+    .map((part) => part.trim())
+    .filter((part) => {
+      const key = part.toLowerCase();
+      if (part.length === 0 || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}

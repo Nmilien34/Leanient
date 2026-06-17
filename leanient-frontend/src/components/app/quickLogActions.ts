@@ -15,9 +15,8 @@ export interface QuickLogAction {
 }
 
 export const QUICK_LOG_ACTIONS: QuickLogAction[] = [
-  { key: "scan_meal", label: "Scan meal" },
+  { key: "meal", label: "Log food" },
   { key: "coach", label: "Talk to your coach" },
-  { key: "meal", label: "Manual meal" },
   { key: "workout", label: "Workout" },
   { key: "dose", label: "Dose" },
   { key: "weight", label: "Weight" },
