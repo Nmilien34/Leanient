@@ -1,5 +1,30 @@
-import type { CreateMealLogRequest } from "@leanient/shared";
+import type { CreateMealLogRequest, MealLog } from "@leanient/shared";
 import type { FoodPreset } from "./foodCatalog";
+
+/** A past meal offered for one-tap re-logging in the hub. */
+export interface RecentMealPick {
+  name: string;
+  protein: number;
+  calories: number;
+}
+
+/** Most-recent distinct logged meals (by name) for the "Recently logged" list. */
+export function recentMealPicks(
+  logs: Pick<MealLog, "foodName" | "protein" | "calories" | "recordedAt">[],
+  limit = 6,
+): RecentMealPick[] {
+  const sorted = [...logs].sort((a, b) => (a.recordedAt < b.recordedAt ? 1 : -1));
+  const seen = new Set<string>();
+  const out: RecentMealPick[] = [];
+  for (const log of sorted) {
+    const key = log.foodName.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: log.foodName.trim(), protein: Math.round(log.protein), calories: Math.round(log.calories) });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
 
 /**
  * One food in the meal being logged. Preset items carry the catalog's typical

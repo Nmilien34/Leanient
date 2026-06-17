@@ -5,6 +5,7 @@ import {
   customItem,
   initialMealLogForm,
   itemFromPreset,
+  recentMealPicks,
   removeItem,
   resetMacrosToEstimate,
 } from "../../screens/app/mealLogForm";
@@ -112,5 +113,24 @@ describe("buildManualMealLogDraft", () => {
 
     const form = { ...addItem(initialMealLogForm, customItem("Mystery dish")), protein: "lots", macrosEdited: true };
     expect(() => buildManualMealLogDraft(form, "2026-06-12T12:30:00.000Z")).toThrow("Protein must be a number");
+  });
+});
+
+describe("recentMealPicks", () => {
+  const log = (foodName: string, recordedAt: string, protein = 20, calories = 200) => ({ foodName, recordedAt, protein, calories });
+
+  it("returns the most recent distinct meals by name", () => {
+    const picks = recentMealPicks([
+      log("Greek yogurt", "2026-06-10T08:00:00Z"),
+      log("Chicken bowl", "2026-06-12T12:00:00Z", 42, 450),
+      log("greek yogurt", "2026-06-13T08:00:00Z"), // newer dupe (case-insensitive)
+    ]);
+    expect(picks.map((p) => p.name)).toEqual(["greek yogurt", "Chicken bowl"]);
+    expect(picks[1]).toEqual({ name: "Chicken bowl", protein: 42, calories: 450 });
+  });
+
+  it("caps the list at the limit", () => {
+    const logs = Array.from({ length: 10 }, (_, i) => log(`Meal ${i}`, `2026-06-${10 + i}T08:00:00Z`));
+    expect(recentMealPicks(logs, 4)).toHaveLength(4);
   });
 });

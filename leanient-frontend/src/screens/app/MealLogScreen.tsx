@@ -16,6 +16,7 @@ import {
   removeItem,
   resetMacrosToEstimate,
   type MealLogForm,
+  type RecentMealPick,
 } from "./mealLogForm";
 import { FOOD_CATALOG, FOOD_CATEGORY_LABELS, popularFoods, searchFoods, splitMealParts, type FoodPreset } from "./foodCatalog";
 import { colors } from "../../theme/tokens";
@@ -29,6 +30,8 @@ interface MealLogScreenProps {
   onScan?: () => void;
   /** LLM parse of typed text into a composite meal; null on failure. */
   onParse?: (text: string) => Promise<MealParseResponse | null>;
+  /** Recently logged meals, offered for one-tap re-logging. */
+  recentMeals?: RecentMealPick[];
 }
 
 const CATEGORY_ORDER: FoodPreset["category"][] = ["breakfast", "sandwiches", "meals", "snacks"];
@@ -57,7 +60,7 @@ function MethodTile({ label, sub, soon, onPress, icon }: { label: string; sub?: 
  * protein/calorie fields prefill from the picks (still editable for odd
  * portions). Anything we don't know stays one tap away as a custom entry.
  */
-export function MealLogScreen({ visible, onClose, onSave, onScan, onParse }: MealLogScreenProps) {
+export function MealLogScreen({ visible, onClose, onSave, onScan, onParse, recentMeals = [] }: MealLogScreenProps) {
   const [form, setForm] = useState(initialMealLogForm);
   const [query, setQuery] = useState("");
   const [browseOpen, setBrowseOpen] = useState(false);
@@ -287,6 +290,29 @@ export function MealLogScreen({ visible, onClose, onSave, onScan, onParse }: Mea
               </View>
             ) : (
               <>
+                {recentMeals.length > 0 ? (
+                  <>
+                    <Text style={styles.catLabel}>RECENTLY LOGGED</Text>
+                    <View style={styles.suggestCard}>
+                      {recentMeals.map((meal) => (
+                        <Pressable
+                          key={meal.name}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Log ${meal.name} again`}
+                          onPress={() => setForm((f) => addItem(f, itemFromParsed(meal.name, meal.protein, meal.calories)))}
+                          style={({ pressed }) => [styles.suggestRow, pressed && styles.rowPressed]}
+                        >
+                          <View style={styles.flex}>
+                            <Text style={styles.suggestName}>{meal.name}</Text>
+                            <Text style={styles.suggestMeta}>{meal.protein}g protein · {meal.calories} cal</Text>
+                          </View>
+                          <Text style={styles.suggestAdd}>Add</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <Text style={styles.catLabel}>POPULAR</Text>
+                  </>
+                ) : null}
                 <View style={styles.chipWrap}>
                   {quickPicks.map((preset) => (
                     <Pressable

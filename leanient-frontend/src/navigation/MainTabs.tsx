@@ -10,6 +10,7 @@ import apiService from "../services/api.service";
 import { MealCameraScreen } from "../screens/app/MealCameraScreen";
 import { MealScanScreen } from "../screens/app/MealScanScreen";
 import { MealLogScreen } from "../screens/app/MealLogScreen";
+import { recentMealPicks } from "../screens/app/mealLogForm";
 import { LogWorkoutScreen } from "../screens/app/LogWorkoutScreen";
 import { DoseLogScreen } from "../screens/app/DoseLogScreen";
 import { WeightLogScreen } from "../screens/app/WeightLogScreen";
@@ -293,6 +294,7 @@ export function MainTabs() {
           setCameraOpen(true);
         }}
         onParse={(text) => apiService.parseMeal(text).catch(() => null)}
+        recentMeals={recentMealPicks(data.weekMeals)}
         onSave={(draft) =>
           saveAndClose(
             async () => {
