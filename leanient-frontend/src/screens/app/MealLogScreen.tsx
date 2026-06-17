@@ -28,6 +28,8 @@ interface MealLogScreenProps {
   onSave?: (draft: ReturnType<typeof buildManualMealLogDraft>) => Promise<void>;
   /** Launches the camera meal scan — the consolidated "Scan" method tile. */
   onScan?: () => void;
+  /** Launches the barcode scanner — the "Barcode" method tile. */
+  onBarcode?: () => void;
   /** LLM parse of typed text into a composite meal; null on failure. */
   onParse?: (text: string) => Promise<MealParseResponse | null>;
   /** Recently logged meals, offered for one-tap re-logging. */
@@ -60,7 +62,7 @@ function MethodTile({ label, sub, soon, onPress, icon }: { label: string; sub?: 
  * protein/calorie fields prefill from the picks (still editable for odd
  * portions). Anything we don't know stays one tap away as a custom entry.
  */
-export function MealLogScreen({ visible, onClose, onSave, onScan, onParse, recentMeals = [] }: MealLogScreenProps) {
+export function MealLogScreen({ visible, onClose, onSave, onScan, onBarcode, onParse, recentMeals = [] }: MealLogScreenProps) {
   const [form, setForm] = useState(initialMealLogForm);
   const [query, setQuery] = useState("");
   const [browseOpen, setBrowseOpen] = useState(false);
@@ -119,7 +121,8 @@ export function MealLogScreen({ visible, onClose, onSave, onScan, onParse, recen
   const onTile = (key: "scan" | "quick" | "barcode" | "voice") => {
     if (key === "scan") onScan?.();
     else if (key === "quick") inputRef.current?.focus();
-    else Alert.alert("Coming soon", key === "barcode" ? "Barcode scanning is on the way." : "Voice logging is on the way.");
+    else if (key === "barcode") onBarcode?.();
+    else Alert.alert("Coming soon", "Voice logging is on the way.");
   };
 
   // The modal stays mounted between opens; each meal starts clean.
@@ -182,7 +185,7 @@ export function MealLogScreen({ visible, onClose, onSave, onScan, onParse, recen
             <View style={styles.tiles}>
               <MethodTile label="Scan" sub="a meal" onPress={() => onTile("scan")} icon={<><Path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" /><Path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" /></>} />
               <MethodTile label="Quick" sub="add" onPress={() => onTile("quick")} icon={<Path d="M12 5v14M5 12h14" />} />
-              <MethodTile label="Barcode" soon onPress={() => onTile("barcode")} icon={<Path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14" />} />
+              <MethodTile label="Barcode" onPress={() => onTile("barcode")} icon={<Path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14" />} />
               <MethodTile label="Voice" soon onPress={() => onTile("voice")} icon={<><Path d="M12 4a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V7a3 3 0 0 0-3-3z" /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>} />
             </View>
 

@@ -391,6 +391,16 @@ export const mealParseRequestSchema = z
   })
   .strict();
 
+/** A scanned product barcode (UPC/EAN) to look up in the food database. */
+export const barcodeLookupRequestSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .regex(/^[0-9]{6,20}$/, "code must be a numeric barcode"),
+  })
+  .strict();
+
 /** One part of a parsed composite meal. */
 export const mealParseComponentSchema = z
   .object({
@@ -1057,6 +1067,7 @@ export type CreateMealLogRequest = z.infer<typeof createMealLogRequestSchema>;
 export type PatchMealLogRequest = z.infer<typeof patchMealLogRequestSchema>;
 export type MealScanRequestBody = z.infer<typeof mealScanRequestSchema>;
 export type MealParseRequestBody = z.infer<typeof mealParseRequestSchema>;
+export type BarcodeLookupRequestBody = z.infer<typeof barcodeLookupRequestSchema>;
 export type MealParseComponent = z.infer<typeof mealParseComponentSchema>;
 export type MealParseResponse = z.infer<typeof mealParseResponseSchema>;
 export type CreateWorkoutLogRequest = z.infer<typeof createWorkoutLogRequestSchema>;

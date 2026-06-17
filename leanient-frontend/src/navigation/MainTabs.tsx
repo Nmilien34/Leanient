@@ -10,7 +10,8 @@ import apiService from "../services/api.service";
 import { MealCameraScreen } from "../screens/app/MealCameraScreen";
 import { MealScanScreen } from "../screens/app/MealScanScreen";
 import { MealLogScreen } from "../screens/app/MealLogScreen";
-import { recentMealPicks } from "../screens/app/mealLogForm";
+import { BarcodeScanScreen } from "../screens/app/BarcodeScanScreen";
+import { buildBarcodeMealLogDraft, recentMealPicks } from "../screens/app/mealLogForm";
 import { LogWorkoutScreen } from "../screens/app/LogWorkoutScreen";
 import { DoseLogScreen } from "../screens/app/DoseLogScreen";
 import { WeightLogScreen } from "../screens/app/WeightLogScreen";
@@ -89,6 +90,7 @@ export function MainTabs() {
   const [logOpen, setLogOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [mealLogOpen, setMealLogOpen] = useState(false);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [logWorkoutOpen, setLogWorkoutOpen] = useState(false);
   const [doseOpen, setDoseOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
@@ -293,6 +295,10 @@ export function MainTabs() {
           setMealLogOpen(false);
           setCameraOpen(true);
         }}
+        onBarcode={() => {
+          setMealLogOpen(false);
+          setBarcodeOpen(true);
+        }}
         onParse={(text) => apiService.parseMeal(text).catch(() => null)}
         recentMeals={recentMealPicks(data.weekMeals)}
         onSave={(draft) =>
@@ -304,6 +310,25 @@ export function MainTabs() {
             () => setMealLogOpen(false),
           )
         }
+      />
+
+      <BarcodeScanScreen
+        visible={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onLookup={(code) => apiService.lookupBarcode(code)}
+        onLog={(product) =>
+          saveAndClose(
+            async () => {
+              await data.api.createMealLog(buildBarcodeMealLogDraft(product, new Date().toISOString()));
+              await data.refreshHomeData();
+            },
+            () => setBarcodeOpen(false),
+          )
+        }
+        onType={() => {
+          setBarcodeOpen(false);
+          setMealLogOpen(true);
+        }}
       />
 
       <LogWorkoutScreen

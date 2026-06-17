@@ -22,6 +22,7 @@ import {
   mealLogScanDetailResponseSchema,
   coachChatRequestSchema,
   coachChatResponseSchema,
+  barcodeLookupRequestSchema,
   mealParseRequestSchema,
   mealParseResponseSchema,
   mealScanRequestSchema,
@@ -456,6 +457,10 @@ export class LeanientApiClient {
 
   public async parseMeal(text: string): Promise<MealParseResponse> {
     return this.post("/meal-scans/parse-text", mealParseRequestSchema.parse({ text }), mealParseResponseSchema);
+  }
+
+  public async lookupBarcode(code: string): Promise<MealParseResponse> {
+    return this.post("/meal-scans/barcode", barcodeLookupRequestSchema.parse({ code }), mealParseResponseSchema);
   }
 
   public async getMealLogScan(mealLogId: string): Promise<MealLogScanDetailResponse> {

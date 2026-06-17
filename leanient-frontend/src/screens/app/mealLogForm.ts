@@ -154,3 +154,12 @@ export function buildManualMealLogDraft(
     ...(notes ? { notes } : {}),
   };
 }
+
+/** Build a meal-log draft from a scanned-barcode product (tagged source "barcode"). */
+export function buildBarcodeMealLogDraft(
+  product: { name: string; protein: number; calories: number },
+  recordedAt: string,
+): CreateMealLogRequest {
+  const form = addItem(initialMealLogForm, itemFromParsed(product.name, product.protein, product.calories));
+  return { ...buildManualMealLogDraft(form, recordedAt), source: "barcode" };
+}
