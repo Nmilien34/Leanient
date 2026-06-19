@@ -109,8 +109,6 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
       </Pressable>
 
       <PlanTimeline steps={steps} />
-
-      <Text style={styles.coach}>{plan.coachLine}</Text>
     </View>
   );
 }

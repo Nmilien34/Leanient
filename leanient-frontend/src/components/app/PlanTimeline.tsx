@@ -125,11 +125,9 @@ function StepRow({
  * opens inline with the rail running through it. One stop opens at a time.
  */
 export function PlanTimeline({ steps }: { steps: PlanStep[] }) {
-  // Open the first not-yet-done expandable stop on mount, so its detail is right
-  // there grabbing attention instead of hidden behind a chevron the user might miss.
-  const [openKey, setOpenKey] = useState<string | null>(
-    () => steps.find((s) => s.expandedContent !== undefined && !s.done)?.key ?? null,
-  );
+  // Start collapsed so the home glance stays light; the accented chevron signals
+  // a step expands. One stop opens at a time, on tap.
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const toggle = (key: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.create(180, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
     setOpenKey((k) => (k === key ? null : key));
