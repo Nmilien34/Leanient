@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import Svg, { Path } from "react-native-svg";
@@ -26,10 +26,47 @@ type Phase =
   | { kind: "found"; product: MealParseResponse }
   | { kind: "notFound" };
 
+/** The "found" confirm sheet — macros are editable, since barcode data is imperfect. */
+function FoundSheet({ product, onLog, onScanAgain }: { product: MealParseResponse; onLog: (p: MealParseResponse) => void; onScanAgain: () => void }) {
+  const [protein, setProtein] = useState(String(product.protein));
+  const [calories, setCalories] = useState(String(product.calories));
+  const serving = product.components[0]?.name.match(/\(([^)]+)\)\s*$/)?.[1];
+
+  const log = () => {
+    const p = Math.max(0, Math.round(Number(protein) || 0));
+    const c = Math.max(0, Math.round(Number(calories) || 0));
+    onLog({ ...product, protein: p, calories: c, components: [{ name: product.components[0]?.name ?? product.name, protein: p, calories: c }] });
+  };
+
+  return (
+    <View style={styles.sheet}>
+      <Text style={styles.foundName}>{product.name}</Text>
+      <Text style={styles.foundServing}>{serving ? `Per ${serving} · adjust if it looks off` : "Adjust if it looks off"}</Text>
+      <View style={styles.editRow}>
+        <View style={styles.editField}>
+          <TextInput value={protein} onChangeText={setProtein} keyboardType="number-pad" style={styles.editInput} accessibilityLabel="Protein grams" />
+          <Text style={styles.editUnit}>g protein</Text>
+        </View>
+        <View style={styles.editField}>
+          <TextInput value={calories} onChangeText={setCalories} keyboardType="number-pad" style={styles.editInput} accessibilityLabel="Calories" />
+          <Text style={styles.editUnit}>cal</Text>
+        </View>
+      </View>
+      <Pressable style={styles.logBtn} onPress={log}>
+        <Text style={styles.logBtnText}>Log it</Text>
+      </Pressable>
+      <Pressable onPress={onScanAgain} hitSlop={8}>
+        <Text style={styles.againText}>Scan another</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /**
  * Full-screen barcode scanner. expo-camera reads the UPC/EAN, the backend looks
- * it up in Open Food Facts, and the confirmed product logs as a meal. Codes that
- * aren't found route to typing the food instead — never a guessed macro.
+ * it up (Open Food Facts), and the confirmed product logs as a meal — with the
+ * macros editable, since barcode data is imperfect. Codes that aren't found route
+ * to typing the food instead — never a guessed macro.
  */
 export function BarcodeScanScreen({ visible, onClose, onLookup, onLog, onType }: BarcodeScanScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -109,18 +146,7 @@ export function BarcodeScanScreen({ visible, onClose, onLookup, onLog, onType }:
       ) : null}
 
       {phase.kind === "found" ? (
-        <View style={styles.sheet}>
-          <Text style={styles.foundName}>{phase.product.name}</Text>
-          <Text style={styles.foundMacros}>
-            <Text style={styles.foundProtein}>{phase.product.protein}g protein</Text> · {phase.product.calories} cal
-          </Text>
-          <Pressable style={styles.logBtn} onPress={() => onLog(phase.product)}>
-            <Text style={styles.logBtnText}>Log it</Text>
-          </Pressable>
-          <Pressable onPress={scanAgain} hitSlop={8}>
-            <Text style={styles.againText}>Scan another</Text>
-          </Pressable>
-        </View>
+        <FoundSheet product={phase.product} onLog={onLog} onScanAgain={scanAgain} />
       ) : null}
 
       {phase.kind === "notFound" ? (
@@ -156,8 +182,11 @@ const styles = StyleSheet.create({
   sheet: { position: "absolute", left: 16, right: 16, bottom: 40, backgroundColor: colors.card, borderRadius: 22, padding: 20, alignItems: "center", gap: 8, shadowColor: "#000", shadowOffset: { width: 0, height: 12 }, shadowRadius: 24, shadowOpacity: 0.3 },
   sheetLook: { fontFamily: font.medium, fontSize: 13.5, color: colors.muted, textAlign: "center", lineHeight: 19 },
   foundName: { fontFamily: font.extrabold, fontSize: 18, letterSpacing: -0.3, color: colors.ink, textAlign: "center" },
-  foundMacros: { fontFamily: font.regular, fontSize: 14, color: colors.muted },
-  foundProtein: { fontFamily: font.bold, color: colors.ink },
+  foundServing: { fontFamily: font.medium, fontSize: 12, color: colors.muted, textAlign: "center", marginTop: -2 },
+  editRow: { flexDirection: "row", gap: 10, alignSelf: "stretch", marginTop: 6 },
+  editField: { flex: 1, alignItems: "center", backgroundColor: colors.sageFill, borderRadius: 14, paddingVertical: 10 },
+  editInput: { fontFamily: font.extrabold, fontSize: 22, letterSpacing: -0.5, color: colors.ink, textAlign: "center", minWidth: 60, padding: 0 },
+  editUnit: { fontFamily: font.medium, fontSize: 11.5, color: colors.muted, marginTop: 1 },
   logBtn: { marginTop: 8, alignSelf: "stretch", height: 50, borderRadius: 25, backgroundColor: colors.emeraldDeep, alignItems: "center", justifyContent: "center" },
   logBtnText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7" },
   againText: { fontFamily: font.semibold, fontSize: 13.5, color: colors.emeraldDeep, paddingTop: 4 },
