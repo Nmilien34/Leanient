@@ -25,6 +25,15 @@ function num(value: unknown): number | null {
   return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+/** First present, non-null value across candidate nutriment keys. */
+function pickNutriment(n: OffNutriments, keys: string[]): number | null {
+  for (const key of keys) {
+    const v = num(n[key]);
+    if (v != null) return v;
+  }
+  return null;
+}
+
 /**
  * Maps an Open Food Facts product payload to our composite-meal shape, preferring
  * per-serving macros and falling back to per-100g. Returns null when the product
@@ -41,21 +50,25 @@ export function mapOffProduct(payload: OffPayload | null | undefined): MealParse
   if (!name) return null;
 
   const n: OffNutriments = p.nutriments ?? {};
-  const perServing = num(n["proteins_serving"]) != null || num(n["energy-kcal_serving"]) != null;
-  const protein = num(perServing ? n["proteins_serving"] : n["proteins_100g"]);
-  const calories = num(perServing ? n["energy-kcal_serving"] : n["energy-kcal_100g"]);
-  if (protein == null && calories == null) return null; // no macros → treat as not found
+  const protein = pickNutriment(n, ["proteins_serving", "proteins_100g", "proteins_value", "proteins"]);
+  const calories = pickNutriment(n, ["energy-kcal_serving", "energy-kcal_100g", "energy-kcal_value", "energy-kcal"]);
 
-  const servingLabel = perServing ? (typeof p.serving_size === "string" && p.serving_size.trim()) || "serving" : "100 g";
-  const proteinG = Math.round(protein ?? 0);
-  const cal = Math.round(calories ?? 0);
+  // No usable macros = an Open Food Facts stub (a name with no real data). Treat
+  // it as not-found so the user types the food instead of logging a bogus
+  // 0-protein, 0-calorie entry.
+  if ((protein ?? 0) <= 0 && (calories ?? 0) <= 0) return null;
+
+  const usedServing = num(n["proteins_serving"]) != null || num(n["energy-kcal_serving"]) != null;
+  const servingLabel = usedServing ? (typeof p.serving_size === "string" && p.serving_size.trim()) || "serving" : "100 g";
+  const proteinG = Math.max(0, Math.round(protein ?? 0));
+  const cal = Math.max(0, Math.round(calories ?? 0));
 
   return {
     name,
     components: [{ name: `${name} (${servingLabel})`, protein: proteinG, calories: cal }],
     protein: proteinG,
     calories: cal,
-    confidence: perServing ? 0.9 : 0.7,
+    confidence: usedServing ? 0.85 : 0.65,
   };
 }
 

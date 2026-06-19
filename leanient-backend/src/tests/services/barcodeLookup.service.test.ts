@@ -17,7 +17,7 @@ describe("mapOffProduct", () => {
     expect(result!.protein).toBe(15);
     expect(result!.calories).toBe(120);
     expect(result!.components[0].name).toContain("150 g");
-    expect(result!.confidence).toBe(0.9);
+    expect(result!.confidence).toBe(0.85);
   });
 
   it("falls back to per-100g with lower confidence when no serving data", () => {
@@ -28,13 +28,24 @@ describe("mapOffProduct", () => {
     expect(result.protein).toBe(26);
     expect(result.calories).toBe(116);
     expect(result.components[0].name).toContain("100 g");
-    expect(result.confidence).toBe(0.7);
+    expect(result.confidence).toBe(0.65);
   });
 
-  it("returns null for not-found, unnamed, or macro-less products", () => {
+  it("fills each macro independently when serving data is partial", () => {
+    // Calories only at serving level, protein only at 100g — both should populate.
+    const result = mapOffProduct({
+      status: 1,
+      product: { product_name: "Bar", nutriments: { "energy-kcal_serving": 210, "proteins_100g": 20 } },
+    })!;
+    expect(result.calories).toBe(210);
+    expect(result.protein).toBe(20);
+  });
+
+  it("rejects Open Food Facts stubs with no usable macros (the 0/0 bug)", () => {
     expect(mapOffProduct({ status: 0 })).toBeNull();
-    expect(mapOffProduct({ status: 1, product: { nutriments: { "proteins_serving": 5 } } })).toBeNull();
-    expect(mapOffProduct({ status: 1, product: { product_name: "Mystery", nutriments: {} } })).toBeNull();
+    expect(mapOffProduct({ status: 1, product: { nutriments: { "proteins_serving": 5 } } })).toBeNull(); // no name
+    expect(mapOffProduct({ status: 1, product: { product_name: "Mystery", nutriments: {} } })).toBeNull(); // no macros
+    expect(mapOffProduct({ status: 1, product: { product_name: "Water", nutriments: { "proteins_100g": 0, "energy-kcal_100g": 0 } } })).toBeNull(); // 0/0 stub
     expect(mapOffProduct(null)).toBeNull();
   });
 });
