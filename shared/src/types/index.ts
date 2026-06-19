@@ -346,6 +346,8 @@ export interface DoseLog extends DailyLogBase {
   doseAmount: number;
   doseUnit: DoseLogUnit;
   injectionSite?: DoseInjectionSite;
+  /** Self-reported injection pain, 0 (none) to 10 (worst). */
+  painLevel?: number;
   notes?: string;
 }
 

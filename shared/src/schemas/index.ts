@@ -543,6 +543,8 @@ const doseLogMutableSchema = z
     doseAmount: z.number().positive(),
     doseUnit: doseLogUnitSchema,
     injectionSite: doseInjectionSiteSchema.optional(),
+    /** Self-reported injection pain, 0 (none) to 10 (worst). */
+    painLevel: z.number().int().min(0).max(10).optional(),
     notes: z.string().trim().max(500).optional(),
   })
   .strict();

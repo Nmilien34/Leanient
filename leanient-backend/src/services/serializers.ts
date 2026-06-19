@@ -168,6 +168,7 @@ export function serializeDoseLog(log: DoseLogDocument): DoseLog {
     doseAmount: log.doseAmount,
     doseUnit: log.doseUnit,
     injectionSite: log.injectionSite,
+    painLevel: log.painLevel,
     notes: log.notes,
     createdAt: log.createdAt.toISOString(),
     updatedAt: log.updatedAt.toISOString(),

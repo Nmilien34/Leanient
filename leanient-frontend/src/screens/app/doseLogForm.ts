@@ -121,6 +121,8 @@ export interface DoseLogDraft {
   doseAmount: number;
   doseUnit: DoseLogUnit;
   injectionSite: DoseInjectionSite;
+  painLevel?: number;
+  notes?: string;
   recordedAt: string;
 }
 
@@ -128,18 +130,23 @@ export function buildDoseLogDraft(args: {
   protocol: UserMedicationProtocol;
   site: DoseInjectionSite;
   recordedAt: string;
+  painLevel?: number;
+  notes?: string;
 }): DoseLogDraft {
-  const { protocol, site, recordedAt } = args;
+  const { protocol, site, recordedAt, painLevel, notes } = args;
   if (protocol.doseAmount == null || protocol.doseAmount <= 0) {
     throw new Error("Set your dose amount in Medication settings before logging a dose.");
   }
 
+  const trimmedNotes = notes?.trim();
   return {
     medicationProtocolId: protocol.id,
     doseAmount: protocol.doseAmount,
     // protocol.doseUnit ("mg" | "units") is a subset of DoseLogUnit.
     doseUnit: protocol.doseUnit as DoseLogUnit,
     injectionSite: site,
+    ...(painLevel != null ? { painLevel } : {}),
+    ...(trimmedNotes ? { notes: trimmedNotes } : {}),
     recordedAt,
   };
 }

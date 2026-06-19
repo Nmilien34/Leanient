@@ -11,6 +11,7 @@ export interface DoseLogDocument extends Document<Types.ObjectId> {
   doseAmount: number;
   doseUnit: DoseLogUnit;
   injectionSite?: DoseInjectionSite;
+  painLevel?: number;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -65,6 +66,11 @@ const doseLogSchema = new Schema<DoseLogDocument>(
         "buttock_left",
         "buttock_right",
       ],
+    },
+    painLevel: {
+      type: Number,
+      min: 0,
+      max: 10,
     },
     notes: {
       type: String,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
@@ -22,8 +22,17 @@ import {
   type DoseLogDraft,
 } from "./doseLogForm";
 import { DOSE_LOG_HEADER_TOP_PADDING } from "./doseLogLayout";
+import { Slider } from "../../components/ui/Slider";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+
+/** A tiny face that softens or winces with the reported pain level. */
+function painFace(level: number): { face: string; word: string } {
+  if (level === 0) return { face: "·‿·", word: "Painless" };
+  if (level <= 3) return { face: "·_·", word: "Barely felt it" };
+  if (level <= 6) return { face: ">_<", word: "A real pinch" };
+  return { face: ">︿<", word: "That one stung" };
+}
 
 // Front-body coordinates for each injectable site (viewBox 166x208).
 const SITE_POS: Record<DoseInjectionSite, { x: number; y: number }> = {
@@ -65,6 +74,8 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [painLevel, setPainLevel] = useState(0);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!visible) return;
@@ -77,6 +88,8 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
     setCalendarOpen(false);
     setSaving(false);
     setError(null);
+    setPainLevel(0);
+    setNotes("");
   }, [suggested, visible]);
 
   const calendarCells = useMemo(
@@ -107,7 +120,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
     setSaving(true);
     setError(null);
     try {
-      await onSave?.(buildDoseLogDraft({ protocol, site, recordedAt: recordedAt.toISOString() }));
+      await onSave?.(buildDoseLogDraft({ protocol, site, recordedAt: recordedAt.toISOString(), painLevel, notes }));
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Couldn't log this dose. Try again.");
     } finally {
@@ -153,7 +166,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
             <Text style={styles.glabel}>INJECTION SITE</Text>
             <View style={styles.siteCard}>
               <View style={styles.bodyWrap}>
-                <Svg width={166} height={208} viewBox="0 0 166 208">
+                <Svg width={190} height={238} viewBox="0 0 166 208">
                   <G fill="#E8EBE3">
                     <Circle cx={83} cy={22} r={16} />
                     <Rect x={53} y={44} width={60} height={90} rx={20} />
@@ -168,13 +181,18 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
                     const isLast = s === lastSite;
                     return (
                       <G key={s}>
-                        {isLast && !selected ? (
+                        {selected ? (
+                          <>
+                            <Circle cx={p.x} cy={p.y} r={18} fill="rgba(31,158,99,0.14)" />
+                            <Circle cx={p.x} cy={p.y} r={13} fill="none" stroke="#2FB87A" strokeWidth={1.5} opacity={0.5} />
+                          </>
+                        ) : isLast ? (
                           <Circle cx={p.x} cy={p.y} r={11} fill="none" stroke="#C7CCC0" strokeWidth={1.5} strokeDasharray="3 3" />
                         ) : null}
                         <Circle
                           cx={p.x}
                           cy={p.y}
-                          r={selected ? 9 : 7}
+                          r={selected ? 8.5 : 6.5}
                           fill={selected ? "#1F9E63" : "#fff"}
                           stroke={selected ? "#fff" : "#C7CCC0"}
                           strokeWidth={selected ? 2.5 : 2}
@@ -204,6 +222,39 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
                 <Text style={styles.chevSmall}>›</Text>
               </Pressable>
             </View>
+
+            {/* pain level */}
+            <Text style={styles.glabel}>PAIN LEVEL</Text>
+            <View style={styles.painCard}>
+              <View style={styles.painHead}>
+                <View style={styles.painFaceWrap}>
+                  <Text style={styles.painFace}>{painFace(painLevel).face}</Text>
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.painWord}>{painFace(painLevel).word}</Text>
+                  <Text style={styles.painSub}>How that injection felt</Text>
+                </View>
+                <Text style={styles.painValue}>
+                  {painLevel}
+                  <Text style={styles.painValueMax}>/10</Text>
+                </Text>
+              </View>
+              <View style={styles.painSliderWrap}>
+                <Slider min={0} max={10} value={painLevel} onChange={setPainLevel} />
+              </View>
+            </View>
+
+            {/* notes */}
+            <Text style={styles.glabel}>NOTES</Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Anything to remember about this dose? (optional)"
+              placeholderTextColor={colors.faint}
+              multiline
+              style={styles.notesInput}
+              accessibilityLabel="Dose notes"
+            />
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -283,6 +334,16 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontFamily: font.semibold, fontSize: 15, color: colors.ink },
   rowValue: { fontFamily: font.medium, fontSize: 13, color: colors.muted },
   chevSmall: { fontFamily: font.regular, fontSize: 20, color: colors.faintest, marginLeft: 11 },
+  painCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 18, padding: 16 },
+  painHead: { flexDirection: "row", alignItems: "center", gap: 12 },
+  painFaceWrap: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
+  painFace: { fontFamily: font.bold, fontSize: 15, color: colors.emeraldDeep, letterSpacing: -0.5 },
+  painWord: { fontFamily: font.bold, fontSize: 15, letterSpacing: -0.15, color: colors.ink },
+  painSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 1 },
+  painValue: { fontFamily: font.extrabold, fontSize: 22, letterSpacing: -0.6, color: colors.ink },
+  painValueMax: { fontFamily: font.semibold, fontSize: 14, color: colors.faint },
+  painSliderWrap: { marginTop: 14 },
+  notesInput: { marginHorizontal: 20, marginTop: 12, minHeight: 80, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, paddingHorizontal: 15, paddingVertical: 13, fontFamily: font.medium, fontSize: 15, color: colors.ink, textAlignVertical: "top" },
   errorText: { marginHorizontal: 24, marginTop: 14, fontFamily: font.medium, fontSize: 13, lineHeight: 18, color: "#A94B4B" },
   cta: { marginHorizontal: 20, marginTop: 22, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   ctaDisabled: { opacity: 0.55 },
