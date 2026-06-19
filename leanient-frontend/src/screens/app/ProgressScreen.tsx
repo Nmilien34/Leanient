@@ -31,6 +31,8 @@ import {
   muscleKeptStreak,
   type ChartRangeId,
 } from "./progressMetrics";
+import { GoalJourneyCard } from "../../components/app/GoalJourneyCard";
+import { buildGoalJourney } from "./goalJourney";
 import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
 import { faceConsentState } from "./faceConsent";
@@ -97,14 +99,13 @@ function RangeToggle({ value, onChange }: { value: ChartRangeId; onChange: (next
 export function ProgressScreen() {
   const auth = useAuth();
   const data = useLeanientData();
-  const { openProgressPhoto, openFaceCheck } = useQuickActions();
+  const { openFaceCheck } = useQuickActions();
   const navigation = useNavigation();
   const refreshedForUserRef = useRef<string | null>(null);
   const [coachOpen, setCoachOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [checkinHistoryOpen, setCheckinHistoryOpen] = useState(false);
   const [faceConsentOpen, setFaceConsentOpen] = useState(false);
-  const [photoKind, setPhotoKind] = useState<"body" | "face">("body");
   const [faceMetrics, setFaceMetrics] = useState<FaceMetric[]>([]);
   const [retentionRange, setRetentionRange] = useState<ChartRangeId>("all");
   const [weightRange, setWeightRange] = useState<ChartRangeId>("all");
@@ -162,6 +163,13 @@ export function ProgressScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is a per-render Date
     [profile?.goalWeight, profile?.goalWeightUnit, weightLogs, weightRange],
   );
+  // The journey-to-goal uses ALL weigh-ins (not the range window), so "since you
+  // started" and the pace ETA reflect the true start, not the visible slice.
+  const goalJourney = useMemo(
+    () => buildGoalJourney({ weightLogs, profile, now }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` is a per-render Date
+    [weightLogs, profile?.goalWeight, profile?.goalWeightUnit, profile?.goalPace],
+  );
   // Week numbers stay absolute when a window hides earlier weeks.
   const firstVisibleWeek =
     retentionChart.snapshots.length > 0
@@ -178,12 +186,6 @@ export function ProgressScreen() {
     hasError: !!(data.progressPhotosError ?? data.homeError),
   });
   const allPhotos = data.progressPhotos.slice().sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1));
-  const photos = allPhotos.filter((p) => p.kind !== "face");
-  const photosState = resolveSectionState({
-    hasData: photos.length > 0,
-    isLoading: data.isLoading || data.isRefreshing,
-    hasError: !!data.progressPhotosError,
-  });
 
   const { points: weightPoints, unit, startWeight, todayWeight, lost } = weightChart;
   const { points: retentionPoints } = retentionChart;
@@ -367,6 +369,9 @@ export function ProgressScreen() {
             </View>
           )}
 
+          {/* journey to goal — start → now → goal, paced by their chosen speed */}
+          {goalJourney ? <GoalJourneyCard view={goalJourney} /> : null}
+
           {/* face & skin — the analysis signal (not photos), surfaced high */}
           {showFaceSkin ? (
             <>
@@ -410,73 +415,26 @@ export function ProgressScreen() {
             </>
           ) : null}
 
-          {/* progress photos — body and face in one section, toggled */}
+          {/* face photos — body progress photos now live on Home */}
           <View style={styles.libHead}>
-            <Text style={styles.libTitle}>Progress photos</Text>
-            {photoKind === "face" && faceProgress?.latestFullness != null ? (
+            <Text style={styles.libTitle}>Face photos</Text>
+            {faceProgress?.latestFullness != null ? (
               <Text style={styles.faceMeta}>{faceFullnessLabel(faceProgress.latestFullness)}</Text>
             ) : null}
           </View>
-          <View style={styles.rangeRow}>
-            {(["body", "face"] as const).map((k) => {
-              const on = k === photoKind;
-              return (
-                <Pressable
-                  key={k}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={k === "body" ? "Body photos" : "Face photos"}
-                  onPress={() => setPhotoKind(k)}
-                  style={[styles.rangePill, on && styles.rangePillOn]}
-                >
-                  <Text style={[styles.rangeText, on && styles.rangeTextOn]}>{k === "body" ? "Body" : "Face"}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
 
-          {photoKind === "face" ? (
-            <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
-                <AddPhotoThumb onPress={openFaceCheck} />
-                {faceProgress?.photos.map((p) => (
-                  <ProgressPhotoThumb key={p.id} uri={p.viewUrl} label={p.weekLabel} sublabel={p.fullnessLabel ?? undefined} />
-                ))}
-              </ScrollView>
-              {faceProgress?.trend ? (
-                <Text style={styles.faceTrend}>{faceProgress.trend}</Text>
-              ) : (
-                <Text style={styles.faceTrend}>
-                  Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
-                </Text>
-              )}
-            </>
-          ) : photosState === "loading" ? (
-            <SkeletonCard lines={2} style={styles.cardGap} />
-          ) : photosState === "error" ? (
-            <ErrorState onRetry={() => void data.refreshProgress()} style={styles.cardGap} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
+            <AddPhotoThumb onPress={openFaceCheck} />
+            {faceProgress?.photos.map((p) => (
+              <ProgressPhotoThumb key={p.id} uri={p.viewUrl} label={p.weekLabel} sublabel={p.fullnessLabel ?? undefined} />
+            ))}
+          </ScrollView>
+          {faceProgress?.trend ? (
+            <Text style={styles.faceTrend}>{faceProgress.trend}</Text>
           ) : (
-            <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ptl}>
-                <AddPhotoThumb onPress={openProgressPhoto} />
-                {photos.map((p) => {
-                  const wk = weekOf(p.captureDate);
-                  return (
-                    <ProgressPhotoThumb
-                      key={p.id}
-                      uri={p.viewUrl}
-                      label={wk != null ? `Wk ${wk}` : "Photo"}
-                    />
-                  );
-                })}
-              </ScrollView>
-              {photos.length === 0 ? (
-                <EmptyState
-                  message="Add your first progress photo to start tracking visual changes."
-                  style={styles.cardGap}
-                />
-              ) : null}
-            </>
+            <Text style={styles.faceTrend}>
+              Take a weekly face check. Protein and a gentle loss pace are what keep your face full.
+            </Text>
           )}
 
           {/* weekly check-in history */}
@@ -532,7 +490,7 @@ const styles = StyleSheet.create({
   avatar: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: font.bold, fontSize: 13, color: "#5B6157" },
   // chart card
-  chartcard: { marginHorizontal: 20, marginTop: 6, marginBottom: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
+  chartcard: { marginHorizontal: 20, marginTop: 12, marginBottom: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
   cardGap: { marginBottom: 12 },
   ctitle: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   cTitleText: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
@@ -543,28 +501,28 @@ const styles = StyleSheet.create({
   // workout sessions
   // check-in history entry
   flex: { flex: 1 },
-  historyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 16, marginBottom: 12 },
+  historyRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 16, marginTop: 10, marginBottom: 12, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
   historyTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
   historySub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
   historyChev: { fontFamily: font.semibold, fontSize: 20, color: colors.faint },
   // coach prompt
   aiWrap: { paddingHorizontal: 20 },
-  aicard: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: "rgba(47,184,122,0.25)", borderRadius: 20, padding: 16 },
+  aicard: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8, borderWidth: 1, borderColor: "rgba(47,184,122,0.25)", borderRadius: 20, padding: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
   coachdot: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.emeraldDeep },
   aitext: { flex: 1, fontFamily: font.semibold, fontSize: 14, color: colors.ink },
   aichev: { fontFamily: font.bold, fontSize: 16, color: colors.emeraldDeep },
   // photos
-  libHead: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
+  libHead: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 6 },
   libTitle: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
   faceMeta: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep, marginTop: 2 },
   faceTrend: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, paddingHorizontal: 20, paddingTop: 10 },
-  trackRow: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 14 },
+  trackRow: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 14, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 6 }, shadowRadius: 14, shadowOpacity: 0.05, elevation: 1 },
   trackRowPressed: { opacity: 0.6 },
   trackIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(47,184,122,0.10)", alignItems: "center", justifyContent: "center" },
   trackTitle: { fontFamily: font.bold, fontSize: 14.5, color: colors.ink },
   trackSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 2 },
   trackChev: { fontFamily: font.semibold, fontSize: 18, color: colors.faint },
-  volCard: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 16 },
+  volCard: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingVertical: 13, paddingHorizontal: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 6 }, shadowRadius: 14, shadowOpacity: 0.05, elevation: 1 },
   volTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   volLabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.6, color: colors.emeraldDeep },
   volIndex: { fontFamily: font.extrabold, fontSize: 22, letterSpacing: -0.5, color: colors.ink },

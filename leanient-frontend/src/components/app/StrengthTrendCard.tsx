@@ -24,9 +24,9 @@ const TREND_WORD: Record<StrengthTrend, string> = {
 };
 
 /**
- * Home strength-work card: the behavioral proof of the resistance-training lever.
- * Shows the trend word, a short read, and a sparkline of weekly training volume
- * (or session frequency when no load is logged). See buildStrengthTrend.
+ * Compact half-width strength card: the trend word, a sparkline of weekly training
+ * volume (or session frequency when no load is logged), and this week's sessions.
+ * The behavioral proof of the resistance lever; pairs beside the weight card.
  */
 export function StrengthTrendCard({ view }: StrengthTrendCardProps) {
   const c = TREND_COLOR[view.trend];
@@ -35,42 +35,34 @@ export function StrengthTrendCard({ view }: StrengthTrendCardProps) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.head}>
-        <Text style={styles.eyebrow}>STRENGTH WORK</Text>
-        <Text style={[styles.trend, { color: c.text }]}>{TREND_WORD[view.trend]}</Text>
-      </View>
+      <Text style={styles.eyebrow}>STRENGTH</Text>
 
-      <View style={styles.row}>
-        <View style={styles.left}>
-          <Text style={styles.headline}>{view.headline}</Text>
-          <Text style={styles.sub}>{view.subline}</Text>
-          <Text style={styles.week}>
-            <Text style={[styles.weekNum, { color: c.text }]}>{view.sessionsThisWeek}</Text> this week
-          </Text>
+      <Text style={[styles.word, { color: c.text }]}>{TREND_WORD[view.trend]}</Text>
+      <Text style={styles.sub}>
+        {view.sessions} {view.sessions === 1 ? "session" : "sessions"} · 6 wk
+      </Text>
+
+      {hasSpark ? (
+        <View style={styles.spark}>
+          <LineChart points={points} height={34} stroke={c.line} />
         </View>
+      ) : null}
 
-        {hasSpark ? (
-          <View style={styles.spark}>
-            <LineChart points={points} height={48} stroke={c.line} />
-          </View>
-        ) : null}
-      </View>
+      <Text style={styles.week}>
+        <Text style={[styles.weekNum, { color: c.text }]}>{view.sessionsThisWeek}</Text> this week
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
-  head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.muted },
-  trend: { fontFamily: font.bold, fontSize: 12, letterSpacing: -0.1 },
-  row: { flexDirection: "row", alignItems: "center", marginTop: 10, gap: 14 },
-  left: { flex: 1 },
-  headline: { fontFamily: font.extrabold, fontSize: 16.5, letterSpacing: -0.3, color: colors.ink },
-  sub: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 18, color: colors.muted, marginTop: 3 },
-  week: { fontFamily: font.medium, fontSize: 12.5, color: colors.muted, marginTop: 9 },
+  card: { flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 18, padding: 14, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
+  eyebrow: { fontFamily: font.bold, fontSize: 10.5, letterSpacing: 0.74, color: colors.muted },
+  word: { fontFamily: font.extrabold, fontSize: 23, letterSpacing: -0.4, marginTop: 8 },
+  sub: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted, marginTop: 3 },
+  spark: { marginTop: 10 },
+  week: { fontFamily: font.medium, fontSize: 12, color: colors.muted, marginTop: 9 },
   weekNum: { fontFamily: font.extrabold, fontSize: 13 },
-  spark: { width: 120 },
 });
 
 export default StrengthTrendCard;

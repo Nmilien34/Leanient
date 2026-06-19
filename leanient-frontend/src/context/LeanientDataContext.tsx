@@ -254,6 +254,7 @@ export function LeanientDataProvider({
           nextProgressOverview,
           nextTrainingToday,
           nextWorkoutHistory,
+          nextProgressPhotos,
         ] = await Promise.allSettled([
           retryOnce(() => api.getProfile()),
           retryOnce(() => api.getMedicationProtocol()),
@@ -269,6 +270,7 @@ export function LeanientDataProvider({
           retryOnce(() => api.getProgressOverview()),
           retryOnce(() => api.getTrainingToday()),
           retryOnce(() => api.getWorkoutLogs({ from: workoutHistoryFrom })),
+          retryOnce(() => api.getProgressPhotos()),
         ]);
 
         const firstRejected = [
@@ -307,6 +309,8 @@ export function LeanientDataProvider({
         if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
         if (nextDoseHistory.status === "fulfilled") setDoseHistory(nextDoseHistory.value);
         if (nextWorkoutHistory.status === "fulfilled") setWorkoutHistory(nextWorkoutHistory.value);
+        // Best-effort: photos enrich Home but never gate it, so they stay out of firstRejected.
+        if (nextProgressPhotos.status === "fulfilled") setProgressPhotos(nextProgressPhotos.value);
         if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
         if (nextTrainingToday.status === "fulfilled") setTrainingToday(nextTrainingToday.value);
       }),

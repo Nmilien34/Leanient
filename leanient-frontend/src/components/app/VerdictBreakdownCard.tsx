@@ -9,6 +9,8 @@ interface VerdictBreakdownCardProps {
   view: VerdictBreakdown;
   /** Opens the full explainer prose. */
   onPress?: () => void;
+  /** Strips the card chrome so it can fuse under the worded verdict in one block. */
+  bare?: boolean;
 }
 
 function scoreColor(score: number): string {
@@ -22,7 +24,7 @@ function scoreColor(score: number): string {
  * since last week, and the three component scores (protein, training, pace) so a
  * glance shows which lever is leaking. Tapping opens the prose explainer.
  */
-export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProps) {
+export function VerdictBreakdownCard({ view, onPress, bare }: VerdictBreakdownCardProps) {
   const isDown = view.retentionDelta != null && view.retentionDelta < 0;
   const deltaLabel =
     view.retentionDelta == null
@@ -40,7 +42,7 @@ export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProp
       accessibilityLabel={`Muscle retention score ${view.retention} out of 100`}
       accessibilityHint={onPress ? "Opens the full breakdown of why" : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && onPress ? styles.pressed : null]}
+      style={({ pressed }) => [styles.card, bare && styles.cardBare, pressed && onPress ? styles.pressed : null]}
     >
       <View style={styles.head}>
         <View>
@@ -80,6 +82,7 @@ export function VerdictBreakdownCard({ view, onPress }: VerdictBreakdownCardProp
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
+  cardBare: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, borderWidth: 0, backgroundColor: "transparent", shadowOpacity: 0, elevation: 0, paddingTop: 4 },
   pressed: { opacity: 0.85 },
   head: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.emeraldDeep },

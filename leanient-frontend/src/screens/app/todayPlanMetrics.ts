@@ -53,6 +53,8 @@ export interface TodayPlan {
   /** The lever today should pull (the leaking score component); null when on track / no score. */
   focus: DayFocus | null;
   coachLine: string;
+  /** Forward-looking result: what finishing today's plan earns, to motivate completion. */
+  payoff: string;
 }
 
 const WEEKDAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -144,6 +146,16 @@ function coachLineFor(band: Band | null, focus: DayFocus | null, sessionName: st
     return "Protein's the lever this week. Hit it today and your number climbs. Verdict Sunday.";
   }
   return `You're keeping your muscle. Two protein meals and the ${sessionName} holds the line. I'll fold it into Sunday's verdict.`;
+}
+
+/** The result of finishing today's plan: what the user earns, to motivate completion. */
+function payoffFor(band: Band | null, focus: DayFocus | null, hasMove: boolean): string {
+  if (band === "losing") return "Finish today and you start winning your muscle back. A few days like this turn the trend.";
+  if (focus === "training" && hasMove) return "Do all three and today's session is what makes your muscle hold.";
+  if (focus === "pace") return "Stick to this and the fat keeps coming off while your muscle stays put.";
+  if (focus === "protein") return "Hit your protein today and you protect the muscle under the fat you're losing.";
+  if (band === "strong") return "Finish today and you bank another day of kept muscle. This is how the streak holds.";
+  return "Finish today's plan and you protect the muscle under the fat you're dropping.";
 }
 
 /** STEADY pillar advice — what the shot cycle asks of today. */
@@ -238,5 +250,6 @@ export function deriveTodayPlan(args: {
     steady,
     focus,
     coachLine: coachLineFor(band, focus, sessionName),
+    payoff: payoffFor(band, focus, Boolean(move)),
   };
 }

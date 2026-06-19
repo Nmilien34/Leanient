@@ -18,15 +18,16 @@ export interface SettingRowConfig {
 function SettingRow({ icon, label, value, onPress, danger, destructive }: Omit<SettingRowConfig, "key">) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.row, pressed && onPress ? styles.pressed : null]}
     >
       <View style={[styles.icon, danger && styles.iconDanger, destructive && styles.iconDestructive]}>{icon}</View>
       <Text style={[styles.label, danger && styles.labelDanger, destructive && styles.labelDestructive]}>{label}</Text>
       {value ? <Text style={styles.value}>{value}</Text> : null}
-      <Text style={[styles.chev, destructive && styles.chevDestructive]}>›</Text>
+      {onPress ? <Text style={[styles.chev, destructive && styles.chevDestructive]}>›</Text> : null}
     </Pressable>
   );
 }

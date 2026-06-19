@@ -214,16 +214,24 @@ export function MedicationScreen({ visible, onClose, startInEdit = false }: Medi
             <SettingGroup
               rows={[
                 { key: "med", icon: Icons.pill, label: "Medication", value: view.medicationName },
-                { key: "dose", icon: Icons.pill, label: "Current dose", value: view.doseLabel },
-                { key: "shotday", icon: Icons.cal, label: "Shot day", value: view.shotDayName },
+                { key: "dose", icon: Icons.pill, label: "Current dose", value: view.doseLabel, onPress: openEdit },
+                { key: "shotday", icon: Icons.cal, label: "Shot day", value: view.shotDayName, onPress: openEdit },
                 { key: "started", icon: Icons.cal, label: "Started", value: view.startedLabel },
               ]}
             />
 
             {view.titration.length ? (
               <>
-                <Text style={styles.glabel}>TITRATION</Text>
-                <View style={styles.titCard}>
+                <View style={styles.titHead}>
+                  <Text style={styles.glabelInline}>TITRATION</Text>
+                  <Text style={styles.titAdjust}>Adjust ›</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Adjust your dose"
+                  onPress={openEdit}
+                  style={({ pressed }) => [styles.titCard, pressed && styles.titCardPressed]}
+                >
                   <View style={styles.titRow}>
                     {view.titration.map((step, i) => (
                       <React.Fragment key={step.value}>
@@ -232,7 +240,7 @@ export function MedicationScreen({ visible, onClose, startInEdit = false }: Medi
                       </React.Fragment>
                     ))}
                   </View>
-                </View>
+                </Pressable>
               </>
             ) : null}
 
@@ -316,7 +324,11 @@ const styles = StyleSheet.create({
   ftitle: { fontFamily: font.bold, fontSize: 16, letterSpacing: -0.16, color: colors.ink },
   fsub: { fontFamily: font.regular, fontSize: 13, lineHeight: 17, color: colors.muted, marginTop: 2 },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },
+  titHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },
+  glabelInline: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint },
+  titAdjust: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep },
   titCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 18, padding: 15 },
+  titCardPressed: { opacity: 0.85 },
   titRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
   chip: { borderRadius: 10, paddingVertical: 7, paddingHorizontal: 11, backgroundColor: "#EEF7F1" },
   chipNow: { shadowColor: "rgba(31,158,99,1)", shadowOffset: { width: 0, height: 6 }, shadowRadius: 14, shadowOpacity: 0.5, elevation: 4 },

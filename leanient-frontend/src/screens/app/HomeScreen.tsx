@@ -27,10 +27,10 @@ import { HomeStateBanner } from "../../components/app/HomeStateBanner";
 import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
-import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
 import { CoachInsightCard } from "../../components/app/CoachInsightCard";
 import { WeightTrajectoryCard } from "../../components/app/WeightTrajectoryCard";
 import { StrengthTrendCard } from "../../components/app/StrengthTrendCard";
+import { ProgressPhotosCard } from "../../components/app/ProgressPhotosCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
 import { TodayPlanSheet } from "../../components/app/TodayPlanSheet";
@@ -44,7 +44,7 @@ import { ErrorState } from "../../components/app/ErrorState";
 import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
 import { VerdictRevealScreen } from "./VerdictRevealScreen";
 import { deriveHomeMetrics } from "./homeMetrics";
-import { createOpenProgressPhotoAction, getPrimaryFocusActionIntent, getSecondaryFocusAction } from "./homeActions";
+import { createOpenProgressPhotoAction } from "./homeActions";
 import { computeShotCycle, restCueForEnergy } from "./todayMetrics";
 import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
@@ -61,6 +61,7 @@ import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildRetentionHero } from "./retentionHero";
 import { buildDailyInsight } from "./dailyInsight";
+import { buildWeeklyInsight } from "./weeklyInsight";
 import { buildWeightTrajectory } from "./weightTrajectory";
 import { buildStrengthTrend } from "./strengthTrend";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
@@ -107,7 +108,7 @@ interface HomeViewProps {
 
 const SUBSCRIBED_STATUSES: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
 
-function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
+function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
   const auth = useAuth();
   const navigation = useNavigation();
@@ -339,7 +340,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     return range;
   }, [verdict.weekOf, medication, now]);
 
-  const { protein, training, weight, dose, measurements } = metrics;
+  const { protein, training, weight, dose } = metrics;
 
   // Most-recent-first dose history for the Home dose card. Previews the latest
   // few; the full list lives on the dose history screen.
@@ -351,33 +352,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     () => createOpenProgressPhotoAction(openProgressPhoto),
     [openProgressPhoto],
   );
-
-  const handleFocusAction = () => {
-    switch (getPrimaryFocusActionIntent(focus?.actionType)) {
-      case "meal_scan":
-        openMealScan();
-        break;
-      case "workout":
-        startWorkout();
-        break;
-      case "dose":
-        openDoseLog();
-        break;
-      case "photo":
-        openProgressPhoto();
-        break;
-      case "progress":
-        navigation.navigate("Progress" as never);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const secondaryFocusAction = getSecondaryFocusAction(focus?.actionType);
-  const handleSecondaryFocusAction = () => {
-    if (secondaryFocusAction?.intent === "meal_manual") openMealLog();
-  };
 
   // Completion summary (screen 21): fold the just-finished session into the
   // week's training + verdict. Null until a session completes.
@@ -441,6 +415,14 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   );
   const askCoachAboutInsight = () => openCoachWith([dailyInsight.chatPrompt, ...verdictCoachSuggestions.slice(0, 1)]);
 
+  // The week-over-week coach read for the This-week tab (this week vs last).
+  const weeklyInsight = useMemo(
+    () => buildWeeklyInsight(data.progressOverview?.chart.snapshots ?? []),
+    [data.progressOverview?.chart.snapshots],
+  );
+  const askCoachAboutWeek = () =>
+    openCoachWith(weeklyInsight ? [weeklyInsight.chatPrompt, ...verdictCoachSuggestions.slice(0, 1)] : verdictCoachSuggestions);
+
   // Weight trend, framed by the muscle-safe pace band. On-protocol users see the
   // next-shot tile in the rings, so this is their only weight read on Today.
   const weightTrajectory = useMemo(
@@ -451,7 +433,21 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   // Strength work: the behavioral proof of the resistance lever, trended over
   // ~6 weeks from the user's logged sessions (volume when load is logged).
   const strengthTrend = useMemo(() => buildStrengthTrend(data.workoutHistory, now), [data.workoutHistory, now]);
-  const w = (n: number) => `${n}${weight.unit === "kg" ? "" : ""}`.replace(/\.0$/, "");
+
+  // Recent body progress photos, mirrored from Progress so visual change shows on
+  // Home. Newest first; labelled by week on the protocol (matching Progress).
+  const photoItems = useMemo(() => {
+    const start = medication?.startDate ? new Date(medication.startDate).getTime() : null;
+    return data.progressPhotos
+      .filter((p) => p.kind !== "face")
+      .slice()
+      .sort((a, b) => (a.captureDate < b.captureDate ? 1 : -1))
+      .slice(0, 8)
+      .map((p) => {
+        const wk = start != null ? Math.max(1, Math.floor((new Date(p.captureDate).getTime() - start) / (7 * 86_400_000)) + 1) : null;
+        return { id: p.id, uri: p.viewUrl, label: wk != null ? `Wk ${wk}` : "Photo" };
+      });
+  }, [data.progressPhotos, medication?.startDate]);
 
   // The reorderable Today "hero trio" — composed into homeLayout.order below.
   const scoreCard = retentionHero ? (
@@ -597,17 +593,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 <CoachInsightCard insight={dailyInsight} onAsk={askCoachAboutInsight} />
               </StaggeredReveal>
 
-              {weightTrajectory ? (
+              {weightTrajectory || strengthTrend ? (
                 <StaggeredReveal index={4}>
-                  <WeightTrajectoryCard view={weightTrajectory} onPress={openQuickLog} />
+                  <View style={styles.trendRow}>
+                    {weightTrajectory ? <WeightTrajectoryCard view={weightTrajectory} onPress={openQuickLog} /> : null}
+                    {strengthTrend ? <StrengthTrendCard view={strengthTrend} /> : null}
+                  </View>
                 </StaggeredReveal>
               ) : null}
 
-              {strengthTrend ? (
-                <StaggeredReveal index={5}>
-                  <StrengthTrendCard view={strengthTrend} />
-                </StaggeredReveal>
-              ) : null}
+              <StaggeredReveal index={6}>
+                <ProgressPhotosCard photos={photoItems} onAdd={openProgressPhoto} />
+              </StaggeredReveal>
 
               <StaggeredReveal index={4}>
                 <View style={styles.snap}>
@@ -645,8 +642,17 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           ) : (
             /* ---- This week scope ---- */
             <>
+              {/* One verdict block: the worded read + its quantified breakdown, fused. */}
               <StaggeredReveal index={0}>
-                <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} />
+                <View style={styles.verdictHero}>
+                  <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} bare />
+                  {verdict.status !== "no_data" && verdictBreakdown ? (
+                    <>
+                      <View style={styles.verdictHeroDivider} />
+                      <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} bare />
+                    </>
+                  ) : null}
+                </View>
               </StaggeredReveal>
 
               {/* cold-start: fill the barren no-data week with the mirror + checklist */}
@@ -661,13 +667,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                     <GettingStartedCard view={gettingStarted} onStep={handleGettingStartedStep} />
                   </StaggeredReveal>
                 </>
-              ) : null}
-
-              {/* quantify the verdict right under it (its own "Why this score" affordance) */}
-              {verdict.status !== "no_data" && verdictBreakdown ? (
-                <StaggeredReveal index={1}>
-                  <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
-                </StaggeredReveal>
               ) : null}
 
               {/* metric rings */}
@@ -705,15 +704,10 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </StaggeredReveal>
               ) : null}
 
-              {/* today's focus — hides itself when there's nothing actionable yet */}
-              {focus ? (
+              {/* the coach's week-over-week read */}
+              {verdict.status !== "no_data" && weeklyInsight ? (
                 <StaggeredReveal index={3}>
-                  <TodaysFocusCard
-                    focus={focus}
-                    onAction={handleFocusAction}
-                    secondaryActionLabel={secondaryFocusAction?.label}
-                    onSecondaryAction={handleSecondaryFocusAction}
-                  />
+                  <CoachInsightCard insight={weeklyInsight} onAsk={askCoachAboutWeek} />
                 </StaggeredReveal>
               ) : null}
 
@@ -788,51 +782,15 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                 </StaggeredReveal>
               ) : null}
 
-              {/* this week's body */}
-              <StaggeredReveal index={6}>
-                <View style={styles.snap}>
-                  <Text style={styles.eyebrow}>THIS WEEK'S BODY</Text>
-                  <View style={styles.snaprow}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Add this week's photo"
-                      onPress={handleOpenBodyPhoto}
-                      style={({ pressed }) => [styles.sc, styles.scAdd, pressed && styles.scPressed]}
-                    >
-                      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                        <Path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
-                        <Circle cx={12} cy={13} r={3.2} />
-                      </Svg>
-                      <Text style={styles.scAddText}>Add this{"\n"}week's photo</Text>
-                    </Pressable>
-                    <View style={styles.sc}>
-                      <Text style={styles.sk}>WEIGHT · 4 WK</Text>
-                      <Svg width="100%" height={28} viewBox="0 0 120 28" preserveAspectRatio="none">
-                        <Path
-                          d={sparklinePath(weight.series)}
-                          fill="none"
-                          stroke={colors.emerald}
-                          strokeWidth={2.5}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </Svg>
-                      <View style={styles.svRow}>
-                        <Text style={styles.sv}>
-                          {w(weight.current)} {weight.unit}
-                        </Text>
-                        <Text style={styles.du}>
-                          ↓ {Math.abs(weight.delta4wk).toFixed(1)}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.sc}>
-                      <Text style={styles.sk}>MEASUREMENTS</Text>
-                      <Text style={styles.sm}>Waist {measurements.waist ?? "—"}"</Text>
-                      <Text style={styles.sm}>Arm {measurements.arm ?? "—"}"</Text>
-                    </View>
-                  </View>
-                </View>
+              {/* this week's body: the cumulative quality-of-loss story + the photo record */}
+              {bodyComp ? (
+                <StaggeredReveal index={6}>
+                  <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
+                </StaggeredReveal>
+              ) : null}
+
+              <StaggeredReveal index={7}>
+                <ProgressPhotosCard photos={photoItems} onAdd={handleOpenBodyPhoto} />
               </StaggeredReveal>
             </>
           )}
@@ -957,21 +915,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   );
 }
 
-function sparklinePath(series: number[]): string {
-  if (series.length < 2) return "M2,14 L118,14";
-  const min = Math.min(...series);
-  const max = Math.max(...series);
-  const span = max - min || 1;
-  const stepX = 116 / (series.length - 1);
-  return series
-    .map((v, i) => {
-      const x = 2 + i * stepX;
-      const y = 24 - ((v - min) / span) * 20;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
-
 /** Start of the current week (Sunday) as a YYYY-MM-DD string. */
 function startOfWeekIso(now: Date): string {
   const d = new Date(now);
@@ -1063,6 +1006,9 @@ const styles = StyleSheet.create({
   wtogTextOn: { color: colors.ink },
   // rings
   rings: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 16 },
+  trendRow: { flexDirection: "row", gap: 12, marginHorizontal: 20, marginTop: 12, alignItems: "stretch" },
+  verdictHero: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 22, overflow: "hidden", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 14 }, shadowRadius: 24, shadowOpacity: 0.09, elevation: 4 },
+  verdictHeroDivider: { height: 1, backgroundColor: colors.line, marginHorizontal: 16 },
   // why link
   whylinkWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 2 },
   whylink: { fontFamily: font.semibold, fontSize: 13, color: colors.muted, textDecorationLine: "underline" },

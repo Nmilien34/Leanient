@@ -54,6 +54,8 @@ export interface WeekPlan {
   /** One line recapping last week, or null when there's no prior week. */
   recap: string | null;
   coachLine: string;
+  /** Forward-looking result: what finishing this week earns, pointed at Sunday's verdict. */
+  payoff: string;
 }
 
 /** Recap of last week, naming the lever this week inherits. */
@@ -69,6 +71,14 @@ function weekCoachLine(focus: DayFocus | null): string {
   if (focus === "protein") return "Protein dipped last week. Two protein-forward meals a day gets it back.";
   if (focus === "pace") return "Last week's loss ran fast. Ease the pace and lock protein to protect the muscle.";
   return "Nail these three and the muscle under your face stays put. I'll send your next verdict Sunday.";
+}
+
+/** What finishing this week earns, framed at Sunday's verdict to motivate the week. */
+function weekPayoff(focus: DayFocus | null): string {
+  if (focus === "training") return "Land three sessions this week and Sunday's verdict moves back to keeping your muscle.";
+  if (focus === "protein") return "Hit your protein all week and Sunday's verdict climbs.";
+  if (focus === "pace") return "Ease the pace this week and the fat keeps coming off with your muscle protected by Sunday.";
+  return "Hold this all week and Sunday's verdict reads what you want: muscle kept.";
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -168,5 +178,6 @@ export function deriveWeekPlan(args: {
     focus,
     recap: weekRecap(lastWeek),
     coachLine: weekCoachLine(focus),
+    payoff: weekPayoff(focus),
   };
 }

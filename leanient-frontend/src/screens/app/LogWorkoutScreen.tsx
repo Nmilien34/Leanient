@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,10 +6,12 @@ import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { Switch } from "../../components/ui/Switch";
+import { useLeanientData } from "../../context/LeanientDataContext";
 import {
   DURATION_OPTIONS,
   EFFORT_OPTIONS,
   WORKOUT_TYPES,
+  buildRecentWorkoutPicks,
   buildWorkoutLogDraft,
   defaultCountsAsResistance,
   initialWorkoutLogForm,
@@ -40,7 +42,11 @@ interface LogWorkoutScreenProps {
  * — it's the verdict's training signal). Saves a `WorkoutLog` draft.
  */
 export function LogWorkoutScreen({ visible, onClose, onSave, onStartGuided }: LogWorkoutScreenProps) {
+  const data = useLeanientData();
+  const now = useRef(new Date()).current;
   const [form, setForm] = useState(initialWorkoutLogForm);
+
+  const recent = useMemo(() => buildRecentWorkoutPicks(data.workoutHistory, now), [data.workoutHistory, now]);
 
   const selectType = (type: WorkoutType) =>
     setForm((f) => ({ ...f, type, countsAsResistance: defaultCountsAsResistance(type) }));
@@ -66,6 +72,34 @@ export function LogWorkoutScreen({ visible, onClose, onSave, onStartGuided }: Lo
           </View>
 
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            {recent.length > 0 ? (
+              <>
+                <Text style={styles.glabel}>RECENT · TAP TO FILL</Text>
+                <View style={styles.recentList}>
+                  {recent.map((p) => (
+                    <Pressable
+                      key={p.key}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Re-log ${p.label}, ${p.detail}`}
+                      onPress={() => setForm(p.form)}
+                      style={({ pressed }) => [styles.recentRow, pressed && styles.recentRowPressed]}
+                    >
+                      <View style={styles.recentIcon}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
+                        </Svg>
+                      </View>
+                      <View style={styles.flex}>
+                        <Text style={styles.recentLabel} numberOfLines={1}>{p.label}</Text>
+                        <Text style={styles.recentDetail}>{p.detail}</Text>
+                      </View>
+                      <Text style={styles.recentWhen}>{p.when}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
             <Text style={styles.glabel}>TYPE</Text>
             <View style={styles.chiprow}>
               {WORKOUT_TYPES.map((t) => (
@@ -134,6 +168,13 @@ const styles = StyleSheet.create({
   headTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 10 },
   chiprow: { flexDirection: "row", flexWrap: "wrap", gap: 9, paddingHorizontal: 20 },
+  recentList: { marginHorizontal: 20, gap: 8 },
+  recentRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 13 },
+  recentRowPressed: { opacity: 0.6 },
+  recentIcon: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF7F1" },
+  recentLabel: { fontFamily: font.semibold, fontSize: 14.5, color: colors.ink },
+  recentDetail: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 1 },
+  recentWhen: { fontFamily: font.medium, fontSize: 12, color: colors.faint },
   chip: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 13, paddingVertical: 11, paddingHorizontal: 15 },
   chipSel: { backgroundColor: "rgba(47,184,122,0.10)", borderColor: "rgba(47,184,122,0.45)" },
   chipText: { fontFamily: font.semibold, fontSize: 14, color: colors.ink },

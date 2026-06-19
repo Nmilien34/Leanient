@@ -124,7 +124,17 @@ export function WeekPlanCard({ plan, onLogMeal, onStartWorkout, onDetail }: Week
 
       <PlanTimeline steps={ordered} />
 
-      <Text style={styles.coach}>{plan.coachLine}</Text>
+      <View style={styles.payoff}>
+        <View style={styles.payoffIcon}>
+          <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M5 21V5a2 2 0 0 1 2-2h11l-2.5 4L18 11H7" />
+          </Svg>
+        </View>
+        <View style={styles.payoffBody}>
+          <Text style={styles.payoffLabel}>BY SUNDAY</Text>
+          <Text style={styles.payoffText}>{plan.payoff}</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -146,7 +156,11 @@ const styles = StyleSheet.create({
   startBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, height: 44, borderRadius: 22, backgroundColor: colors.emeraldDeep },
   startBtnPressed: { opacity: 0.85 },
   startBtnText: { fontFamily: font.semibold, fontSize: 14.5, color: "#F4FBF7", letterSpacing: -0.1 },
-  coach: { fontFamily: font.medium, fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginTop: 10, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 },
+  payoff: { flexDirection: "row", gap: 11, alignItems: "center", marginTop: 14, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14 },
+  payoffIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.emeraldDeep, alignItems: "center", justifyContent: "center" },
+  payoffBody: { flex: 1 },
+  payoffLabel: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.7, color: colors.emeraldDeep, marginBottom: 2 },
+  payoffText: { fontFamily: font.semibold, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.1 },
 });
 
 export default WeekPlanCard;

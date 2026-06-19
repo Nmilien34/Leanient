@@ -165,7 +165,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
                   {protocol ? `${protocol.medicationName} · ${doseLabel}` : "Loading your medication…"}
                 </Text>
                 <Text style={styles.fsub}>
-                  {protocol ? "From your schedule. Tap to edit dose or shot days." : "Pulling your dose from your schedule."}
+                  {protocol ? "From your schedule. Tap to view or edit it." : "Pulling your dose from your schedule."}
                 </Text>
               </View>
               {protocol ? <Text style={styles.chev}>›</Text> : null}
@@ -315,9 +315,10 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
           </Modal>
         </ModalSafeArea>
 
-        {/* Edit-schedule, nested inside this modal so it presents on top (iOS
-            cannot stack two sibling modals). startInEdit opens the edit sheet. */}
-        <MedicationScreen visible={scheduleOpen} startInEdit onClose={() => setScheduleOpen(false)} />
+        {/* Medication & schedule, nested inside this modal so it presents on top
+            (iOS cannot stack two sibling modals). Opens to the overview (not the
+            edit sheet) so that screen is reachable; "Edit schedule" lives on it. */}
+        <MedicationScreen visible={scheduleOpen} onClose={() => setScheduleOpen(false)} />
       </View>
     </Modal>
   );

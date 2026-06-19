@@ -59,8 +59,9 @@ function MeasureRow({ label, value, fallback, unit, onChange, onTick, last }: Me
 
   const pan = useRef(
     PanResponder.create({
-      // Only claim horizontal drags so the ScrollView keeps vertical scrolling.
-      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 3,
+      // Only claim horizontal drags so the ScrollView keeps vertical scrolling and
+      // taps on the +/- buttons still register.
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 6,
       onPanResponderGrant: () => {
         dragStart.current = valueRef.current ?? fallback;
         dragLastSteps.current = 0;
@@ -83,18 +84,36 @@ function MeasureRow({ label, value, fallback, unit, onChange, onTick, last }: Me
     }),
   ).current;
 
+  // First tap seeds the typical value; after that, +/- nudge by one step.
+  const step = (delta: number) => {
+    onTick();
+    if (value == null) {
+      onChange(fallback);
+      return;
+    }
+    onChange(Math.max(0, Math.round((value + delta * MEASURE_STEP[unit]) * 10) / 10));
+  };
+
   return (
     <View style={[styles.row, last && styles.rowLast]} {...pan.panHandlers}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <View style={[styles.valuePill, dragging && styles.valuePillActive]}>
-        {value != null ? (
-          <>
-            <Text style={styles.value}>{value.toFixed(1)}</Text>
-            <Text style={styles.valueUnit}>{unit}</Text>
-          </>
-        ) : (
-          <Text style={styles.valueAdd}>Add</Text>
-        )}
+      <View style={styles.stepper}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${label}`} onPress={() => step(-1)} style={({ pressed }) => [styles.stepBtn, pressed && styles.stepBtnPressed]}>
+          <Text style={styles.stepSign}>−</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={value != null ? `${label} ${value}` : `Add ${label}`} onPress={() => step(1)} style={[styles.valuePill, dragging && styles.valuePillActive]}>
+          {value != null ? (
+            <>
+              <Text style={styles.value}>{value.toFixed(1)}</Text>
+              <Text style={styles.valueUnit}>{unit}</Text>
+            </>
+          ) : (
+            <Text style={styles.valueAdd}>Add</Text>
+          )}
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Increase ${label}`} onPress={() => step(1)} style={({ pressed }) => [styles.stepBtn, pressed && styles.stepBtnPressed]}>
+          <Text style={styles.stepSign}>+</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -167,7 +186,7 @@ export function MeasurementLogScreen({ visible, onClose, onSave }: MeasurementLo
 
             <View style={styles.bodyHead}>
               <Text style={styles.glabelInline}>BODY</Text>
-              <Text style={styles.dragHint}>Drag a value to adjust</Text>
+              <Text style={styles.dragHint}>Tap + or −, or drag to adjust</Text>
             </View>
             <View style={styles.group}>
               {MEASURE_FIELDS.map((f, i) => (
@@ -225,7 +244,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.line },
   rowLast: { borderBottomWidth: 0 },
   rowLabel: { flex: 1, fontFamily: font.semibold, fontSize: 15, color: colors.ink },
-  valuePill: { flexDirection: "row", alignItems: "baseline", gap: 4, minWidth: 64, justifyContent: "flex-end", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 6 },
+  stepBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
+  stepBtnPressed: { opacity: 0.55 },
+  stepSign: { fontFamily: font.bold, fontSize: 20, lineHeight: 22, color: colors.emeraldDeep },
+  valuePill: { flexDirection: "row", alignItems: "baseline", gap: 4, minWidth: 70, justifyContent: "center", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10 },
   valuePillActive: { backgroundColor: "rgba(47,184,122,0.10)" },
   value: { fontFamily: font.bold, fontSize: 17, color: colors.ink, fontVariant: ["tabular-nums"] },
   valueUnit: { fontFamily: font.semibold, fontSize: 13, color: colors.muted },

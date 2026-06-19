@@ -87,11 +87,17 @@ interface VerdictCardProps {
    * own card below, so the hero shouldn't compete with the data cards.
    */
   compact?: boolean;
+  /**
+   * Strips the card's own chrome (border, shadow, background, margins) so it can
+   * sit inside a shared container — used to fuse the worded verdict with the
+   * breakdown into one block on the week tab. Keeps inner padding.
+   */
+  bare?: boolean;
   /** Drives the card from non-verdict data (e.g. the daily shot-cycle hero). */
   override?: VerdictCardOverride;
 }
 
-export function VerdictCard({ verdict, contextLabel, onAction, mini, compact, override }: VerdictCardProps) {
+export function VerdictCard({ verdict, contextLabel, onAction, mini, compact, bare, override }: VerdictCardProps) {
   const s = STATUS[override?.tone ?? verdict.status];
   const press = useRef(new Animated.Value(0)).current;
   const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
@@ -102,7 +108,7 @@ export function VerdictCard({ verdict, contextLabel, onAction, mini, compact, ov
   const showAction = !compact && shouldShowVerdictCardAction({ mini, onAction });
 
   return (
-    <View style={[styles.card, mini && styles.cardMini, compact && styles.cardCompact]}>
+    <View style={[styles.card, mini && styles.cardMini, compact && styles.cardCompact, bare && styles.cardBare]}>
       {s.halo ? (
         <RadialGlow
           size={mini || compact ? 160 : 220}
@@ -164,6 +170,7 @@ const styles = StyleSheet.create({
   },
   cardMini: { marginHorizontal: 0, marginTop: 0, flex: 1, padding: 15, paddingBottom: 16, borderRadius: 18 },
   cardCompact: { padding: 18, paddingTop: 18, borderRadius: 20, shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
+  cardBare: { marginHorizontal: 0, marginTop: 0, borderRadius: 0, borderWidth: 0, backgroundColor: "transparent", shadowOpacity: 0, elevation: 0, paddingBottom: 18 },
   ctx: { fontFamily: font.medium, fontSize: 13, color: colors.muted },
   ctxCompact: { fontSize: 12 },
   pill: {
