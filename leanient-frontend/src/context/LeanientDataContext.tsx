@@ -54,7 +54,7 @@ export interface LeanientDataApi {
   getProgressOverview(): Promise<ProgressOverviewResponse>;
   getTrainingToday(): Promise<TrainingTodayResponse>;
   getMealLogs(query?: { recordedAt?: string; from?: string; to?: string }): Promise<MealLog[]>;
-  getWorkoutLogs(query?: { recordedAt?: string }): Promise<WorkoutLog[]>;
+  getWorkoutLogs(query?: { recordedAt?: string; from?: string; to?: string; limit?: number }): Promise<WorkoutLog[]>;
   getDoseLogs(query?: { recordedAt?: string; from?: string; to?: string; limit?: number }): Promise<DoseLog[]>;
   createWeightLog(input: CreateWeightLogRequest): Promise<WeightLog>;
   createMealLog(input: CreateMealLogRequest): Promise<MealLog>;
@@ -85,6 +85,7 @@ export interface LeanientDataContextValue {
   weekMeals: MealLog[];
   /** ~20 weeks of dose logs, for the dose-to-protein insight. */
   doseHistory: DoseLog[];
+  workoutHistory: WorkoutLog[];
   todaysWorkouts: WorkoutLog[];
   recentDoseLogs: DoseLog[];
   progressOverview: ProgressOverviewResponse | null;
@@ -158,6 +159,7 @@ export function LeanientDataProvider({
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutLog[]>([]);
   const [recentDoseLogs, setRecentDoseLogs] = useState<DoseLog[]>([]);
   const [doseHistory, setDoseHistory] = useState<DoseLog[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutLog[]>([]);
   const [progressOverview, setProgressOverview] = useState<ProgressOverviewResponse | null>(null);
   const [trainingToday, setTrainingToday] = useState<TrainingTodayResponse | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -235,6 +237,8 @@ export function LeanientDataProvider({
         // ~20 weeks of dose history, enough to find the last titration step-up
         // and line it up against the ~12 weeks of retention snapshots.
         const doseHistoryFrom = new Date(now.getTime() - 140 * 86_400_000).toISOString();
+        // ~9 weeks of workout history, enough to trend training volume week over week.
+        const workoutHistoryFrom = new Date(now.getTime() - 63 * 86_400_000).toISOString();
         const [
           nextProfile,
           nextProtocol,
@@ -249,6 +253,7 @@ export function LeanientDataProvider({
           nextDoseHistory,
           nextProgressOverview,
           nextTrainingToday,
+          nextWorkoutHistory,
         ] = await Promise.allSettled([
           retryOnce(() => api.getProfile()),
           retryOnce(() => api.getMedicationProtocol()),
@@ -263,6 +268,7 @@ export function LeanientDataProvider({
           retryOnce(() => api.getDoseLogs({ from: doseHistoryFrom })),
           retryOnce(() => api.getProgressOverview()),
           retryOnce(() => api.getTrainingToday()),
+          retryOnce(() => api.getWorkoutLogs({ from: workoutHistoryFrom })),
         ]);
 
         const firstRejected = [
@@ -279,6 +285,7 @@ export function LeanientDataProvider({
           nextDoseHistory,
           nextProgressOverview,
           nextTrainingToday,
+          nextWorkoutHistory,
         ].find((result) => result.status === "rejected");
         if (firstRejected?.status === "rejected") {
           setHomeError(extractApiError(firstRejected.reason));
@@ -299,6 +306,7 @@ export function LeanientDataProvider({
         if (nextWorkouts.status === "fulfilled") setTodaysWorkouts(nextWorkouts.value);
         if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
         if (nextDoseHistory.status === "fulfilled") setDoseHistory(nextDoseHistory.value);
+        if (nextWorkoutHistory.status === "fulfilled") setWorkoutHistory(nextWorkoutHistory.value);
         if (nextProgressOverview.status === "fulfilled") setProgressOverview(nextProgressOverview.value);
         if (nextTrainingToday.status === "fulfilled") setTrainingToday(nextTrainingToday.value);
       }),
@@ -395,6 +403,7 @@ export function LeanientDataProvider({
       todaysWorkouts,
       recentDoseLogs,
       doseHistory,
+      workoutHistory,
       progressOverview,
       trainingToday,
       workouts,
@@ -428,6 +437,7 @@ export function LeanientDataProvider({
       progressPhotos,
       recentDoseLogs,
       doseHistory,
+      workoutHistory,
       recommendedWorkouts,
       refreshProgress,
       refreshHomeData,

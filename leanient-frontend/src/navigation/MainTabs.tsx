@@ -87,6 +87,16 @@ export function MainTabs() {
   const data = useLeanientData();
   const auth = useAuth();
   const guidedWorkout = data.recommendedWorkouts[0] ?? mockRecommendedWorkout;
+  // The site of the most recent real dose drives the rotation suggestion in the
+  // dose log (inject somewhere fresh). Pick by recordedAt, not array order.
+  const lastDoseSite = useMemo(() => {
+    let latest: (typeof data.doseHistory)[number] | null = null;
+    for (const dose of data.doseHistory) {
+      if (!dose.injectionSite) continue;
+      if (!latest || dose.recordedAt > latest.recordedAt) latest = dose;
+    }
+    return latest?.injectionSite ?? null;
+  }, [data.doseHistory]);
   const [logOpen, setLogOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [mealLogOpen, setMealLogOpen] = useState(false);
@@ -351,6 +361,7 @@ export function MainTabs() {
 
       <DoseLogScreen
         visible={doseOpen}
+        lastSite={lastDoseSite}
         onClose={() => setDoseOpen(false)}
         onSave={async (draft) => {
           try {

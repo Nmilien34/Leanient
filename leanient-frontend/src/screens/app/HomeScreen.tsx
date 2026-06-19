@@ -6,6 +6,7 @@ import { useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path } from "react-native-svg";
 import type {
   DoseLog,
+  SubscriptionStatus,
   TodaysFocusResponse,
   UserMedicationProtocol,
   UserProfile,
@@ -27,6 +28,9 @@ import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { TodaysFocusCard } from "../../components/app/TodaysFocusCard";
+import { CoachInsightCard } from "../../components/app/CoachInsightCard";
+import { WeightTrajectoryCard } from "../../components/app/WeightTrajectoryCard";
+import { StrengthTrendCard } from "../../components/app/StrengthTrendCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
 import { TodayPlanSheet } from "../../components/app/TodayPlanSheet";
@@ -35,7 +39,7 @@ import { WorkoutCompleteSheet, type WorkoutFeel } from "../../components/app/Wor
 import { UserAvatar } from "../../components/app/UserAvatar";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useQuickActions } from "../../context/QuickActionsContext";
-import { EmptyState } from "../../components/app/EmptyState";
+import { useAuth } from "../../context/AuthContext";
 import { ErrorState } from "../../components/app/ErrorState";
 import { WeeklyCheckinScreen } from "./WeeklyCheckinScreen";
 import { VerdictRevealScreen } from "./VerdictRevealScreen";
@@ -48,12 +52,17 @@ import { DoseDetailScreen } from "./DoseDetailScreen";
 import { MealDetailScreen } from "./MealDetailScreen";
 import { TargetsScreen } from "./TargetsScreen";
 import { MedicationScreen } from "./MedicationScreen";
+import { CoachChatScreen } from "./CoachChatScreen";
+import { SubscriptionScreen } from "./SubscriptionScreen";
 import { WhatChangedScreen } from "./WhatChangedScreen";
 import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHistory";
 import { deriveTodayView, toTodayLog, type ShotEnergy, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildRetentionHero } from "./retentionHero";
+import { buildDailyInsight } from "./dailyInsight";
+import { buildWeightTrajectory } from "./weightTrajectory";
+import { buildStrengthTrend } from "./strengthTrend";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
@@ -96,8 +105,11 @@ interface HomeViewProps {
   todayLog: TodayLog;
 }
 
+const SUBSCRIBED_STATUSES: SubscriptionStatus[] = ["trialing", "active", "active_canceled"];
+
 function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, recommendedWorkouts, todayLog }: HomeViewProps) {
   const data = useLeanientData();
+  const auth = useAuth();
   const navigation = useNavigation();
   const { openQuickLog, openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
@@ -109,6 +121,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const [targetsOpen, setTargetsOpen] = useState(false);
   const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [todayPlanOpen, setTodayPlanOpen] = useState(false);
   const [playerOpen, setPlayerOpen] = useState(false);
@@ -164,6 +178,33 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     () => buildRetentionHero(data.progressOverview?.chart.snapshots ?? []),
     [data.progressOverview?.chart.snapshots],
   );
+
+  // Coach hand-offs (verdict explainer + daily insight) share one chat mount.
+  // The opener seeds the suggestions, gated on subscription.
+  const subscribed = auth.user ? SUBSCRIBED_STATUSES.includes(auth.user.subscriptionStatus) : false;
+  const [coachSuggestions, setCoachSuggestions] = useState<string[]>([]);
+  const openCoachWith = (suggestions: string[]) => {
+    setCoachSuggestions(suggestions);
+    if (subscribed) setCoachOpen(true);
+    else setSubscriptionOpen(true);
+  };
+  const verdictCoachSuggestions = useMemo<string[]>(() => {
+    const out: string[] = [];
+    const statusWord =
+      verdict.status === "on_track"
+        ? "on track"
+        : verdict.status === "drifting"
+          ? "drifting"
+          : verdict.status === "losing_muscle"
+            ? "losing muscle"
+            : null;
+    if (statusWord) out.push(`Why is my muscle verdict "${statusWord}" this week?`);
+    const weakest = retentionHero ? [...retentionHero.components].sort((a, b) => a.score - b.score)[0] : null;
+    if (weakest) out.push(`How do I improve my ${weakest.label.toLowerCase()}?`);
+    out.push("What's the most important thing I can do this week?");
+    return out;
+  }, [verdict.status, retentionHero]);
+  const askCoachAboutVerdict = () => openCoachWith(verdictCoachSuggestions);
 
   // First-run guide shown in place of the score until the engine has one, so a
   // brand-new user understands why it's empty and what to do about it.
@@ -382,6 +423,34 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
     weeklyDelta == null
       ? "No weigh-in yet"
       : `${weeklyDelta <= 0 ? "↓" : "↑"} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`;
+
+  // One data-driven read from the coach, below the rings (replaces the redundant
+  // "do this next" workout prompt — the plan already owns tasks). Pace is fed in
+  // lb so the threshold reads the same regardless of the user's unit.
+  const dailyInsight = useMemo(
+    () =>
+      buildDailyInsight({
+        verdictStatus: verdict.status,
+        retentionDelta: retentionHero?.retentionDelta ?? null,
+        levers: retentionHero?.components ?? [],
+        weeklyDeltaLb:
+          weeklyDelta == null ? null : weight.unit === "kg" ? weeklyDelta * 2.2046226 : weeklyDelta,
+        shotContext: shotEnergy !== "good",
+      }),
+    [verdict.status, retentionHero, weeklyDelta, weight.unit, shotEnergy],
+  );
+  const askCoachAboutInsight = () => openCoachWith([dailyInsight.chatPrompt, ...verdictCoachSuggestions.slice(0, 1)]);
+
+  // Weight trend, framed by the muscle-safe pace band. On-protocol users see the
+  // next-shot tile in the rings, so this is their only weight read on Today.
+  const weightTrajectory = useMemo(
+    () => buildWeightTrajectory({ current: weight.current, unit: weight.unit, series: weight.series, weekDelta: weight.weekDelta }),
+    [weight.current, weight.unit, weight.series, weight.weekDelta],
+  );
+
+  // Strength work: the behavioral proof of the resistance lever, trended over
+  // ~6 weeks from the user's logged sessions (volume when load is logged).
+  const strengthTrend = useMemo(() => buildStrengthTrend(data.workoutHistory, now), [data.workoutHistory, now]);
   const w = (n: number) => `${n}${weight.unit === "kg" ? "" : ""}`.replace(/\.0$/, "");
 
   // The reorderable Today "hero trio" — composed into homeLayout.order below.
@@ -417,8 +486,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
           value={today.nextShot.label}
           badge={today.nextShot.dose}
           label="Next shot"
-          accessibilityLabel={`Next shot ${today.nextShot.label}${today.nextShot.dose ? `, ${today.nextShot.dose}` : ""}. Edit dose schedule`}
-          onPress={() => setMedScheduleOpen(true)}
+          accessibilityLabel={`Next shot ${today.nextShot.label}${today.nextShot.dose ? `, ${today.nextShot.dose}` : ""}. Log this dose`}
+          onPress={openDoseLog}
         />
       ) : (
         <TrendTile series={weight.series} deltaLabel={weekDeltaLabel} label="This week" />
@@ -477,7 +546,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
                         </StaggeredReveal>,
                       );
                     }
-                    if (key === "verdict") {
+                    // Supporting daily metrics sit under the plan: gauge → plan → rings.
+                    if (key === "plan") {
                       items.push(
                         <StaggeredReveal key="rings" index={idx++}>
                           {ringsCard}
@@ -524,18 +594,20 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
               </StaggeredReveal>
 
               <StaggeredReveal index={3}>
-                {focus ? (
-                  <TodaysFocusCard
-                    focus={focus}
-                    eyebrow="DO THIS NEXT"
-                    onAction={handleFocusAction}
-                    secondaryActionLabel={secondaryFocusAction?.label}
-                    onSecondaryAction={handleSecondaryFocusAction}
-                  />
-                ) : (
-                  <EmptyState message="Your next move shows up here once you start logging meals and workouts." />
-                )}
+                <CoachInsightCard insight={dailyInsight} onAsk={askCoachAboutInsight} />
               </StaggeredReveal>
+
+              {weightTrajectory ? (
+                <StaggeredReveal index={4}>
+                  <WeightTrajectoryCard view={weightTrajectory} onPress={openQuickLog} />
+                </StaggeredReveal>
+              ) : null}
+
+              {strengthTrend ? (
+                <StaggeredReveal index={5}>
+                  <StrengthTrendCard view={strengthTrend} />
+                </StaggeredReveal>
+              ) : null}
 
               <StaggeredReveal index={4}>
                 <View style={styles.snap}>
@@ -773,7 +845,19 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
         metrics={metrics}
         weeklyDelta={weeklyDelta ?? 0}
         onClose={() => setExplainerOpen(false)}
+        onAskCoach={askCoachAboutVerdict}
       />
+
+      <CoachChatScreen
+        visible={coachOpen}
+        onClose={() => setCoachOpen(false)}
+        onUpgrade={() => {
+          setCoachOpen(false);
+          setSubscriptionOpen(true);
+        }}
+        suggestions={coachSuggestions}
+      />
+      <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
 
       <WeekPlanSheet
         visible={planOpen}

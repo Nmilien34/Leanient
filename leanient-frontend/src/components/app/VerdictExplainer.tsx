@@ -41,6 +41,8 @@ interface VerdictExplainerProps {
   metrics: HomeMetrics;
   weeklyDelta: number;
   onClose: () => void;
+  /** Opens the coach chat (seeded with verdict context) for a deeper "why". */
+  onAskCoach?: () => void;
 }
 
 /**
@@ -49,7 +51,7 @@ interface VerdictExplainerProps {
  * training, loss pace), all derived from the verdict + metrics. Bars turn amber
  * when a factor is short, so the breakdown reflects every state.
  */
-export function VerdictExplainer({ visible, verdict, metrics, weeklyDelta, onClose }: VerdictExplainerProps) {
+export function VerdictExplainer({ visible, verdict, metrics, weeklyDelta, onClose, onAskCoach }: VerdictExplainerProps) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -112,6 +114,24 @@ export function VerdictExplainer({ visible, verdict, metrics, weeklyDelta, onClo
             </>
           ) : null}
 
+          {onAskCoach ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Ask your coach about this verdict"
+              onPress={onAskCoach}
+              style={({ pressed }) => [styles.ask, pressed && styles.askPressed]}
+            >
+              <View style={styles.askDot}>
+                <Spark />
+              </View>
+              <View style={styles.askText}>
+                <Text style={styles.askTitle}>Still have questions?</Text>
+                <Text style={styles.askSub}>Ask your coach about this verdict</Text>
+              </View>
+              <Text style={styles.askChev}>›</Text>
+            </Pressable>
+          ) : null}
+
           <Text style={styles.disc}>
             Score by Leanient's verdict engine ({verdict.engineVersion}) — deterministic and reproducible. The
             coach writes the explanation on top.
@@ -156,6 +176,13 @@ const styles = StyleSheet.create({
   fbarAmber: { backgroundColor: colors.honey },
   fv: { width: 50, textAlign: "right", fontFamily: font.bold, fontSize: 13, color: colors.ink },
   disc: { fontFamily: font.regular, fontSize: 11.5, lineHeight: 16, color: colors.faint, marginTop: 14 },
+  ask: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 18, padding: 14, borderRadius: 16, backgroundColor: "rgba(47,184,122,0.08)", borderWidth: 1, borderColor: "rgba(47,184,122,0.22)" },
+  askPressed: { opacity: 0.7 },
+  askDot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.emeraldDeep },
+  askText: { flex: 1 },
+  askTitle: { fontFamily: font.bold, fontSize: 14, color: colors.ink, letterSpacing: -0.15 },
+  askSub: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted, marginTop: 1 },
+  askChev: { fontFamily: font.semibold, fontSize: 18, color: colors.emeraldDeep },
   cta: { marginTop: 18 },
 });
 

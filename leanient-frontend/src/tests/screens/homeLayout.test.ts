@@ -8,35 +8,35 @@ describe("resolveHomeLayout", () => {
     expect(resolveHomeLayout({ ...base, hasScore: false })).toBeNull();
   });
 
-  it("steady default leads with the score", () => {
+  it("steady default leads with the score, then the plan (verdict lives behind the gauge)", () => {
     const l = resolveHomeLayout(base)!;
     expect(l.state).toBe("steady");
-    expect(l.order).toEqual(["score", "verdict", "plan"]);
+    expect(l.order).toEqual(["score", "plan"]);
     expect(l.banner).toBeNull();
   });
 
   it("thriving (stable/improving) leads with the score", () => {
     expect(resolveHomeLayout({ ...base, retentionDelta: 4 })!.state).toBe("thriving");
-    expect(resolveHomeLayout({ ...base, retentionDelta: 4 })!.order[0]).toBe("score");
+    expect(resolveHomeLayout({ ...base, retentionDelta: 4 })!.order).toEqual(["score", "plan"]);
   });
 
-  it("an unexplained steep drop is drifting — lead with the verdict + plan", () => {
+  it("an unexplained steep drop is still classified drifting, gauge leads", () => {
     const l = resolveHomeLayout({ ...base, retentionDelta: -22 })!;
     expect(l.state).toBe("drifting");
-    expect(l.order).toEqual(["verdict", "plan", "score"]);
+    expect(l.order).toEqual(["score", "plan"]);
   });
 
   it("shot-day ABSORBS the dip — same steep drop reads as guidance, not drift", () => {
     // The C-vs-E case: 65/100 down 35 on a shot day should NOT alarm.
     const l = resolveHomeLayout({ ...base, retentionDelta: -35, shotContext: true })!;
     expect(l.state).toBe("shot_day");
-    expect(l.order).toEqual(["verdict", "plan", "score"]);
+    expect(l.order).toEqual(["score", "plan"]);
   });
 
-  it("lapsed outranks everything — stale score never leads", () => {
+  it("lapsed adds the re-engage banner above the gauge", () => {
     const l = resolveHomeLayout({ hasScore: true, retentionDelta: -35, daysSinceLastActivity: 10, shotContext: true })!;
     expect(l.state).toBe("lapsed");
-    expect(l.order).toEqual(["plan", "verdict", "score"]);
+    expect(l.order).toEqual(["score", "plan"]);
     expect(l.banner?.tone).toBe("reengage");
     expect(l.banner?.message).toContain("10 days");
   });

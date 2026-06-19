@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import type { DoseInjectionSite } from "@leanient/shared";
 import { useLeanientData } from "../../context/LeanientDataContext";
-import { mockMedicationProtocol } from "../../mocks/home";
+import { MedicationScreen } from "./MedicationScreen";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import {
@@ -64,7 +64,6 @@ interface DoseLogScreenProps {
 export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_left" }: DoseLogScreenProps) {
   const data = useLeanientData();
   const protocol = data.medicationProtocol;
-  const displayProtocol = protocol ?? mockMedicationProtocol;
   const openedAtRef = useRef(new Date());
   const [openedAt, setOpenedAt] = useState(openedAtRef.current);
   const suggested = useMemo(() => suggestNextSite(lastSite), [lastSite]);
@@ -76,6 +75,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
   const [error, setError] = useState<string | null>(null);
   const [painLevel, setPainLevel] = useState(0);
   const [notes, setNotes] = useState("");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -90,6 +90,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
     setError(null);
     setPainLevel(0);
     setNotes("");
+    setScheduleOpen(false);
   }, [suggested, visible]);
 
   const calendarCells = useMemo(
@@ -97,7 +98,7 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
     [calendarMonth, openedAt, recordedAt],
   );
   const canSave = !saving;
-  const doseLabel = displayProtocol.doseAmount != null ? `${displayProtocol.doseAmount.toFixed(1)} ${displayProtocol.doseUnit}` : "";
+  const doseLabel = protocol?.doseAmount != null ? `${protocol.doseAmount.toFixed(1)} ${protocol.doseUnit}` : "";
 
   const openCalendar = () => {
     setCalendarMonth(new Date(recordedAt.getFullYear(), recordedAt.getMonth(), 1));
@@ -145,8 +146,14 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
           </View>
 
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            {/* medication */}
-            <View style={styles.medCard}>
+            {/* medication — tap to edit the recurring schedule (dose, shot days) */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit medication schedule"
+              onPress={() => setScheduleOpen(true)}
+              disabled={!protocol}
+              style={({ pressed }) => [styles.medCard, pressed && protocol ? styles.medCardPressed : null]}
+            >
               <LinearGradient colors={["#9AC8E0", "#5E93B6"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.fic}>
                 <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <Rect x={3} y={8} width={18} height={8} rx={4} />
@@ -155,12 +162,14 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
               </LinearGradient>
               <View style={styles.flex}>
                 <Text style={styles.ftitle}>
-                  {displayProtocol.medicationName} · {doseLabel}
+                  {protocol ? `${protocol.medicationName} · ${doseLabel}` : "Loading your medication…"}
                 </Text>
-                <Text style={styles.fsub}>From your schedule. Tap to change just this dose.</Text>
+                <Text style={styles.fsub}>
+                  {protocol ? "From your schedule. Tap to edit dose or shot days." : "Pulling your dose from your schedule."}
+                </Text>
               </View>
-              <Text style={styles.chev}>›</Text>
-            </View>
+              {protocol ? <Text style={styles.chev}>›</Text> : null}
+            </Pressable>
 
             {/* injection site */}
             <Text style={styles.glabel}>INJECTION SITE</Text>
@@ -168,12 +177,13 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
               <View style={styles.bodyWrap}>
                 <Svg width={190} height={238} viewBox="0 0 166 208">
                   <G fill="#E8EBE3">
-                    <Circle cx={83} cy={22} r={16} />
-                    <Rect x={53} y={44} width={60} height={90} rx={20} />
-                    <Rect x={36} y={50} width={15} height={66} rx={7.5} />
-                    <Rect x={115} y={50} width={15} height={66} rx={7.5} />
-                    <Rect x={61} y={128} width={17} height={70} rx={8.5} />
-                    <Rect x={88} y={128} width={17} height={70} rx={8.5} />
+                    <Rect x={61} y={120} width={17} height={82} rx={8.5} />
+                    <Rect x={88} y={120} width={17} height={82} rx={8.5} />
+                    <Rect x={36} y={52} width={15} height={70} rx={7.5} />
+                    <Rect x={115} y={52} width={15} height={70} rx={7.5} />
+                    <Path d="M48 58 C48 47 118 47 118 58 C122 80 108 98 104 110 C108 124 108 134 99 138 L67 138 C58 134 58 124 62 110 C58 98 44 80 48 58 Z" />
+                    <Rect x={76} y={30} width={14} height={20} rx={7} />
+                    <Circle cx={83} cy={19} r={14} />
                   </G>
                   {MAP_SITES.map((s) => {
                     const p = SITE_POS[s];
@@ -304,6 +314,10 @@ export function DoseLogScreen({ visible, onClose, onSave, lastSite = "abdomen_le
             </View>
           </Modal>
         </ModalSafeArea>
+
+        {/* Edit-schedule, nested inside this modal so it presents on top (iOS
+            cannot stack two sibling modals). startInEdit opens the edit sheet. */}
+        <MedicationScreen visible={scheduleOpen} startInEdit onClose={() => setScheduleOpen(false)} />
       </View>
     </Modal>
   );
@@ -318,6 +332,7 @@ const styles = StyleSheet.create({
   headSpacer: { width: 34, height: 34 },
   headTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
   medCard: { flexDirection: "row", alignItems: "center", gap: 13, marginHorizontal: 20, marginTop: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
+  medCardPressed: { opacity: 0.6 },
   fic: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
   ftitle: { fontFamily: font.bold, fontSize: 16, letterSpacing: -0.16, color: colors.ink },

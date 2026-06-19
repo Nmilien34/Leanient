@@ -1,16 +1,14 @@
 /**
- * FRONTEND-ONLY resolver for the dynamic Today-scope ordering. Instead of a fixed
- * "score → verdict → plan", the order matches the user's actual situation, keyed
- * off what the engine is confident in rather than the raw score:
+ * FRONTEND-ONLY resolver for the Today-scope hero. The gauge (muscle-retention
+ * score) always leads, the plan follows — "how am I doing" then "what do I do".
+ * The full verdict now lives behind the gauge (tapping it opens the explainer),
+ * so it is no longer its own card in this order.
  *
- *   lapsed   → re-engage first; the stale score/verdict would mislead
- *   shot-day → lead with the contextual guidance (a dip here is expected)
- *   drifting → an *unexplained* drop; lead with the why + the fix
- *   thriving → lead with the score, let them feel the win
- *   steady   → default score → verdict → plan
- *
- * New users (no score yet) are handled by the cold-start cards, so this returns
- * null for them. First match wins.
+ * The situation classification is kept because it still earns its keep: a lapsed
+ * user gets a re-engage banner above the gauge (the stale score needs context),
+ * and the state stays available for future per-situation treatment. New users
+ * (no score yet) route to the cold-start cards, so this returns null for them.
+ * First match wins.
  */
 
 export type HomeState = "lapsed" | "shot_day" | "drifting" | "thriving" | "steady";
@@ -61,7 +59,7 @@ export function resolveHomeLayout(args: {
   if (daysSinceLastActivity != null && daysSinceLastActivity >= LAPSED_DAYS) {
     return {
       state: "lapsed",
-      order: ["plan", "verdict", "score"],
+      order: ["score", "plan"],
       banner: {
         tone: "reengage",
         title: "Welcome back",
@@ -73,19 +71,19 @@ export function resolveHomeLayout(args: {
   // 2 · Shot-day / ease-in — the day's behavior changes; lead with the guidance.
   // This outranks drift on purpose: a dip in this window is expected, not alarming.
   if (shotContext) {
-    return { state: "shot_day", order: ["verdict", "plan", "score"], banner: null };
+    return { state: "shot_day", order: ["score", "plan"], banner: null };
   }
 
   // 3 · Drifting unexpectedly — a real drop with no shot-day explanation. Course-correct.
   if (retentionDelta != null && retentionDelta <= DRIFT_DELTA) {
-    return { state: "drifting", order: ["verdict", "plan", "score"], banner: null };
+    return { state: "drifting", order: ["score", "plan"], banner: null };
   }
 
   // 4 · Thriving — stable or improving. Lead with the score, let them feel the win.
   if (retentionDelta != null && retentionDelta >= 0) {
-    return { state: "thriving", order: ["score", "verdict", "plan"], banner: null };
+    return { state: "thriving", order: ["score", "plan"], banner: null };
   }
 
-  // 5 · Steady default — a soft dip, nothing special. Score → verdict → plan.
-  return { state: "steady", order: ["score", "verdict", "plan"], banner: null };
+  // 5 · Steady default — a soft dip, nothing special. Score → plan.
+  return { state: "steady", order: ["score", "plan"], banner: null };
 }
