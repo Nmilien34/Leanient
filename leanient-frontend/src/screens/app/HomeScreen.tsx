@@ -19,6 +19,7 @@ import { VerdictCard } from "../../components/app/VerdictCard";
 import { MetricRing, TrendTile, InfoTile } from "../../components/app/MetricRing";
 import { BodyCompositionCard } from "../../components/app/BodyCompositionCard";
 import { VerdictBreakdownCard } from "../../components/app/VerdictBreakdownCard";
+import { RetentionHero } from "../../components/app/RetentionHero";
 import { GettingStartedCard } from "../../components/app/GettingStartedCard";
 import { FirstJourneyCard } from "../../components/app/FirstJourneyCard";
 import { HomeStateBanner } from "../../components/app/HomeStateBanner";
@@ -52,6 +53,7 @@ import { formatDoseAmount, formatDoseRelative, sortRecentDoses } from "./doseHis
 import { deriveTodayView, toTodayLog, type ShotEnergy, type TodayLog } from "./todayMetrics";
 import { buildBodyComposition } from "./bodyComp";
 import { buildVerdictBreakdown } from "./verdictBreakdown";
+import { buildRetentionHero } from "./retentionHero";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
@@ -154,6 +156,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   // latest snapshot. Null until the first check-in produces one.
   const verdictBreakdown = useMemo(
     () => buildVerdictBreakdown(data.progressOverview?.chart.snapshots ?? []),
+    [data.progressOverview?.chart.snapshots],
+  );
+
+  // Glanceable Home hero: the retention score as a gauge + trend + levers.
+  const retentionHero = useMemo(
+    () => buildRetentionHero(data.progressOverview?.chart.snapshots ?? []),
     [data.progressOverview?.chart.snapshots],
   );
 
@@ -377,8 +385,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, focus, r
   const w = (n: number) => `${n}${weight.unit === "kg" ? "" : ""}`.replace(/\.0$/, "");
 
   // The reorderable Today "hero trio" — composed into homeLayout.order below.
-  const scoreCard = verdictBreakdown ? (
-    <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} />
+  const scoreCard = retentionHero ? (
+    <RetentionHero view={retentionHero} onPress={() => setExplainerOpen(true)} />
   ) : null;
   const verdictHeroCard = (
     <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} compact />
