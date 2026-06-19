@@ -2,6 +2,7 @@ import type { MealParseResponse } from "@leanient/shared";
 import { env } from "../config/env";
 import { NotFoundError } from "../lib/errors";
 import { logger } from "../lib/logger";
+import { BarcodeCacheModel } from "../models/barcodeCache.model";
 
 const LOOKUP_TIMEOUT_MS = 6000;
 const OFF_FIELDS = "product_name,brands,nutriments,serving_size,serving_quantity";
@@ -153,17 +154,54 @@ async function lookupOpenFoodFacts(code: string): Promise<MealParseResponse | nu
   return mapOffProduct(payload);
 }
 
+/** Cached result for this code, or null. Cache failures never break a lookup. */
+async function readCache(code: string): Promise<MealParseResponse | null> {
+  try {
+    const hit = await BarcodeCacheModel.findOne({ code }).lean();
+    if (!hit) return null;
+    return {
+      name: hit.name,
+      components: hit.components ?? [{ name: hit.name, protein: hit.protein, calories: hit.calories }],
+      protein: hit.protein,
+      calories: hit.calories,
+      confidence: hit.confidence,
+    };
+  } catch (error) {
+    logger.warn({ error, code }, "[barcode] cache read failed");
+    return null;
+  }
+}
+
+/** Store a resolved lookup so repeat scans skip the external API. Best-effort. */
+async function writeCache(code: string, source: string, result: MealParseResponse): Promise<MealParseResponse> {
+  try {
+    await BarcodeCacheModel.updateOne(
+      { code },
+      { $set: { code, source, name: result.name, components: result.components, protein: result.protein, calories: result.calories, confidence: result.confidence } },
+      { upsert: true },
+    );
+  } catch (error) {
+    logger.warn({ error, code }, "[barcode] cache write failed");
+  }
+  return result;
+}
+
 /**
- * Looks a scanned barcode up across sources, best-coverage first: Nutritionix
- * (US branded, when configured) → Open Food Facts (free, international). Codes
- * found in neither 404 so the user types the food or scans a photo instead.
+ * Looks a scanned barcode up, cache-first, then by best coverage: Nutritionix
+ * (US branded, when configured) → Open Food Facts (free, international). The
+ * cache is shared across users, so a product anyone has scanned resolves
+ * instantly and without an external call. Codes found nowhere 404 so the user
+ * types the food or scans a photo instead.
  */
 export async function lookupBarcode(code: string): Promise<MealParseResponse> {
+  const cached = await readCache(code);
+  if (cached) return cached;
+
   const fromNutritionix = await lookupNutritionix(code);
-  if (fromNutritionix) return fromNutritionix;
+  if (fromNutritionix) return writeCache(code, "nutritionix", fromNutritionix);
 
   const fromOff = await lookupOpenFoodFacts(code);
-  if (fromOff) return fromOff;
+  if (fromOff) return writeCache(code, "open_food_facts", fromOff);
 
   throw new NotFoundError("We couldn't find that barcode. Try typing the product or scanning a photo.");
 }
