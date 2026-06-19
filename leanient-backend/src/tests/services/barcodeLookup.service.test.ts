@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { mapOffProduct } from "../../services/barcodeLookup.service";
+import { mapNutritionixFood, mapOffProduct } from "../../services/barcodeLookup.service";
+
+describe("mapNutritionixFood", () => {
+  it("maps the first food with brand + per-serving macros", () => {
+    const result = mapNutritionixFood({
+      foods: [{ food_name: "Greek Yogurt", brand_name: "Chobani", serving_qty: 1, serving_unit: "container", nf_protein: 15, nf_calories: 120 }],
+    })!;
+    expect(result.name).toBe("Chobani Greek Yogurt");
+    expect(result.protein).toBe(15);
+    expect(result.calories).toBe(120);
+    expect(result.components[0].name).toContain("1 container");
+    expect(result.confidence).toBe(0.95);
+  });
+
+  it("returns null for empty results or macro-less stubs", () => {
+    expect(mapNutritionixFood({ foods: [] })).toBeNull();
+    expect(mapNutritionixFood(null)).toBeNull();
+    expect(mapNutritionixFood({ foods: [{ food_name: "Water", nf_protein: 0, nf_calories: 0 }] })).toBeNull();
+  });
+});
 
 describe("mapOffProduct", () => {
   it("maps a found product, preferring per-serving macros and naming with brand", () => {

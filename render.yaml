@@ -45,6 +45,10 @@ services:
         sync: false
       - key: REVENUECAT_WEBHOOK_SECRET
         sync: false
+      - key: NUTRITIONIX_APP_ID
+        sync: false
+      - key: NUTRITIONIX_APP_KEY
+        sync: false
       - key: SCHEDULER_TIMEZONE
         value: America/New_York
       - key: WEEKLY_VERDICT_CRON

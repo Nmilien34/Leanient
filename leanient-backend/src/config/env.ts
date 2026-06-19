@@ -28,6 +28,8 @@ const envSchema = z
     AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
     AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
     OPENAI_API_KEY: z.string().min(1).optional(),
+    NUTRITIONIX_APP_ID: z.string().min(1).optional(),
+    NUTRITIONIX_APP_KEY: z.string().min(1).optional(),
     REVENUECAT_WEBHOOK_SECRET: z.string().min(1).optional(),
     APPLE_APP_SPECIFIC_SHARED_SECRET: z.string().min(1).optional(),
     SCHEDULER_TIMEZONE: z.string().min(1).default("America/New_York"),
@@ -114,6 +116,10 @@ export const env = {
   },
   openai: {
     apiKey: parsed.data.OPENAI_API_KEY,
+  },
+  nutritionix: {
+    appId: parsed.data.NUTRITIONIX_APP_ID,
+    appKey: parsed.data.NUTRITIONIX_APP_KEY,
   },
   revenueCat: {
     webhookSecret: parsed.data.REVENUECAT_WEBHOOK_SECRET,
