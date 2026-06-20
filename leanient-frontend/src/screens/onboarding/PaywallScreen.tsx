@@ -7,6 +7,7 @@ import { BlurView } from "expo-blur";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { Button } from "../../components/ui/Button";
+import { SubscriptionLegal } from "../../components/app/SubscriptionLegal";
 import { YourPlanView } from "../../components/YourPlanView";
 import { useAuth } from "../../context/AuthContext";
 import { useOnboarding } from "../../context/OnboardingContext";
@@ -269,6 +270,8 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
             </View>
             <Text style={styles.who}>4.8 ★ · Used by 40,000+ people on GLP-1</Text>
           </View>
+
+          <SubscriptionLegal style={styles.legal} />
         </ScrollView>
       </SafeAreaView>
 
@@ -306,6 +309,7 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
             <Pressable accessibilityRole="button" onPress={skipForNow} disabled={submitting} style={styles.sheetSkip}>
               <Text style={styles.sheetSkipText}>I'll set it up in settings later</Text>
             </Pressable>
+            <SubscriptionLegal style={styles.sheetLegal} muted />
           </Animated.View>
         </View>
       ) : null}
@@ -433,6 +437,7 @@ const styles = StyleSheet.create({
   proof: { alignItems: "center", gap: 8, marginTop: 18 },
   stars: { flexDirection: "row", gap: 3 },
   who: { fontFamily: font.medium, fontSize: 12, letterSpacing: 0.24, color: colors.faint },
+  legal: { marginTop: 20, paddingHorizontal: 8 },
   // retention sheet
   overlay: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
   backdropTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(243,242,237,0.55)" },
@@ -493,6 +498,7 @@ const styles = StyleSheet.create({
   },
   sheetCta: { marginTop: 20, alignSelf: "stretch" },
   sheetSkip: { paddingVertical: 12, marginTop: 4 },
+  sheetLegal: { marginTop: 6 },
   sheetSkipText: { fontFamily: font.medium, fontSize: 14, color: colors.faint },
 });
 

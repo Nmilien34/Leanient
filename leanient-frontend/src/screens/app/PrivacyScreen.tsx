@@ -14,11 +14,9 @@ import { isFaceDetectionAvailable } from "./faceLandmarks";
 import { faceConsentState } from "./faceConsent";
 import { buildPrivacyDataExportPayload, buildPrivacyDataExportShareContent } from "./privacyDataExport";
 import { SHARING_TOGGLES, defaultSharingState, photosLabel, type SharingIcon } from "./privacySettings";
+import { PRIVACY_URL, TERMS_URL } from "../../config";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
-
-const PRIVACY_URL = "https://leanient.app/privacy";
-const TERMS_URL = "https://leanient.app/terms";
 
 const ic = (children: React.ReactNode) => (
   <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

@@ -2,10 +2,17 @@ export const APP_NAME = "Leanient";
 
 // Mirrors app.json `expo.version`. Swap for `expo-constants`
 // (`Constants.expoConfig?.version`) once that package is added.
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "1.0";
 
 export const SUPPORT_EMAIL = "support@leanient.app";
 export const REPORT_PROBLEM_EMAIL = "dev@boltzman.ai";
+
+// Legal pages linked from the paywall and Settings. These MUST resolve to live
+// content — Apple opens them during subscription review (App Store guideline
+// 3.1.2). Served as static pages by the Render backend (see
+// leanient-backend/src/routes/legal.routes.ts).
+export const TERMS_URL = "https://leanient-backend.onrender.com/terms";
+export const PRIVACY_URL = "https://leanient-backend.onrender.com/privacy";
 
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??

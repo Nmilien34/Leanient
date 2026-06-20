@@ -9,7 +9,17 @@ import revenueCatService, { applyRevenueCatCustomerInfoToUser } from "../../serv
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
+import { SubscriptionLegal } from "../../components/app/SubscriptionLegal";
 import { deriveSubscription } from "./subscriptionMetrics";
+
+/** RevenueCat config/offering errors are internal; never show their raw text to a user. */
+function friendlyActionError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (/offering|package|configur|store|fetch/i.test(message)) {
+    return "Subscriptions aren't available right now. Please try again in a moment.";
+  }
+  return message || "Something went wrong. Please try again.";
+}
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
@@ -65,7 +75,7 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
     try {
       await task();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setActionError(friendlyActionError(error));
     } finally {
       setBusyAction(null);
     }
@@ -204,6 +214,8 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
                 <Text style={styles.cancelText}>Cancel subscription</Text>
               </Pressable>
             ) : null}
+
+            <SubscriptionLegal style={styles.legal} />
           </ScrollView>
         </ModalSafeArea>
       </View>
@@ -234,6 +246,7 @@ const styles = StyleSheet.create({
   actionError: { marginTop: 10, marginHorizontal: 24, fontFamily: font.medium, fontSize: 13, color: "#B5534B", textAlign: "center" },
   cancel: { alignItems: "center", paddingVertical: 16 },
   cancelText: { fontFamily: font.semibold, fontSize: 14, color: colors.muted },
+  legal: { marginTop: 18, marginHorizontal: 24 },
 });
 
 export default SubscriptionScreen;

@@ -7,6 +7,7 @@ import { connect, disconnect, isDatabaseReachable } from "./db/mongo";
 import { AppError } from "./lib/errors";
 import { logger } from "./lib/logger";
 import { createHealthRouter } from "./routes/health.routes";
+import { createLegalRouter } from "./routes/legal.routes";
 import authRoutes from "./routes/auth.routes";
 import coachChatRoutes from "./routes/coachChat.routes";
 import diagnosticsRoutes from "./routes/diagnostics.routes";
@@ -70,6 +71,10 @@ function corsOptions(): CorsOptions {
 export function createApp(options: CreateAppOptions = {}): Express {
   const app = express();
   const healthCheck = options.healthCheck ?? isDatabaseReachable;
+
+  // Public legal pages (Privacy + Terms) served before helmet so their inline
+  // styles survive the default CSP. These are the URLs Apple opens at review.
+  app.use(createLegalRouter());
 
   app.disable("x-powered-by");
   app.disable("etag");
