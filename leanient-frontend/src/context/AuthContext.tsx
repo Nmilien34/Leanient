@@ -21,6 +21,7 @@ import revenueCatService from "../services/revenueCat.service";
 interface AuthApi {
   signInWithGoogle(idToken: string): Promise<AuthResponse>;
   signInWithApple(body: AppleSignInRequest): Promise<AuthResponse>;
+  signInWithDemo(email: string, password: string): Promise<AuthResponse>;
   linkAppleProvider(body: AppleSignInRequest): Promise<User>;
   logout(): Promise<void>;
   getMe(): Promise<User>;
@@ -45,6 +46,7 @@ export interface AuthContextValue extends AuthState {
   hydrateAuth(): Promise<void>;
   signInWithGoogle(idToken: string): Promise<User>;
   signInWithApple(identityToken: string, fullName?: AppleSignInRequest["fullName"]): Promise<User>;
+  signInWithDemo(email: string, password: string): Promise<User>;
   linkAppleProvider(identityToken: string, fullName?: AppleSignInRequest["fullName"]): Promise<User>;
   logout(): Promise<void>;
   refreshMe(): Promise<User | null>;
@@ -171,6 +173,12 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
     [api, finalizeAuth],
   );
 
+  const signInWithDemo = useCallback(
+    async (email: string, password: string): Promise<User> =>
+      finalizeAuth(await api.signInWithDemo(email, password)),
+    [api, finalizeAuth],
+  );
+
   const linkAppleProvider = useCallback(
     async (identityToken: string, fullName?: AppleSignInRequest["fullName"]): Promise<User> =>
       updateCachedUser(await api.linkAppleProvider({ identityToken, fullName })),
@@ -213,6 +221,7 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
       hydrateAuth,
       signInWithGoogle,
       signInWithApple,
+      signInWithDemo,
       linkAppleProvider,
       logout,
       refreshMe,
@@ -226,6 +235,7 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
       patchMe,
       refreshMe,
       signInWithApple,
+      signInWithDemo,
       signInWithGoogle,
       state,
       updateCachedUser,

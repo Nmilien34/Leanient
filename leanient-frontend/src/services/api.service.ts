@@ -405,6 +405,12 @@ export class LeanientApiClient {
     return this.post("/auth/apple/link", appleSignInRequestSchema.parse(body), userResponseSchema);
   }
 
+  // App Store review demo login (guideline 2.1a). Email + password sign-in
+  // scoped server-side to the seeded demo account; not a general auth path.
+  public async signInWithDemo(email: string, password: string): Promise<AuthResponse> {
+    return this.post("/auth/demo", { email, password }, authResponseSchema);
+  }
+
   public async logout(): Promise<void> {
     await this.client.post("/auth/logout");
   }

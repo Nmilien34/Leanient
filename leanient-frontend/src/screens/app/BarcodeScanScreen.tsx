@@ -101,13 +101,15 @@ export function BarcodeScanScreen({ visible, onClose, onLookup, onLog, onType }:
     return (
       <View style={[styles.root, styles.center]}>
         <StatusBar style="light" />
+        <Pressable accessibilityLabel="Close" onPress={onClose} style={styles.gateClose}>
+          <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap="round">
+            <Path d="M6 6l12 12M18 6L6 18" />
+          </Svg>
+        </Pressable>
         <Text style={styles.permTitle}>Scan a barcode</Text>
         <Text style={styles.permBody}>Leanient needs the camera to read a product barcode.</Text>
         <Pressable style={styles.permBtn} onPress={() => (permission?.canAskAgain === false ? Linking.openSettings() : requestPermission())}>
-          <Text style={styles.permBtnText}>{permission?.canAskAgain === false ? "Open Settings" : "Allow camera"}</Text>
-        </Pressable>
-        <Pressable onPress={onClose} hitSlop={10}>
-          <Text style={styles.permCancel}>Not now</Text>
+          <Text style={styles.permBtnText}>{permission?.canAskAgain === false ? "Open Settings" : "Continue"}</Text>
         </Pressable>
       </View>
     );
@@ -175,6 +177,7 @@ const styles = StyleSheet.create({
   permCancel: { fontFamily: font.medium, fontSize: 14, color: "rgba(255,255,255,0.6)", marginTop: 6 },
   topBar: { position: "absolute", top: 60, left: 0, right: 0, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
+  gateClose: { position: "absolute", top: 60, left: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" },
   topTitle: { fontFamily: font.semibold, fontSize: 15, color: "#fff" },
   reticleWrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", gap: 16 },
   reticle: { width: 260, height: 150, borderRadius: 20, borderWidth: 2.5, borderColor: "rgba(255,255,255,0.85)" },

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -54,10 +54,26 @@ function AppleMark() {
  */
 export function SignInScreen() {
   const auth = useAuth();
-  const [busyProvider, setBusyProvider] = useState<"google" | "apple" | null>(null);
+  const [busyProvider, setBusyProvider] = useState<"google" | "apple" | "demo" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewerOpen, setReviewerOpen] = useState(false);
+  const [reviewerEmail, setReviewerEmail] = useState("review@leanient.app");
+  const [reviewerPassword, setReviewerPassword] = useState("");
   const busy = busyProvider !== null;
   const showAppleSignIn = shouldRenderAppleSignIn(Platform.OS);
+
+  const onReviewer = async () => {
+    setError(null);
+    setBusyProvider("demo");
+    try {
+      await auth.signInWithDemo(reviewerEmail.trim(), reviewerPassword);
+      setReviewerOpen(false);
+    } catch (e) {
+      setError(extractApiError(e).message);
+    } finally {
+      setBusyProvider(null);
+    }
+  };
 
   const onGoogle = async () => {
     setError(null);
@@ -168,8 +184,66 @@ export function SignInScreen() {
           ) : null}
 
           <Text style={styles.legal}>By continuing you agree to our Terms and Privacy Policy.</Text>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reviewer sign-in"
+            onPress={() => {
+              setError(null);
+              setReviewerOpen(true);
+            }}
+            disabled={busy}
+            hitSlop={8}
+          >
+            <Text style={styles.reviewerLink}>Reviewer sign-in</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
+
+      <Modal visible={reviewerOpen} transparent animationType="fade" onRequestClose={() => setReviewerOpen(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalRoot}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setReviewerOpen(false)} />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Reviewer sign-in</Text>
+            <Text style={styles.sheetHint}>For App Store review. Enter the demo credentials provided in App Review Information.</Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <TextInput
+              style={styles.input}
+              value={reviewerEmail}
+              onChangeText={setReviewerEmail}
+              placeholder="Email"
+              placeholderTextColor={colors.faint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              editable={!busy}
+            />
+            <TextInput
+              style={styles.input}
+              value={reviewerPassword}
+              onChangeText={setReviewerPassword}
+              placeholder="Password"
+              placeholderTextColor={colors.faint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              editable={!busy}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sign in"
+              onPress={onReviewer}
+              disabled={busy || !reviewerPassword}
+              style={({ pressed }) => [styles.sheetBtn, (pressed || busy || !reviewerPassword) && styles.pressed]}
+            >
+              {busyProvider === "demo" ? <ActivityIndicator color="#fff" /> : <Text style={styles.sheetBtnText}>Sign in</Text>}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -189,6 +263,14 @@ const styles = StyleSheet.create({
   apple: { backgroundColor: "#1A1D1A" },
   appleText: { fontFamily: font.semibold, fontSize: 16, color: "#fff" },
   legal: { fontFamily: font.regular, fontSize: 11.5, lineHeight: 16, color: colors.faint, textAlign: "center", paddingHorizontal: 20, paddingTop: 6 },
+  reviewerLink: { fontFamily: font.medium, fontSize: 12, color: colors.faint, textAlign: "center", paddingTop: 4, textDecorationLine: "underline" },
+  modalRoot: { flex: 1, justifyContent: "center", paddingHorizontal: 24, backgroundColor: "rgba(0,0,0,0.45)" },
+  sheet: { backgroundColor: "#fff", borderRadius: 20, padding: 22, gap: 12 },
+  sheetTitle: { fontFamily: font.bold, fontSize: 19, letterSpacing: -0.4, color: colors.ink },
+  sheetHint: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: colors.muted },
+  input: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, fontFamily: font.medium, fontSize: 15, color: colors.ink, backgroundColor: "#fff" },
+  sheetBtn: { height: 52, borderRadius: 26, backgroundColor: "#1A1D1A", alignItems: "center", justifyContent: "center", marginTop: 4 },
+  sheetBtnText: { fontFamily: font.semibold, fontSize: 15.5, color: "#fff" },
 });
 
 export default SignInScreen;

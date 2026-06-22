@@ -32,6 +32,7 @@ import { WeightTrajectoryCard } from "../../components/app/WeightTrajectoryCard"
 import { StrengthTrendCard } from "../../components/app/StrengthTrendCard";
 import { ProgressPhotosCard } from "../../components/app/ProgressPhotosCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
+import { SourcesScreen } from "./SourcesScreen";
 import { WeekPlanSheet } from "../../components/app/WeekPlanSheet";
 import { TodayPlanSheet } from "../../components/app/TodayPlanSheet";
 import { WorkoutPlayer } from "../../components/app/WorkoutPlayer";
@@ -122,6 +123,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const [targetsOpen, setTargetsOpen] = useState(false);
   const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -804,7 +806,9 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
         weeklyDelta={weeklyDelta ?? 0}
         onClose={() => setExplainerOpen(false)}
         onAskCoach={askCoachAboutVerdict}
+        onSources={() => setSourcesOpen(true)}
       />
+      <SourcesScreen visible={sourcesOpen} onClose={() => setSourcesOpen(false)} />
 
       <CoachChatScreen
         visible={coachOpen}

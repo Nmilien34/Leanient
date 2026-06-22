@@ -11,7 +11,7 @@ import { asyncHandler } from "../lib/asyncHandler";
 import { AppError } from "../lib/errors";
 import { sendData, sendNoContent } from "../lib/responses";
 import { validateBody } from "../middleware/validate.middleware";
-import { linkAppleProvider, signInWithApple, signInWithGoogle } from "../services/auth.service";
+import { linkAppleProvider, signInWithApple, signInWithGoogle, signInWithReviewAccount } from "../services/auth.service";
 
 const router = Router();
 
@@ -58,6 +58,19 @@ router.post(
 
     const body = req.body as AppleSignInRequest;
     sendData(res, await linkAppleProvider(req.user!.id, body));
+  }),
+);
+
+// Demo login for App Store review (guideline 2.1a). Email + password sign-in
+// scoped to the seeded demo account; not a general password auth path.
+router.post(
+  "/demo",
+  asyncHandler(async (req, res) => {
+    const body = (req.body ?? {}) as { email?: unknown; password?: unknown };
+    if (typeof body.email !== "string" || typeof body.password !== "string") {
+      throw new AppError({ code: "validation", message: "Email and password are required.", statusCode: 400 });
+    }
+    sendData(res, await signInWithReviewAccount(body.email, body.password));
   }),
 );
 

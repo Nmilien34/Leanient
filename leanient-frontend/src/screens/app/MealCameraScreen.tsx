@@ -92,10 +92,7 @@ export function MealCameraScreen({ visible, onClose, onCaptured }: MealCameraScr
             onPress={denied ? () => Linking.openSettings() : () => requestPermission()}
             style={styles.gateBtn}
           >
-            <Text style={styles.gateBtnText}>{denied ? "Open Settings" : "Allow camera"}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={onClose} style={styles.gateSkip}>
-            <Text style={styles.gateSkipText}>Type it in instead</Text>
+            <Text style={styles.gateBtnText}>{denied ? "Open Settings" : "Continue"}</Text>
           </Pressable>
         </View>
       </View>

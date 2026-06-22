@@ -16,6 +16,7 @@ import { UnitsScreen } from "./UnitsScreen";
 import { AppleHealthScreen } from "./AppleHealthScreen";
 import { PrivacyScreen } from "./PrivacyScreen";
 import { HelpScreen } from "./HelpScreen";
+import { SourcesScreen } from "./SourcesScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { mockUser } from "../../mocks/user";
@@ -38,6 +39,7 @@ const Icons = {
   shield: ic(<Path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />),
   help: ic(<><Circle cx={12} cy={12} r={9} /><Path d="M9.5 9.5a2.5 2.5 0 0 1 4 1.8c0 1.7-2.5 2-2.5 3.2M12 17.5v.5" /></>),
   verdict: ic(<><Circle cx={12} cy={12} r={9} /><Path d="M8.3 12.4l2.4 2.4 4.9-5.2" /></>),
+  book: ic(<><Path d="M5 4h11a2 2 0 0 1 2 2v13H7a2 2 0 0 0-2 2V4z" /><Path d="M9 8h6M9 12h6" /></>),
   out: (
     <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.slate} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M14 4H6v16h8M10 12h10m0 0l-3-3m3 3l-3 3" />
@@ -77,6 +79,7 @@ export function ProfileScreen() {
   const [healthOpen, setHealthOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const user = auth.user ?? mockUser;
   const profile = data.profile ?? mockProfile;
   const medication = data.medicationProtocol ?? mockMedicationProtocol;
@@ -136,6 +139,7 @@ export function ProfileScreen() {
           <SettingGroup
             rows={[
               { key: "verdict", icon: Icons.verdict, label: "What your verdict means", onPress: () => setStatesOpen(true) },
+              { key: "sources", icon: Icons.book, label: "Sources & citations", onPress: () => setSourcesOpen(true) },
               { key: "privacy", icon: Icons.shield, label: "Privacy & data", onPress: () => setPrivacyOpen(true) },
               { key: "help", icon: Icons.help, label: "Help & support", onPress: () => setHelpOpen(true) },
               { key: "signout", icon: Icons.out, label: "Sign out", onPress: signOut, danger: true },
@@ -153,6 +157,7 @@ export function ProfileScreen() {
       <AppleHealthScreen visible={healthOpen} onClose={() => setHealthOpen(false)} />
       <PrivacyScreen visible={privacyOpen} onClose={() => setPrivacyOpen(false)} />
       <HelpScreen visible={helpOpen} onClose={() => setHelpOpen(false)} />
+      <SourcesScreen visible={sourcesOpen} onClose={() => setSourcesOpen(false)} />
     </View>
   );
 }

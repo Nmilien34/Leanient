@@ -13,7 +13,8 @@
     "test": "vitest run",
     "seed:catalogs": "tsx src/scripts/seedCatalogs.ts",
     "check:integrations": "tsx src/scripts/checkIntegrations.ts",
-    "grant:subscription": "tsx src/scripts/grantSubscription.ts"
+    "grant:subscription": "tsx src/scripts/grantSubscription.ts",
+    "seed:demo": "tsx src/scripts/seedDemoUser.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

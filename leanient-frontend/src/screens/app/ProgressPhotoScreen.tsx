@@ -237,10 +237,7 @@ export function ProgressPhotoScreen({ visible, onClose, mode = "body", onCapture
           <Text style={styles.gateTitle}>Take your progress photo</Text>
           <Text style={styles.gateText}>Leanient uses your camera for weekly progress photos. They stay private on your device.</Text>
           <Pressable accessibilityRole="button" onPress={denied ? () => Linking.openSettings() : () => requestPermission()} style={styles.gateBtn}>
-            <Text style={styles.gateBtnText}>{denied ? "Open Settings" : "Allow camera"}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={onClose} style={styles.gateSkip}>
-            <Text style={styles.gateSkipText}>Not now</Text>
+            <Text style={styles.gateBtnText}>{denied ? "Open Settings" : "Continue"}</Text>
           </Pressable>
         </View>
       </View>
