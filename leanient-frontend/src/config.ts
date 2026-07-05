@@ -2,7 +2,7 @@ export const APP_NAME = "Leanient";
 
 // Mirrors app.json `expo.version`. Swap for `expo-constants`
 // (`Constants.expoConfig?.version`) once that package is added.
-export const APP_VERSION = "1.0.1";
+export const APP_VERSION = "1.1";
 
 export const SUPPORT_EMAIL = "support@leanient.app";
 export const REPORT_PROBLEM_EMAIL = "dev@boltzman.ai";
