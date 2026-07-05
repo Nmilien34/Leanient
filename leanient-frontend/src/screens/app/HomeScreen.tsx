@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import type {
   DoseLog,
   SubscriptionStatus,
@@ -28,6 +28,7 @@ import { TodayPlanCard } from "../../components/app/TodayPlanCard";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { CoachInsightCard } from "../../components/app/CoachInsightCard";
+import { QuickActionRow } from "../../components/app/QuickActionRow";
 import { WeightTrajectoryCard } from "../../components/app/WeightTrajectoryCard";
 import { StrengthTrendCard } from "../../components/app/StrengthTrendCard";
 import { ProgressPhotosCard } from "../../components/app/ProgressPhotosCard";
@@ -70,7 +71,9 @@ import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
 import { resolveHomeLayout, daysSinceLatest, type HomeSection } from "./homeLayout";
 import { deriveWeekPlan } from "./weekPlanMetrics";
-import { deriveTodayPlan, pickWorkout, type DayFocus } from "./todayPlanMetrics";
+import { buildPlanChecklist, deriveTodayPlan, pickWorkout, type DayFocus } from "./todayPlanMetrics";
+import { buildRollingConsistency } from "./consistency";
+import { buildExecutionReport } from "./executionReport";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
 import type { CompletedWorkout } from "./workoutSession";
 import { extractApiError } from "../../services/apiError";
@@ -113,7 +116,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const data = useLeanientData();
   const auth = useAuth();
   const navigation = useNavigation();
-  const { openQuickLog, openDoseLog, openMealLog, openMealScan, openProgressPhoto, startWorkout } = useQuickActions();
+  const { openQuickLog, openDoseLog, openMealLog, openMealScan, openLogWorkout, openWeightLog, openSideEffectLog, openProgressPhoto, startWorkout } = useQuickActions();
   const now = useRef(new Date()).current;
   const [scope, setScope] = useState<"week" | "today">("today");
   const [doseHistoryOpen, setDoseHistoryOpen] = useState(false);
@@ -336,6 +339,40 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
     [profile, medication, planWorkout, verdictBreakdown, dayFocus, todayLog, now],
   );
 
+  // The forgiving rolling read: protein days hit + session days over the last
+  // 7 days. Feeds the tiles and the plan's momentum chip/dots.
+  const consistency = useMemo(
+    () =>
+      buildRollingConsistency({
+        meals: data.recentMeals,
+        workouts: data.workoutHistory,
+        dailyProteinTarget: profile.dailyProteinTarget,
+        weeklyWorkoutTarget: profile.weeklyWorkoutTarget,
+        now,
+      }),
+    [data.recentMeals, data.workoutHistory, profile.dailyProteinTarget, profile.weeklyWorkoutTarget, now],
+  );
+
+  // Whether today's dose is already logged (checks the shot-day plan step).
+  const doseLoggedToday = useMemo(
+    () => doseLogs.some((d) => new Date(d.recordedAt).toDateString() === now.toDateString()),
+    [doseLogs, now],
+  );
+
+  const planChecklist = useMemo(
+    () =>
+      todayPlan
+        ? buildPlanChecklist({
+            plan: todayPlan,
+            mealsLoggedToday: todayLog.meals.length,
+            eatDone: today.protein.ratio >= 0.9,
+            moveDone: today.session.done > 0,
+            doseLoggedToday,
+          })
+        : [],
+    [todayPlan, todayLog.meals.length, today.protein.ratio, today.session.done, doseLoggedToday],
+  );
+
   const contextLabel = useMemo(() => {
     const range = `Week of ${weekRangeLabel(verdict.weekOf)}`;
     if (medication) return `${range} · Day ${daysSince(medication.startDate, now)} on ${medication.medicationName}`;
@@ -400,6 +437,22 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
       ? "No weigh-in yet"
       : `${weeklyDelta <= 0 ? "↓" : "↑"} ${Math.abs(weeklyDelta).toFixed(1)} ${weight.unit}`;
 
+  // The week as an execution report card (protein days / sessions / pace) for
+  // the This-week verdict block. Pace is fed in lb like the insight below.
+  const executionReport = useMemo(
+    () =>
+      buildExecutionReport({
+        weekMeals: data.weekMeals,
+        dailyProteinTarget: profile.dailyProteinTarget,
+        sessionsThisWeek: data.trainingToday?.sessionsThisWeek ?? training.done,
+        weeklyWorkoutTarget: profile.weeklyWorkoutTarget,
+        weeklyDeltaLb:
+          weeklyDelta == null ? null : weight.unit === "kg" ? weeklyDelta * 2.2046226 : weeklyDelta,
+        now,
+      }),
+    [data.weekMeals, data.trainingToday?.sessionsThisWeek, training.done, profile.dailyProteinTarget, profile.weeklyWorkoutTarget, weeklyDelta, weight.unit, now],
+  );
+
   // One data-driven read from the coach, below the rings (replaces the redundant
   // "do this next" workout prompt — the plan already owns tasks). Pace is fed in
   // lb so the threshold reads the same regardless of the user's unit.
@@ -461,10 +514,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const planCard = todayPlan ? (
     <TodayPlanCard
       plan={todayPlan}
-      eatDone={today.protein.ratio >= 0.9}
-      moveDone={today.session.done > 0}
+      checklist={planChecklist}
+      proteinDots={consistency.proteinDots}
       onEat={openMealScan}
       onMove={() => startWorkout(planWorkout ?? undefined)}
+      onLogShot={openDoseLog}
       onDetail={() => setTodayPlanOpen(true)}
     />
   ) : null;
@@ -472,8 +526,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   // Shared supporting metrics, rendered below the trio in either layout.
   const ringsCard = (
     <View style={styles.rings}>
-      <MetricRing ratio={today.protein.ratio} value={`${today.protein.logged} / ${today.protein.target}g`} label="Protein today" />
-      <MetricRing ratio={today.session.ratio} value={`${today.session.done} / ${today.session.target}`} label="Session today" />
+      <MetricRing
+        ratio={consistency.proteinDaysHit / 7}
+        value={`${consistency.proteinDaysHit} of 7`}
+        badge={`${today.protein.logged} / ${today.protein.target}g today`}
+        label="Protein days"
+      />
+      <MetricRing
+        ratio={consistency.sessionTarget ? Math.min(1, consistency.sessionDays / consistency.sessionTarget) : 0}
+        value={`${consistency.sessionDays} of ${consistency.sessionTarget}`}
+        badge={today.session.done > 0 ? "Done today" : "0 / 1 today"}
+        label="Sessions · 7 days"
+      />
       {today.nextShot.onProtocol ? (
         <InfoTile
           icon={
@@ -544,8 +608,8 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                         </StaggeredReveal>,
                       );
                     }
-                    // Supporting daily metrics sit under the plan: gauge → plan → rings.
-                    if (key === "plan") {
+                    // Execution spine: directive → consistency tiles → the plan.
+                    if (key === "verdict") {
                       items.push(
                         <StaggeredReveal key="rings" index={idx++}>
                           {ringsCard}
@@ -574,29 +638,29 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                 </>
               )}
 
+              {/* The coach's one-line read + fast logging keep the spine actionable. */}
+              <StaggeredReveal index={3}>
+                <CoachInsightCard insight={dailyInsight} onAsk={askCoachAboutInsight} />
+              </StaggeredReveal>
+
+              <StaggeredReveal index={4}>
+                <QuickActionRow
+                  onLogFood={openMealLog}
+                  onLogWorkout={openLogWorkout}
+                  onLogWeight={openWeightLog}
+                  onLogSideEffect={openSideEffectLog}
+                />
+              </StaggeredReveal>
+
+              {/* Everything below is demoted: supporting context, off the spine. */}
               {bodyComp ? (
                 <StaggeredReveal index={7}>
                   <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
                 </StaggeredReveal>
               ) : null}
 
-              <StaggeredReveal index={2}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Adjust today's targets"
-                  onPress={() => setTargetsOpen(true)}
-                  style={styles.whylinkWrap}
-                >
-                  <Text style={styles.whylink}>Adjust today's targets</Text>
-                </Pressable>
-              </StaggeredReveal>
-
-              <StaggeredReveal index={3}>
-                <CoachInsightCard insight={dailyInsight} onAsk={askCoachAboutInsight} />
-              </StaggeredReveal>
-
               {weightTrajectory || strengthTrend ? (
-                <StaggeredReveal index={4}>
+                <StaggeredReveal index={5}>
                   <View style={styles.trendRow}>
                     {weightTrajectory ? <WeightTrajectoryCard view={weightTrajectory} onPress={openQuickLog} /> : null}
                     {strengthTrend ? <StrengthTrendCard view={strengthTrend} /> : null}
@@ -608,7 +672,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                 <ProgressPhotosCard photos={photoItems} onAdd={openProgressPhoto} />
               </StaggeredReveal>
 
-              <StaggeredReveal index={4}>
+              <StaggeredReveal index={6}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Adjust today's targets"
+                  onPress={() => setTargetsOpen(true)}
+                  style={styles.whylinkWrap}
+                >
+                  <Text style={styles.whylink}>Adjust today's targets</Text>
+                </Pressable>
+              </StaggeredReveal>
+
+              <StaggeredReveal index={7}>
                 <View style={styles.snap}>
                   <Text style={styles.eyebrow}>LOGGED TODAY</Text>
                   <View style={styles.loggedList}>
@@ -644,14 +719,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
           ) : (
             /* ---- This week scope ---- */
             <>
-              {/* One verdict block: the worded read + its quantified breakdown, fused. */}
+              {/* One verdict block: the worded read + the week's execution report, fused. */}
               <StaggeredReveal index={0}>
                 <View style={styles.verdictHero}>
                   <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} bare />
                   {verdict.status !== "no_data" && verdictBreakdown ? (
                     <>
                       <View style={styles.verdictHeroDivider} />
-                      <VerdictBreakdownCard view={verdictBreakdown} onPress={() => setExplainerOpen(true)} bare />
+                      <VerdictBreakdownCard view={verdictBreakdown} report={executionReport} onPress={() => setExplainerOpen(true)} bare />
+                      <View style={styles.nextWeek}>
+                        <Text style={styles.nextWeekLabel}>NEXT WEEK</Text>
+                        <Text style={styles.nextWeekText}>{executionReport.nextWeek}</Text>
+                      </View>
                     </>
                   ) : null}
                 </View>
@@ -834,10 +913,21 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
         <TodayPlanSheet
           visible={todayPlanOpen}
           plan={todayPlan}
+          checklist={planChecklist}
+          proteinDots={consistency.proteinDots}
+          dayLabels={consistency.dayLabels}
           onClose={() => setTodayPlanOpen(false)}
+          onScanMeal={() => {
+            setTodayPlanOpen(false);
+            openMealScan();
+          }}
           onStartWorkout={() => {
             setTodayPlanOpen(false);
             setPlayerOpen(true);
+          }}
+          onLogShot={() => {
+            setTodayPlanOpen(false);
+            openDoseLog();
           }}
         />
       ) : null}
@@ -1013,6 +1103,9 @@ const styles = StyleSheet.create({
   trendRow: { flexDirection: "row", gap: 12, marginHorizontal: 20, marginTop: 12, alignItems: "stretch" },
   verdictHero: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 22, overflow: "hidden", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 14 }, shadowRadius: 24, shadowOpacity: 0.09, elevation: 4 },
   verdictHeroDivider: { height: 1, backgroundColor: colors.line, marginHorizontal: 16 },
+  nextWeek: { flexDirection: "row", gap: 11, alignItems: "center", marginHorizontal: 16, marginBottom: 16, backgroundColor: "rgba(47,184,122,0.07)", borderWidth: 1, borderColor: "rgba(47,184,122,0.22)", borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  nextWeekLabel: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.8, color: colors.emeraldDeep },
+  nextWeekText: { flex: 1, fontFamily: font.semibold, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.1 },
   // why link
   whylinkWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 2 },
   whylink: { fontFamily: font.semibold, fontSize: 13, color: colors.muted, textDecorationLine: "underline" },

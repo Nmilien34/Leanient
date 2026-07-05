@@ -131,35 +131,37 @@ export interface ShotCycle {
  * mid-cycle — so that's the easy window to bank protein and a session.
  */
 function shotPhase(daysSinceShot: number): ShotPhase {
+  // The badge (SHOT +N · ENERGY) carries the cycle context; the headline is the
+  // directive and the message is one action line. No explainer paragraphs.
   switch (daysSinceShot) {
     case 0:
       return {
         energy: "mid",
         energyLabel: "EASE IN",
-        headline: "Shot day. Keep it gentle.",
-        message: "Energy and appetite can dip over the next day or two. Hydrate and keep protein easy.",
+        headline: "Keep today gentle.",
+        message: "Easy protein, water, and your shot logged.",
       };
     case 1:
       return {
         energy: "low",
         energyLabel: "LOW ENERGY",
         headline: "Go easy today.",
-        message: "The day after your shot is often the quietest for appetite. Small, protein-first bites win.",
+        message: "Small protein bites. A walk counts.",
       };
     case 2:
     case 3:
       return {
         energy: "good",
         energyLabel: "GOOD ENERGY",
-        headline: "Bank it while energy's back.",
-        message: "A couple days after your shot, appetite returns. Today's the easy day to hit protein and train.",
+        headline: "You can push today.",
+        message: "Two protein meals and one session.",
       };
     default:
       return {
         energy: "good",
         energyLabel: "STEADY",
-        headline: "Steady stretch. Keep stacking protein.",
-        message: "Energy's level this far into the cycle. Protein and a session keep the muscle you've got.",
+        headline: "Bank another day.",
+        message: "Protein to target and a session if it's due.",
       };
   }
 }

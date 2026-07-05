@@ -12,6 +12,10 @@ export interface QuickActions {
   openMealScan: () => void;
   openMealLog: () => void;
   openDoseLog: () => void;
+  /** Open the manual workout log (past session entry), distinct from startWorkout. */
+  openLogWorkout: () => void;
+  openWeightLog: () => void;
+  openSideEffectLog: () => void;
   openProgressPhoto: () => void;
   /** Open the camera in face-check mode (front camera + fullness rating). */
   openFaceCheck: () => void;

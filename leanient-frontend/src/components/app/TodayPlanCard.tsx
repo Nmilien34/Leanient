@@ -1,20 +1,23 @@
 import React, { type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import type { EatSuggestion, TodayPlan } from "../../screens/app/todayPlanMetrics";
+import type { EatSuggestion, PlanChecklistItem, TodayPlan } from "../../screens/app/todayPlanMetrics";
+import type { DayMark } from "../../screens/app/consistency";
 import { PlanTimeline, type PlanStep } from "./PlanTimeline";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
 interface TodayPlanCardProps {
   plan: TodayPlan;
-  /** Hit the day's protein target. */
-  eatDone: boolean;
-  /** Logged today's session. */
-  moveDone: boolean;
+  /** The day's checkable actions (buildPlanChecklist). */
+  checklist: PlanChecklistItem[];
+  /** Rolling last-7-days protein marks, for the momentum chip + dots. */
+  proteinDots: DayMark[];
   /** Opens the meal scan. */
   onEat: () => void;
   onMove: () => void;
+  /** Opens the dose log (shot-day step). */
+  onLogShot?: () => void;
   /** Opens the full plan sheet. */
   onDetail?: () => void;
 }
@@ -25,14 +28,20 @@ const ic = (children: ReactNode, color: string = colors.emeraldDeep) => (
   </Svg>
 );
 
-/** The expanding "what to eat" panel under the EAT stop. */
-function EatPanel({ remaining, suggestions, onScan }: { remaining: number; suggestions: EatSuggestion[]; onScan: () => void }) {
+const ICONS: Record<PlanChecklistItem["kind"], ReactNode> = {
+  protein: ic(<><Path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8" /></>),
+  session: ic(<><Path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8" /></>),
+  shot: ic(<><Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" /></>),
+};
+
+/** The expanding "what to eat" panel under the active protein stop. */
+export function EatPanel({ remaining, suggestions, onScan }: { remaining: number; suggestions: EatSuggestion[]; onScan: () => void }) {
   return (
     <View>
       <Text style={styles.panelGoal}>
         {remaining > 0 ? (
           <>
-            <Text style={styles.panelGoalNum}>{remaining}g</Text> protein left today. A few ideas — swap for whatever you've got:
+            <Text style={styles.panelGoalNum}>{remaining}g</Text> protein left today. A few ideas, swap for whatever you've got:
           </>
         ) : (
           "You're at your protein goal. Anything more is a bonus."
@@ -61,51 +70,39 @@ function EatPanel({ remaining, suggestions, onScan }: { remaining: number; sugge
 }
 
 /**
- * Today's plan as a journey (see PlanTimeline): the EAT stop expands into
- * protein-forward meal ideas and a scan button, move checks off once a session
- * is logged, and the shot-aware steady note is the last stop.
+ * Today's plan as a checkable journey (the execution hero): the day's concrete
+ * actions check off on the shared timeline, the header carries the forgiving
+ * rolling momentum ("X of last 7"), and the footer shows how today rolls into
+ * Sunday's verdict.
  */
-export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail }: TodayPlanCardProps) {
-  const steps: PlanStep[] = [
-    {
-      key: "eat",
-      icon: ic(<><Path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8" /></>),
-      title: "Eat to your protein",
-      sub: plan.eat.subline,
-      done: eatDone,
-      trailing: `${plan.eat.pct}%`,
-      focus: plan.focus === "protein",
-      expandedContent: <EatPanel remaining={plan.eat.remaining} suggestions={plan.eat.suggestions} onScan={onEat} />,
-    },
-  ];
-  if (plan.move) {
-    steps.push({
-      key: "move",
-      icon: ic(<><Path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8" /></>),
-      title: `${plan.move.title} · ${plan.move.duration}`,
-      sub: plan.move.subline,
-      done: moveDone,
-      focus: plan.focus === "training",
-      onPress: onMove,
-    });
-  }
-  if (plan.steady) {
-    steps.push({
-      key: "steady",
-      icon: ic(<><Path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z" /></>, colors.amberDeep),
-      amber: true,
-      title: `${plan.steady.shotLabel} · ${plan.steady.title}`,
-      sub: plan.steady.subline,
-      done: false,
-      focus: plan.focus === "pace",
-    });
-  }
+export function TodayPlanCard({ plan, checklist, proteinDots, onEat, onMove, onLogShot, onDetail }: TodayPlanCardProps) {
+  const steps: PlanStep[] = checklist.map((item) => ({
+    key: item.key,
+    icon: ICONS[item.kind],
+    title: item.title,
+    sub: item.sub,
+    done: item.done,
+    focus: item.focus,
+    trailing: item.trailingPct != null ? `${item.trailingPct}%` : undefined,
+    onPress: item.kind === "session" && !item.done ? onMove : item.kind === "shot" && !item.done ? onLogShot : undefined,
+    expandedContent: item.expandsEat ? (
+      <EatPanel remaining={plan.eat.remaining} suggestions={plan.eat.suggestions} onScan={onEat} />
+    ) : undefined,
+  }));
+
+  const doneCount = checklist.filter((i) => i.done).length;
+  const daysHit = proteinDots.filter((d) => d === "hit").length;
 
   return (
     <View style={styles.card}>
       <Pressable accessibilityRole={onDetail ? "button" : undefined} accessibilityLabel="Today's plan details" onPress={onDetail} style={styles.head}>
         <Text style={styles.eyebrow}>TODAY'S PLAN</Text>
-        {onDetail ? <Text style={styles.detail}>Details ›</Text> : null}
+        <View style={styles.headRight}>
+          <View style={styles.momentum}>
+            <Text style={styles.momentumText}>{daysHit} OF LAST 7</Text>
+          </View>
+          {onDetail ? <Text style={styles.detail}>Details ›</Text> : null}
+        </View>
       </Pressable>
 
       <PlanTimeline steps={steps} />
@@ -117,8 +114,15 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
           </Svg>
         </View>
         <View style={styles.payoffBody}>
-          <Text style={styles.payoffLabel}>IF YOU FINISH TODAY</Text>
+          <Text style={styles.payoffLabel}>
+            {doneCount} OF {checklist.length} DONE · COUNTS TOWARD SUNDAY
+          </Text>
           <Text style={styles.payoffText}>{plan.payoff}</Text>
+        </View>
+        <View style={styles.dots}>
+          {proteinDots.map((mark, i) => (
+            <View key={i} style={[styles.dot, mark === "hit" && styles.dotHit, mark === "open" && styles.dotOpen]} />
+          ))}
         </View>
       </View>
     </View>
@@ -128,7 +132,10 @@ export function TodayPlanCard({ plan, eatDone, moveDone, onEat, onMove, onDetail
 const styles = StyleSheet.create({
   card: { marginHorizontal: 20, marginTop: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16, shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, shadowOpacity: 0.06, elevation: 2 },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  headRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.muted },
+  momentum: { backgroundColor: "rgba(47,184,122,0.12)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  momentumText: { fontFamily: font.extrabold, fontSize: 10.5, letterSpacing: 0.4, color: colors.emeraldDeep },
   detail: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep },
   panelGoal: { fontFamily: font.medium, fontSize: 12.5, lineHeight: 18, color: colors.muted, marginBottom: 8 },
   panelGoalNum: { fontFamily: font.extrabold, color: colors.emeraldDeep },
@@ -145,6 +152,10 @@ const styles = StyleSheet.create({
   payoffBody: { flex: 1 },
   payoffLabel: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.7, color: colors.emeraldDeep, marginBottom: 2 },
   payoffText: { fontFamily: font.semibold, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.1 },
+  dots: { flexDirection: "row", gap: 4, alignSelf: "center" },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sageFill },
+  dotHit: { backgroundColor: colors.emerald },
+  dotOpen: { backgroundColor: "#fff", borderWidth: 2, borderColor: colors.emerald },
 });
 
 export default TodayPlanCard;

@@ -65,11 +65,11 @@ Your tone is calm, knowing, slightly dry. Never alarmist. Never shaming. Never b
 
 You only explain the user's behavior and the data the app has measured. You do not give medical advice, suggest dose changes, diagnose symptoms, or interpret side effects clinically. You do not use the words "diagnose", "prescribe", "treat", or "cure". You do not compare users to each other or to averages.
 
-Write 60-100 words. No emojis. No exclamation marks. No all-caps emphasis.
+Write 40-70 words. No emojis. No exclamation marks. No all-caps emphasis.
 
 Use the unit (lb or kg) as it appears in the data provided. Do NOT convert between units. Do NOT mix lb and kg in the same response.
 
-Open with one sentence stating the verdict. Reference the user's stated biggest fear from onboarding. Cite 2-3 specific data points. Briefly explain why those data points produce this verdict.
+ACTION-FIRST: the user already knows the science, so never explain why muscle loss happens or how protein works. Open with one sentence stating the verdict as what they DID (days hit, sessions done, pace). Cite 2-3 specific data points as a report card, then close with the single most important thing to do next week. The intelligence shows in how precisely you read their week, not in how much you explain.
 
 Return only the prose explanation.
 `.trim();
@@ -220,6 +220,8 @@ Format:
 
 Constraints:
 - Tone: calm, knowing, slightly dry. Never bro-y. Never alarmist. Never shaming.
+- ACTION-FIRST. The user already knows the science; do not explain it. No "because protein preserves muscle" clauses, no education. At most ONE short why-fragment, and only when it changes what to do (e.g. "appetite fades later, eat it now").
+- Confident brevity: write like a coach who knows this user's cycle and data, not a generic to-do app. Reference their concrete state (grams so far, shot position) rather than general advice.
 - No emojis. No exclamation marks.
 - For protein suggestions: include a SPECIFIC food/quantity. "More protein" is bad; "Add 1 scoop whey to a smoothie — about 25g" is good.
 - For training suggestions: include a SPECIFIC time bound. "Workout today" is bad; "Even 15 minutes counts" is good.
@@ -481,34 +483,32 @@ interface CoachCopy {
 }
 
 export function buildVerdictCopy(input: CoachCopyInput): CoachCopy {
+  // Execution-first verdict copy: the headline is the result, the message is
+  // next week's directive. The report card carries the detail; no science prose.
   if (input.status === "no_data") {
     return {
       headline: "Your weekly verdict needs a check-in",
-      message:
-        "Log this week when you can. Leanient needs your weight, protein, and training rhythm before it can judge muscle-retention risk.",
+      message: "Log this week's check-in and your verdict lands. Takes 90 seconds.",
     };
   }
 
   if (input.status === "on_track") {
     return {
-      headline: "You are protecting your muscle this week",
-      message:
-        "Your pace and habits are lined up. Keep the same rhythm and let the next check-in confirm the trend.",
+      headline: "You kept your muscle this week",
+      message: "Same again next week: protein daily, every session, steady pace.",
     };
   }
 
   if (input.status === "drifting") {
     return {
-      headline: "You are drifting from the muscle-retention lane",
-      message:
-        "The week is recoverable. Tighten the next action and keep the goal focused on steady fat loss, not speed.",
+      headline: "You drifted this week",
+      message: "Recoverable. Next week: protein every day and don't skip a session.",
     };
   }
 
   return {
-    headline: "Your muscle-retention risk is elevated",
-    message:
-      "This week needs a correction. Prioritize the next action before pushing harder on weight loss.",
+    headline: "This week cost you muscle",
+    message: "Correct it now: protein at every meal, two sessions, ease the pace.",
   };
 }
 

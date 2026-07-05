@@ -30,7 +30,7 @@ describe("deriveTodayView", () => {
     });
 
     expect(today.hero.pill).toBe("SHOT +2 · GOOD ENERGY");
-    expect(today.hero.headline).toBe("Bank it while energy's back.");
+    expect(today.hero.headline).toBe("You can push today.");
     expect(today.hero.tone).toBe("on_track");
     expect(today.hero.actionLabel).toBe("See today's plan");
     expect(today.contextLabel).toBe("Tuesday, Jun 2 · Day 44 on Wegovy");

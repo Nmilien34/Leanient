@@ -1,8 +1,8 @@
 /**
- * FRONTEND-ONLY resolver for the Today-scope hero. The gauge (muscle-retention
- * score) always leads, the plan follows — "how am I doing" then "what do I do".
- * The full verdict now lives behind the gauge (tapping it opens the explainer),
- * so it is no longer its own card in this order.
+ * FRONTEND-ONLY resolver for the Today-scope hero. The daily directive (the
+ * shot-cycle hero card) leads, the plan follows — "do this" then "check it
+ * off" is the spine of the day. The retention gauge lives on the This-week
+ * scope now, where outcomes belong; Today is about execution.
  *
  * The situation classification is kept because it still earns its keep: a lapsed
  * user gets a re-engage banner above the gauge (the stale score needs context),
@@ -59,7 +59,7 @@ export function resolveHomeLayout(args: {
   if (daysSinceLastActivity != null && daysSinceLastActivity >= LAPSED_DAYS) {
     return {
       state: "lapsed",
-      order: ["score", "plan"],
+      order: ["verdict", "plan"],
       banner: {
         tone: "reengage",
         title: "Welcome back",
@@ -71,19 +71,19 @@ export function resolveHomeLayout(args: {
   // 2 · Shot-day / ease-in — the day's behavior changes; lead with the guidance.
   // This outranks drift on purpose: a dip in this window is expected, not alarming.
   if (shotContext) {
-    return { state: "shot_day", order: ["score", "plan"], banner: null };
+    return { state: "shot_day", order: ["verdict", "plan"], banner: null };
   }
 
   // 3 · Drifting unexpectedly — a real drop with no shot-day explanation. Course-correct.
   if (retentionDelta != null && retentionDelta <= DRIFT_DELTA) {
-    return { state: "drifting", order: ["score", "plan"], banner: null };
+    return { state: "drifting", order: ["verdict", "plan"], banner: null };
   }
 
   // 4 · Thriving — stable or improving. Lead with the score, let them feel the win.
   if (retentionDelta != null && retentionDelta >= 0) {
-    return { state: "thriving", order: ["score", "plan"], banner: null };
+    return { state: "thriving", order: ["verdict", "plan"], banner: null };
   }
 
   // 5 · Steady default — a soft dip, nothing special. Score → plan.
-  return { state: "steady", order: ["score", "plan"], banner: null };
+  return { state: "steady", order: ["verdict", "plan"], banner: null };
 }

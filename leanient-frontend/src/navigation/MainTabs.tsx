@@ -141,6 +141,9 @@ export function MainTabs() {
       openMealScan: () => setCameraOpen(true),
       openMealLog: () => setMealLogOpen(true),
       openDoseLog: () => setDoseOpen(true),
+      openLogWorkout: () => setLogWorkoutOpen(true),
+      openWeightLog: () => setWeightOpen(true),
+      openSideEffectLog: () => setSideEffectOpen(true),
       openProgressPhoto: () => {
         setPhotoMode("body");
         setPhotoOpen(true);
@@ -154,7 +157,7 @@ export function MainTabs() {
         setPlayerOpen(true);
       },
     }),
-    [setLogOpen, setCameraOpen, setMealLogOpen, setDoseOpen, setPhotoOpen, setPhotoMode, setActiveWorkout, setPlayerOpen],
+    [setLogOpen, setCameraOpen, setMealLogOpen, setDoseOpen, setLogWorkoutOpen, setWeightOpen, setSideEffectOpen, setPhotoOpen, setPhotoMode, setActiveWorkout, setPlayerOpen],
   );
 
   const showLogError = (error: unknown) => {

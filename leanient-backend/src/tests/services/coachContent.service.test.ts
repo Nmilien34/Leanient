@@ -215,8 +215,8 @@ describe("coach content service", () => {
       explanationFactors: ["No resistance sessions were logged this week."],
     });
 
-    expect(copy.headline).toBe("Your muscle-retention risk is elevated");
-    expect(copy.message).toContain("Prioritize the next action");
+    expect(copy.headline).toBe("This week cost you muscle");
+    expect(copy.message).toContain("protein at every meal");
   });
 
   it("generates short verdict explanation prose from the OpenAI response", async () => {

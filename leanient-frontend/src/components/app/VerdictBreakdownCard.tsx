@@ -2,16 +2,29 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CountUpText } from "../ui/CountUpText";
 import type { VerdictBreakdown } from "../../screens/app/verdictBreakdown";
+import type { ExecutionReport, ReportTone } from "../../screens/app/executionReport";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
 interface VerdictBreakdownCardProps {
   view: VerdictBreakdown;
+  /**
+   * The week as an execution report card (protein days / sessions / pace).
+   * When present, the component boxes show what got DONE instead of the
+   * engine's 0-100 sub-scores, and the summary line names the gap.
+   */
+  report?: ExecutionReport | null;
   /** Opens the full explainer prose. */
   onPress?: () => void;
   /** Strips the card chrome so it can fuse under the worded verdict in one block. */
   bare?: boolean;
 }
+
+const TONE_COLOR: Record<ReportTone, string> = {
+  good: colors.emeraldDeep,
+  neutral: colors.ink,
+  warn: colors.amberDeep,
+};
 
 function scoreColor(score: number): string {
   if (score >= 75) return colors.emeraldDeep;
@@ -24,7 +37,7 @@ function scoreColor(score: number): string {
  * since last week, and the three component scores (protein, training, pace) so a
  * glance shows which lever is leaking. Tapping opens the prose explainer.
  */
-export function VerdictBreakdownCard({ view, onPress, bare }: VerdictBreakdownCardProps) {
+export function VerdictBreakdownCard({ view, report, onPress, bare }: VerdictBreakdownCardProps) {
   const isDown = view.retentionDelta != null && view.retentionDelta < 0;
   const deltaLabel =
     view.retentionDelta == null
@@ -63,15 +76,24 @@ export function VerdictBreakdownCard({ view, onPress, bare }: VerdictBreakdownCa
       </View>
 
       <View style={styles.components}>
-        {view.components.map((c) => (
-          <View key={c.key} style={styles.comp}>
-            <CountUpText value={c.score} style={[styles.compScore, { color: scoreColor(c.score) }]} />
-            <Text style={styles.compLabel}>{c.label}</Text>
-          </View>
-        ))}
+        {report
+          ? report.rows.map((r) => (
+              <View key={r.key} style={styles.comp}>
+                <Text style={[styles.compScore, { color: TONE_COLOR[r.tone] }]}>{r.value}</Text>
+                <Text style={styles.compLabel}>{r.label}</Text>
+              </View>
+            ))
+          : view.components.map((c) => (
+              <View key={c.key} style={styles.comp}>
+                <CountUpText value={c.score} style={[styles.compScore, { color: scoreColor(c.score) }]} />
+                <Text style={styles.compLabel}>{c.label}</Text>
+              </View>
+            ))}
       </View>
 
-      {view.weakestLine ? (
+      {report ? (
+        <Text style={styles.weak}>{report.summary}</Text>
+      ) : view.weakestLine ? (
         <Text style={styles.weak}>{view.weakestLine}</Text>
       ) : (
         <Text style={styles.weak}>All three levers are strong. Hold the pattern.</Text>

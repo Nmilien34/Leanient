@@ -50,6 +50,8 @@ export interface TodayPlan {
   eat: TodayPlanEat;
   move: TodayPlanMove | null;
   steady: TodayPlanSteady | null;
+  /** Days since the last shot; null off-protocol. 0 marks shot day (adds the log-your-shot step). */
+  daysSinceShot: number | null;
   /** The lever today should pull (the leaking score component); null when on track / no score. */
   focus: DayFocus | null;
   coachLine: string;
@@ -133,29 +135,29 @@ function scoreBand(score: number | null): Band | null {
   return "losing";
 }
 
-/** The coach line, keyed to how the score's doing and which lever today should pull. */
+/** The coach line: one directive, keyed to the score band and today's lever. */
 function coachLineFor(band: Band | null, focus: DayFocus | null, sessionName: string): string {
   if (band === "losing") {
-    if (focus === "training") return `Your score slipped. One ${sessionName} today is the fastest way back. I'll fold it into Sunday's verdict.`;
-    if (focus === "pace") return "Weight's coming off fast. Ease the pace and lock protein today to protect muscle. Verdict updates Sunday.";
-    return "Your score slipped. Two protein meals today is the fastest way back. Verdict updates Sunday.";
+    if (focus === "training") return `One ${sessionName} today is the fastest way back. It goes into Sunday's verdict.`;
+    if (focus === "pace") return "Ease the pace. Protein to target today, let the week settle. Verdict Sunday.";
+    return "Two protein meals today starts the climb back. Verdict Sunday.";
   }
   if (band === "drifting") {
-    if (focus === "training") return `Training's the leak this week. Today's ${sessionName} moves your number most. Verdict Sunday.`;
-    if (focus === "pace") return "You're losing a touch fast. Hold protein and keep it steady today. Verdict Sunday.";
-    return "Protein's the lever this week. Hit it today and your number climbs. Verdict Sunday.";
+    if (focus === "training") return `Today's ${sessionName} moves your number most. Verdict Sunday.`;
+    if (focus === "pace") return "Hold protein and keep today steady. Verdict Sunday.";
+    return "Hit protein today and your number climbs. Verdict Sunday.";
   }
-  return `You're keeping your muscle. Two protein meals and the ${sessionName} holds the line. I'll fold it into Sunday's verdict.`;
+  return `Two protein meals and the ${sessionName} hold the line. See you Sunday.`;
 }
 
-/** The result of finishing today's plan: what the user earns, to motivate completion. */
+/** The result of finishing today's plan: what the user earns, one line. */
 function payoffFor(band: Band | null, focus: DayFocus | null, hasMove: boolean): string {
-  if (band === "losing") return "Finish today and you start winning your muscle back. A few days like this turn the trend.";
-  if (focus === "training" && hasMove) return "Do all three and today's session is what makes your muscle hold.";
-  if (focus === "pace") return "Stick to this and the fat keeps coming off while your muscle stays put.";
-  if (focus === "protein") return "Hit your protein today and you protect the muscle under the fat you're losing.";
-  if (band === "strong") return "Finish today and you bank another day of kept muscle. This is how the streak holds.";
-  return "Finish today's plan and you protect the muscle under the fat you're dropping.";
+  if (band === "losing") return "Finish today and the trend starts turning.";
+  if (focus === "training" && hasMove) return "The session makes today count double.";
+  if (focus === "pace") return "Steady today keeps the loss coming from fat.";
+  if (focus === "protein") return "Hit protein and today goes in as a won day.";
+  if (band === "strong") return "Finish and you bank another kept-muscle day.";
+  return "Finish the plan and today goes in as a won day.";
 }
 
 /** STEADY pillar advice — what the shot cycle asks of today. */
@@ -198,10 +200,12 @@ export function deriveTodayPlan(args: {
   let subtitle = weekday;
   let steady: TodayPlanSteady | null = null;
   let energy: ShotEnergy = "good";
+  let daysSinceShot: number | null = null;
 
   if (medication) {
     const cycle = computeShotCycle(medication, now);
     energy = cycle.phase.energy;
+    daysSinceShot = cycle.daysSinceShot;
     const shotPhrase =
       cycle.daysSinceShot === 0
         ? "shot day today"
@@ -248,8 +252,109 @@ export function deriveTodayPlan(args: {
     eat: { logged, target, remaining, ratio, pct: Math.round(ratio * 100), subline: eatSubline, suggestions: eatSuggestions(remaining, energy) },
     move,
     steady,
+    daysSinceShot,
     focus,
     coachLine: coachLineFor(band, focus, sessionName),
     payoff: payoffFor(band, focus, Boolean(move)),
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* The plan as a checkable journey (the execution redesign's hero).    */
+/* ------------------------------------------------------------------ */
+
+export interface PlanChecklistItem {
+  key: string;
+  kind: "protein" | "session" | "shot";
+  title: string;
+  sub: string;
+  done: boolean;
+  /** Marks the day's priority lever (PlanTimeline's TODAY'S FOCUS eyebrow). */
+  focus: boolean;
+  /** Progress trailing for the active protein step, e.g. 64 (%). */
+  trailingPct?: number;
+  /** The active protein step expands into meal ideas + the scan button. */
+  expandsEat?: boolean;
+}
+
+const roundTo5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
+
+/**
+ * Turns the day's plan into 2-4 concrete, checkable actions: the protein
+ * meal(s), the session, and (on shot day) logging the shot. Deterministic and
+ * forgiving: logged protein collapses into one done step, and the next step is
+ * always a single meal-sized bite, never the whole remaining mountain.
+ */
+export function buildPlanChecklist(args: {
+  plan: TodayPlan;
+  mealsLoggedToday: number;
+  eatDone: boolean;
+  moveDone: boolean;
+  doseLoggedToday: boolean;
+}): PlanChecklistItem[] {
+  const { plan, mealsLoggedToday, eatDone, moveDone, doseLoggedToday } = args;
+  const items: PlanChecklistItem[] = [];
+  const { logged, target, remaining, pct, suggestions } = plan.eat;
+
+  // Protein: what's banked (done) and the next single bite (open).
+  if (eatDone) {
+    items.push({
+      key: "protein-done",
+      kind: "protein",
+      title: `Protein · ${logged} of ${target}g`,
+      sub: "Hit. Anything more is a bonus.",
+      done: true,
+      focus: false,
+    });
+  } else {
+    if (logged > 0) {
+      items.push({
+        key: "protein-banked",
+        kind: "protein",
+        title: `Protein so far · ${logged}g`,
+        sub: `${cap(numberWord(mealsLoggedToday))} meal${mealsLoggedToday === 1 ? "" : "s"} logged.`,
+        done: true,
+        focus: false,
+      });
+    }
+    const mealsLeft = Math.max(1, Math.round(remaining / APPROX_GRAMS_PER_MEAL));
+    const chunk = Math.min(45, roundTo5(remaining / mealsLeft));
+    const idea = suggestions[0];
+    items.push({
+      key: "protein-next",
+      kind: "protein",
+      title: `${logged > 0 ? "Next protein meal" : "Protein meal one"} · ~${chunk}g`,
+      sub: idea ? `${idea.name} gets you there.` : `About ${chunk}g closes the gap.`,
+      done: false,
+      focus: plan.focus === "protein" || plan.focus == null,
+      trailingPct: pct,
+      expandsEat: true,
+    });
+  }
+
+  // Session: the co-equal core loop.
+  if (plan.move) {
+    items.push({
+      key: "session",
+      kind: "session",
+      title: `${plan.move.title.split(" · ")[0]} · ${plan.move.duration}`,
+      sub: plan.move.subline,
+      done: moveDone,
+      focus: plan.focus === "training" && !moveDone,
+    });
+  }
+
+  // Shot day: logging the dose is part of winning the day.
+  if (plan.daysSinceShot === 0) {
+    items.push({
+      key: "shot",
+      kind: "shot",
+      title: "Log your shot",
+      sub: doseLoggedToday ? "Logged. Cycle anchored." : "Anchors your week's cycle.",
+      done: doseLoggedToday,
+      focus: false,
+    });
+  }
+
+  return items;
 }

@@ -45,13 +45,13 @@ export function buildDailyInsight(args: {
   const weakest = levers.length ? [...levers].sort((a, b) => a.score - b.score)[0] : null;
   const lossLb = weeklyDeltaLb != null ? Math.abs(Math.min(0, weeklyDeltaLb)) : null;
 
-  // 1 · Shot-day window — appetite fades, so protein is the thing to protect.
+  // 1 · Shot-day window — appetite fades, so protein goes in early.
   if (shotContext) {
     return {
       tone: "coach",
       tag: "SHOT-DAY READ",
       headline: "Front-load your protein today",
-      body: "Appetite tends to fade after your shot, so the muscle-protecting protein is easiest to get in early. A solid breakfast beats a skipped dinner.",
+      body: "Appetite fades later in your cycle. Big breakfast, easy dinner.",
       chatPrompt: "How should I eat on a shot day to protect my muscle?",
     };
   }
@@ -62,7 +62,7 @@ export function buildDailyInsight(args: {
       tone: "watch",
       tag: "WORTH A LOOK",
       headline: `You're down ${lossLb.toFixed(1)} lb this week`,
-      body: "That is a quick pace. Protein at every meal plus one more strength session keeps the loss coming from fat instead of muscle.",
+      body: "Quick pace. Protein at every meal plus one session keeps the loss on fat.",
       chatPrompt: "I'm losing weight fast. How do I keep it from being muscle?",
     };
   }
@@ -74,7 +74,7 @@ export function buildDailyInsight(args: {
         tone: "coach",
         tag: "COACH'S READ",
         headline: "Training is your gap this week",
-        body: "Resistance work is the signal that tells your body to hold onto muscle. One more short session moves your score the most right now.",
+        body: "One short session moves your score most right now. Even 15 minutes counts.",
         chatPrompt: "What's a quick strength session I can do today?",
       };
     }
@@ -83,7 +83,7 @@ export function buildDailyInsight(args: {
         tone: "coach",
         tag: "COACH'S READ",
         headline: "Protein is the lever to pull",
-        body: "You have been landing under your protein target. Hitting it, especially on shot days, is the single biggest muscle protector you have.",
+        body: "You've been landing under target. Hit it today, especially near your shot.",
         chatPrompt: "How do I hit my protein target more consistently?",
       };
     }
@@ -97,8 +97,8 @@ export function buildDailyInsight(args: {
       headline: "You're in the sweet spot",
       body:
         lossLb != null && lossLb > 0
-          ? `Down ${lossLb.toFixed(1)} lb and keeping your muscle. Whatever you did this week, do it again.`
-          : "You're keeping your muscle while the fat comes off. Hold this line.",
+          ? `Down ${lossLb.toFixed(1)} lb and keeping your muscle. Do it again.`
+          : "Keeping your muscle while the fat comes off. Hold this line.",
       chatPrompt: "What should I keep doing to stay on track?",
     };
   }
@@ -109,7 +109,7 @@ export function buildDailyInsight(args: {
       tone: "watch",
       tag: "COACH'S READ",
       headline: "Let's steady the trend",
-      body: "Your muscle signal slipped a little. Protein to target and one resistance session this week is the fastest way back.",
+      body: "Protein to target and one session this week is the fastest way back.",
       chatPrompt: "Why is my muscle trend slipping, and how do I fix it?",
     };
   }
@@ -119,7 +119,7 @@ export function buildDailyInsight(args: {
     tone: "coach",
     tag: "COACH'S READ",
     headline: "Small things, every day",
-    body: "Protein at each meal and regular strength work are what keep your weight loss from costing you muscle. Keep logging so I can read your week.",
+    body: "Protein at each meal, a session when it's due. Keep logging and I'll read the rest.",
     chatPrompt: "What matters most for keeping muscle on a GLP-1?",
   };
 }

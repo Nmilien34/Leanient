@@ -12,11 +12,13 @@ interface MetricRingProps {
   ratio: number; // 0..1
   value: string;
   label: string;
+  /** Secondary read under the value (e.g. "134/140g today"), in the badge pill. */
+  badge?: string;
   color?: string;
 }
 
 /** A metric tile with an animated SVG progress ring (protein / training). */
-export function MetricRing({ ratio, value, label, color = colors.emerald }: MetricRingProps) {
+export function MetricRing({ ratio, value, label, badge, color = colors.emerald }: MetricRingProps) {
   const fill = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,6 +52,11 @@ export function MetricRing({ ratio, value, label, color = colors.emerald }: Metr
         />
       </Svg>
       <Text style={styles.value}>{value}</Text>
+      {badge ? (
+        <View style={styles.infoBadge}>
+          <Text style={styles.infoBadgeText}>{badge}</Text>
+        </View>
+      ) : null}
       <Text style={styles.label}>{label}</Text>
     </View>
   );

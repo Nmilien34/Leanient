@@ -3,6 +3,37 @@
 Running log of changes made in the HTML prototype (`design/onboarding.html`)
 so they can be re-applied to the Paper file when its quota resets.
 
+## 2026-07-04 — Execution redesign board (`design/execution.html`)
+
+Board for the teacher-to-execution-engine shift, AWAITING SIGN-OFF (no app
+code yet). REBUILT after feedback ("build on what exists"): every element is
+now a faithful HTML port of a shipped RN component's StyleSheet, with only
+arrangement and copy changed. Ported 1:1: VerdictCard (compact variant, halo,
+pill, 23px head), MetricRing/InfoTile tiles (46px ring, badge pill),
+TodayPlanCard + PlanTimeline (34px squircle nodes, 2px rail, line-through done
+rows, TODAY'S FOCUS eyebrow, 64% trailing, chevron pill, EatPanel suggestions
++ Scan a meal), CoachInsightCard (spark dot, FROM YOUR COACH), QuickActionRow,
+glass dose row, QuickLogSheet chrome for the sheet, and the real 5-slot TabBar
+(Home Train + Progress Profile). Three screens:
+
+1. **Home · Today, rearranged.** Compact verdict hero becomes a directive
+   (badge carries the shot-cycle why, one action line). Protein tile leads
+   with days hit (5/7) using the existing badge pill for today's grams.
+   Sessions co-equal. Plan card's payoff footer becomes the streak + "counts
+   toward Sunday" line with week dots. Retention gauge moves off Today
+   (lives on This week). Coach card body trimmed to a directive.
+2. **Today's plan sheet.** Existing sheet chrome + PlanTimeline with the EAT
+   stop expanded, plus a new THIS WEEK day strip (node/check language at day
+   scale) and the streak footer.
+3. **This week.** The existing fused verdictHero block (VerdictCard bare +
+   divider + VerdictBreakdownCard bare); breakdown comps become execution
+   stats (5/7 protein days, 2/3 sessions, 1.3 lb pace) + a NEXT WEEK
+   directive row. Prose reduced to what happened and what to do.
+
+New pieces (only 3): streak chip (from the badge-pill language), week
+dots/strip (from the node/check language), NEXT WEEK directive row (from the
+soft-emerald panel language).
+
 ## 2026-05-29 — "Living Sage" liquid-glass direction
 
 Goal: make the flow feel alive / warm / dimensional (closer to GLP-1 incumbents

@@ -50,7 +50,7 @@ describe("deriveTodayPlan", () => {
   it("adapts the coach line and focus to the muscle-retention score", () => {
     const drift = plan({ retention: { score: 65, focus: "training" } });
     expect(drift.focus).toBe("training");
-    expect(drift.coachLine).toContain("Training");
+    expect(drift.coachLine).toContain("moves your number");
 
     const losingPace = plan({ retention: { score: 48, focus: "pace" } });
     expect(losingPace.focus).toBe("pace");
@@ -58,7 +58,7 @@ describe("deriveTodayPlan", () => {
 
     const strong = plan({ retention: { score: 88, focus: null } });
     expect(strong.focus).toBeNull();
-    expect(strong.coachLine).toContain("keeping your muscle");
+    expect(strong.coachLine).toContain("hold the line");
   });
 
   it("builds the shot-aware subtitle from date + cycle", () => {

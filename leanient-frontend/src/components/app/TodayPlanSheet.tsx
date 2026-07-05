@@ -1,4 +1,4 @@
-import React from "react";
+import React, { type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,7 +7,10 @@ import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 import { ModalSafeArea } from "../layout/ModalSafeArea";
 import { UserAvatar } from "./UserAvatar";
-import type { TodayPlan } from "../../screens/app/todayPlanMetrics";
+import { PlanTimeline, type PlanStep } from "./PlanTimeline";
+import { EatPanel } from "./TodayPlanCard";
+import type { PlanChecklistItem, TodayPlan } from "../../screens/app/todayPlanMetrics";
+import type { DayMark } from "../../screens/app/consistency";
 
 function Spark() {
   return (
@@ -17,26 +20,22 @@ function Spark() {
   );
 }
 
-function Fork() {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" />
-    </Svg>
-  );
-}
+const ic = (children: ReactNode, color: string = colors.emeraldDeep) => (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </Svg>
+);
 
-function Dumbbell() {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
-      <Path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8" />
-    </Svg>
-  );
-}
+const ICONS: Record<PlanChecklistItem["kind"], ReactNode> = {
+  protein: ic(<><Path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8" /></>),
+  session: ic(<><Path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8" /></>),
+  shot: ic(<><Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" /></>),
+};
 
-function Droplet() {
+function CheckSmall() {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12Z" />
+    <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M5 12.5l5 5 9-11" />
     </Svg>
   );
 }
@@ -44,17 +43,39 @@ function Droplet() {
 interface TodayPlanSheetProps {
   visible: boolean;
   plan: TodayPlan;
+  /** The day's checkable actions (buildPlanChecklist). */
+  checklist: PlanChecklistItem[];
+  /** Rolling last-7-days protein marks + labels, for the day strip. */
+  proteinDots: DayMark[];
+  dayLabels: string[];
   onClose: () => void;
-  /** Pending the workout player (screen 19); dismisses for now. */
+  /** Opens the meal scan for the active protein step. */
+  onScanMeal?: () => void;
   onStartWorkout?: () => void;
+  onLogShot?: () => void;
 }
 
 /**
- * "Today's plan" — the three daily moves (EAT / MOVE / STEADY), all driven by
- * `TodayPlan`. Opens from the Home "Today" hero's "See today's plan" action.
+ * "Today's plan" — the day's checkable journey in full: the same checklist as
+ * the Home card, the forgiving last-7-days strip, and the line that ties today
+ * to Sunday's verdict.
  */
-export function TodayPlanSheet({ visible, plan, onClose, onStartWorkout }: TodayPlanSheetProps) {
-  const { eat, move, steady } = plan;
+export function TodayPlanSheet({ visible, plan, checklist, proteinDots, dayLabels, onClose, onScanMeal, onStartWorkout, onLogShot }: TodayPlanSheetProps) {
+  const steps: PlanStep[] = checklist.map((item) => ({
+    key: item.key,
+    icon: ICONS[item.kind],
+    title: item.title,
+    sub: item.sub,
+    done: item.done,
+    focus: item.focus,
+    trailing: item.trailingPct != null ? `${item.trailingPct}%` : undefined,
+    onPress: item.kind === "session" && !item.done ? onStartWorkout : item.kind === "shot" && !item.done ? onLogShot : undefined,
+    expandedContent: item.expandsEat ? (
+      <EatPanel remaining={plan.eat.remaining} suggestions={plan.eat.suggestions} onScan={onScanMeal ?? onClose} />
+    ) : undefined,
+  }));
+  const doneCount = checklist.filter((i) => i.done).length;
+  const daysHit = proteinDots.filter((d) => d === "hit").length;
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
@@ -75,73 +96,36 @@ export function TodayPlanSheet({ visible, plan, onClose, onStartWorkout }: Today
             <Text style={styles.h1}>Make today count.</Text>
             <Text style={styles.sub}>{plan.subtitle}</Text>
 
-            {/* EAT */}
-            <View style={styles.pillar}>
-              <Text style={styles.eyebrow}>EAT · {eat.target}g PROTEIN</Text>
-              <View style={styles.frow}>
-                <LinearGradient colors={["#6FE0A6", "#23A869"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.fic}>
-                  <Fork />
-                </LinearGradient>
-                <View style={styles.flex}>
-                  <Text style={styles.ftitle}>
-                    {eat.logged} of {eat.target}g so far
-                  </Text>
-                  <Text style={styles.fsub}>{eat.subline}</Text>
-                </View>
+            {/* the checklist journey */}
+            <View style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.eyebrow}>TODAY</Text>
+                <Text style={styles.eyebrowVal}>
+                  {doneCount} of {checklist.length} done
+                </Text>
               </View>
-              <View style={styles.bar}>
-                <LinearGradient colors={["#2FB87A", "#1F9E63"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.barFill, { width: `${Math.max(3, eat.pct)}%` }]} />
+              <PlanTimeline steps={steps} />
+            </View>
+
+            {/* the forgiving rolling week */}
+            <View style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.eyebrow}>LAST 7 DAYS · PROTEIN</Text>
+                <Text style={styles.eyebrowVal}>{daysHit} of 7</Text>
+              </View>
+              <View style={styles.strip}>
+                {proteinDots.map((mark, i) => (
+                  <View key={i} style={styles.stripDay}>
+                    <View style={[styles.stripDot, mark === "hit" && styles.stripDotHit, mark === "open" && styles.stripDotOpen]}>
+                      {mark === "hit" ? <CheckSmall /> : null}
+                    </View>
+                    <Text style={[styles.stripLabel, mark === "open" && styles.stripLabelToday]}>{dayLabels[i]}</Text>
+                  </View>
+                ))}
               </View>
             </View>
 
-            {/* MOVE */}
-            {move ? (
-              <View style={styles.pillar}>
-                <View style={styles.eyebrowRow}>
-                  <Text style={styles.eyebrow}>MOVE · TODAY'S SESSION</Text>
-                  <Text style={styles.eyebrowVal}>{move.duration}</Text>
-                </View>
-                <View style={styles.frow}>
-                  <LinearGradient colors={["#6FE0A6", "#23A869"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.fic}>
-                    <Dumbbell />
-                  </LinearGradient>
-                  <View style={styles.flex}>
-                    <Text style={styles.ftitle}>{move.title}</Text>
-                    <Text style={styles.fsub}>{move.subline}</Text>
-                  </View>
-                </View>
-                {move.tags.length ? (
-                  <View style={styles.tags}>
-                    {move.tags.map((t) => (
-                      <View key={t} style={styles.tag}>
-                        <Text style={styles.tagText}>{t}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-
-            {/* STEADY */}
-            {steady ? (
-              <View style={styles.pillar}>
-                <View style={styles.eyebrowRow}>
-                  <Text style={styles.eyebrow}>STEADY · SHOT CYCLE</Text>
-                  <Text style={styles.eyebrowVal}>{steady.shotLabel}</Text>
-                </View>
-                <View style={styles.frow}>
-                  <LinearGradient colors={["#9AC8E0", "#5E93B6"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.fic}>
-                    <Droplet />
-                  </LinearGradient>
-                  <View style={styles.flex}>
-                    <Text style={styles.ftitle}>{steady.title}</Text>
-                    <Text style={styles.fsub}>{steady.subline}</Text>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            {/* coach */}
+            {/* the coach's line + how today counts */}
             <LinearGradient colors={["rgba(47,184,122,0.10)", "rgba(255,255,255,0.5)"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.aicard}>
               <View style={styles.coachmark}>
                 <View style={styles.coachdot}>
@@ -150,6 +134,7 @@ export function TodayPlanSheet({ visible, plan, onClose, onStartWorkout }: Today
                 <Text style={styles.coachLabel}>LEANIENT COACH</Text>
               </View>
               <Text style={styles.coachText}>{plan.coachLine}</Text>
+              <Text style={styles.verdictLine}>Every checked day counts toward Sunday's verdict.</Text>
             </LinearGradient>
 
             <Pressable accessibilityRole="button" accessibilityLabel="Start today's workout" onPress={onStartWorkout ?? onClose}>
@@ -176,25 +161,23 @@ const styles = StyleSheet.create({
   headTitle: { fontFamily: font.bold, fontSize: 15, color: colors.ink },
   h1: { fontFamily: font.extrabold, fontSize: 24, lineHeight: 29, letterSpacing: -0.48, color: colors.ink, paddingTop: 8 },
   sub: { fontFamily: font.regular, fontSize: 13.5, color: colors.muted, marginTop: 6 },
-  pillar: { marginTop: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
+  card: { marginTop: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 20, padding: 16 },
+  cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   eyebrow: { fontFamily: font.semibold, fontSize: 12, letterSpacing: 0.84, color: colors.muted },
-  eyebrowRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   eyebrowVal: { fontFamily: font.bold, fontSize: 12, color: colors.emeraldDeep },
-  frow: { flexDirection: "row", alignItems: "center", gap: 13, marginTop: 10 },
-  fic: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  flex: { flex: 1 },
-  ftitle: { fontFamily: font.bold, fontSize: 16, letterSpacing: -0.16, color: colors.ink },
-  fsub: { fontFamily: font.regular, fontSize: 13, lineHeight: 17, color: colors.muted, marginTop: 2 },
-  bar: { height: 10, borderRadius: 5, backgroundColor: "rgba(222,231,212,0.9)", marginTop: 13, overflow: "hidden" },
-  barFill: { height: 10, borderRadius: 5 },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 14 },
-  tag: { backgroundColor: "rgba(47,184,122,0.10)", borderRadius: 9, paddingVertical: 5, paddingHorizontal: 10 },
-  tagText: { fontFamily: font.semibold, fontSize: 11.5, color: colors.emeraldDeep },
+  strip: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
+  stripDay: { alignItems: "center", gap: 6, flex: 1 },
+  stripDot: { width: 26, height: 26, borderRadius: 9, backgroundColor: colors.sageFill, alignItems: "center", justifyContent: "center" },
+  stripDotHit: { backgroundColor: colors.emerald },
+  stripDotOpen: { backgroundColor: "#fff", borderWidth: 2, borderColor: colors.emerald },
+  stripLabel: { fontFamily: font.semibold, fontSize: 10, color: colors.faint },
+  stripLabelToday: { color: colors.emeraldDeep, fontFamily: font.bold },
   aicard: { marginTop: 14, borderWidth: 1, borderColor: "rgba(47,184,122,0.25)", borderRadius: 20, padding: 16 },
   coachmark: { flexDirection: "row", alignItems: "center", gap: 8 },
   coachdot: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.emeraldDeep },
   coachLabel: { fontFamily: font.bold, fontSize: 11.5, letterSpacing: 0.69, color: colors.emeraldDeep },
   coachText: { fontFamily: font.medium, fontSize: 14, lineHeight: 20, color: colors.inkSoft, marginTop: 10 },
+  verdictLine: { fontFamily: font.semibold, fontSize: 12.5, color: colors.emeraldDeep, marginTop: 10, borderTopWidth: 1, borderTopColor: "rgba(47,184,122,0.2)", paddingTop: 10 },
   cta: { height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", marginTop: 16 },
   ctaText: { fontFamily: font.semibold, fontSize: 16, color: "#F4FBF7", letterSpacing: -0.16 },
   dismiss: { alignItems: "center", paddingVertical: 14 },

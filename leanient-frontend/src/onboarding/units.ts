@@ -70,9 +70,9 @@ export function convertWeight(value: number, from: WeightUnit, to: WeightUnit): 
 
 /**
  * Goal-weight slider bounds derived from the user's current weight (a weight-loss
- * goal sits at or below today's weight). `min` allows a goal down to half of the
- * current weight, rounded to 5 with a healthy floor, so heavier users can set
- * ambitious targets (300 lb → 150–300); `max` is the current weight; `initial`
+ * goal sits at or below today's weight). `min` is the healthy floor (90 lb / 40 kg)
+ * so even heavier users can aim all the way down (300 lb → 90–300); `max` is the
+ * current weight, since the goal never sits above where you are today; `initial`
  * defaults to ~12% below current.
  */
 export function goalWeightRange(
@@ -80,7 +80,9 @@ export function goalWeightRange(
   unit: WeightUnit,
 ): { min: number; max: number; initial: number } {
   const floor = unit === "lb" ? 90 : 40;
-  const min = Math.max(floor, Math.round((current * 0.5) / 5) * 5);
+  // Floor sits below the lightest current weight, so clamp it under `max` to keep
+  // a valid range if someone's current weight is at or near the floor.
+  const min = Math.min(floor, current);
   const max = current;
   const initial = clamp(current - Math.round(current * 0.12), min, max);
   return { min, max, initial };
