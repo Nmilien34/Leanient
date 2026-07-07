@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { buildExecutionReport, weekDaysElapsed } from "../../screens/app/executionReport";
 
-// Sunday Jul 5 2026 = day 7 of a Monday-start week.
-const SUNDAY = new Date(2026, 6, 5, 18, 0, 0);
-// Tuesday Jul 7 2026 = day 2.
-const TUESDAY = new Date(2026, 6, 7, 15, 0, 0);
+// The report buckets in UTC (matching weekRange + the backend's week engine),
+// so the fixtures pin UTC instants to stay green in any test-runner timezone.
+// Sunday Jul 5 2026 = day 7 of a Monday-start week; Tuesday Jul 7 = day 2.
+const SUNDAY = new Date(Date.UTC(2026, 6, 5, 12, 0, 0));
+const TUESDAY = new Date(Date.UTC(2026, 6, 7, 12, 0, 0));
 const TARGET = 140;
 
 const fullDay = (base: Date, back: number) => ({
   protein: 130,
-  recordedAt: new Date(base.getFullYear(), base.getMonth(), base.getDate() - back, 12, 0, 0).toISOString(),
+  recordedAt: new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() - back, 12, 0, 0)).toISOString(),
 });
 
 describe("weekDaysElapsed", () => {
@@ -32,6 +33,9 @@ describe("buildExecutionReport", () => {
     expect(report.rows.map((r) => r.value)).toEqual(["5/7", "2/3", "1.3 lb"]);
     expect(report.rows[2].tone).toBe("good"); // 1.3 <= lean-safe 1.6
     expect(report.nextWeek).toContain("session");
+    // The week ring reads these directly; they must match the first row.
+    expect(report.proteinDays).toBe(5);
+    expect(report.daysElapsed).toBe(7);
   });
 
   it("is forgiving early in the week: denominator is days elapsed", () => {

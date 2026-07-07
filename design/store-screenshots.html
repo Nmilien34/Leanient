@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · App Store Screenshots v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&display=swap" rel="stylesheet" />
+    <style>
+      /* ============================================================
+         Leanient App Store set v2 — execution model
+         Canvas: 1290×2796 (iPhone 6.7" portrait).
+         Formula: 2-line headline w/ one .em word · one subhead ·
+         leaf-tick motif on every panel · one feature per device ·
+         floating chips · consistent green washes.
+         Export: open with #p1..#p7 in the URL to render ONE panel
+         unscaled at 1290×2796 (render.sh-style headless screenshot).
+         Tokens 1:1 with src/theme/tokens.ts / marketing shared.css.
+         ============================================================ */
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+      body {
+        font-family: "Geist", system-ui, sans-serif;
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        color: #e7eede;
+        padding: 40px 28px 80px;
+      }
+      body.export { background: none; padding: 0; }
+      .topbar { max-width: 1500px; margin: 0 auto 40px; }
+      .topbar h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.03em; color: #f4f8ef; }
+      .topbar h1 span { color: #2fb87a; }
+      .topbar p { color: #8ea08a; font-size: 13.5px; line-height: 1.5; max-width: 700px; margin-top: 8px; }
+      .gallery { max-width: 1500px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 34px; justify-content: center; }
+      .slot { width: 336px; }
+      .slot .frame {
+        width: 336px; height: 727px; overflow: hidden; border-radius: 16px;
+        box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+      .slot .frame .canvas { transform: scale(0.2604); transform-origin: top left; }
+      .slot .tag { display: flex; align-items: baseline; gap: 9px; margin-top: 14px; color: #8ea08a; font-size: 13px; font-weight: 500; }
+      .slot .tag b { color: #e7eede; font-weight: 600; }
+      .slot .tag .n {
+        font-size: 11px; font-weight: 700; color: #11160f; background: #2fb87a;
+        width: 22px; height: 22px; border-radius: 50%; flex: none;
+        display: flex; align-items: center; justify-content: center;
+      }
+      body.export .topbar, body.export .slot .tag { display: none; }
+      body.export .gallery { max-width: none; display: block; }
+      body.export .slot { width: 1290px; }
+      body.export .slot .frame { width: 1290px; height: 2796px; border-radius: 0; box-shadow: none; }
+      body.export .slot .frame .canvas { transform: none; }
+
+      /* iPad 13" export (2064×2752), hash #p1i..#p7i — same recentering trick
+         as marketing/appstore/ipad.css: floats nudge (2064-1290)/2 = 387px
+         toward center, washes stretch, centered elements self-adjust. */
+      body.export.ipad .slot { width: 2064px; }
+      body.export.ipad .slot .frame { width: 2064px; height: 2752px; }
+      body.export.ipad .canvas { width: 2064px; height: 2752px; }
+      body.export.ipad .head { padding-top: 110px; }
+      body.export.ipad .head .sub { max-width: 1240px; }
+      body.export.ipad .wash { transform: scale(1.45); }
+      body.export.ipad .float[style*="left:"]:not([style*="50%"]) { transform: translateX(387px); }
+      body.export.ipad .float[style*="right:"] { transform: translateX(-387px); }
+      body.export.ipad .wordmark { left: 477px; }
+      body.export.ipad .medpills { margin-left: 300px; margin-right: 300px; }
+      body.export.ipad .review { max-width: 1300px; margin-left: auto; margin-right: auto; width: 100%; }
+
+      /* ---------------- canvas ---------------- */
+      .canvas { position: relative; width: 1290px; height: 2796px; overflow: hidden; background: #f3f2ed; }
+      .wash { position: absolute; border-radius: 50%; filter: blur(140px); pointer-events: none; }
+      .wash.mint { background: rgba(111, 224, 166, 0.34); }
+      .wash.deep { background: rgba(31, 158, 99, 0.22); }
+      .wash.honey { background: rgba(240, 192, 121, 0.3); }
+
+      /* headline block + the leaf-tick motif (our sparkle) */
+      .head { position: relative; z-index: 4; padding: 130px 90px 0; text-align: center; }
+      .ticks { display: flex; justify-content: center; gap: 20px; margin-bottom: 34px; }
+      .head h1 { font-size: 112px; font-weight: 800; line-height: 1.04; letter-spacing: -3.8px; color: #17191b; }
+      .head h1 .em { color: #1f9e63; }
+      .head .sub { margin: 34px auto 0; max-width: 1020px; font-size: 41px; font-weight: 500; line-height: 1.36; color: #6e6f6a; }
+      .head .sub strong { color: #17191b; font-weight: 700; }
+      .wordmark { position: absolute; z-index: 5; top: 84px; left: 90px; display: flex; align-items: center; gap: 16px; font-size: 40px; font-weight: 700; letter-spacing: -1.2px; color: #17191b; }
+
+      /* phone */
+      .stage { position: absolute; left: 50%; transform: translateX(-50%); z-index: 3; }
+      .phone {
+        width: 969px; padding: 15px; background: #101312; border-radius: 94px;
+        box-shadow: 0 70px 140px rgba(23, 25, 27, 0.38), inset 0 0 0 2px rgba(255, 255, 255, 0.07);
+      }
+      .screen { width: 393px; height: 852px; zoom: 2.39; border-radius: 34px; overflow: hidden; position: relative; background: #f3f2ed; }
+      .island { position: absolute; z-index: 50; top: 11px; left: 50%; transform: translateX(-50%); width: 120px; height: 35px; border-radius: 18px; background: #000; }
+      .sbar { position: relative; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 18px 30px 0; height: 54px; }
+      .sbar .time { font-size: 16px; font-weight: 600; color: #17191b; letter-spacing: -0.2px; }
+
+      /* floating callout chips */
+      .float {
+        position: absolute; z-index: 6; display: flex; align-items: center; gap: 18px;
+        background: #fcfcfa; border: 2px solid #e4e3dd; border-radius: 34px; padding: 26px 36px;
+        box-shadow: 0 30px 70px rgba(23, 25, 27, 0.2);
+        font-size: 30px; font-weight: 700; color: #17191b; letter-spacing: -0.4px; white-space: nowrap;
+      }
+      .float .fi {
+        width: 56px; height: 56px; border-radius: 18px; flex: none;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #6fe0a6, #23a869);
+      }
+      .float small { display: block; font-size: 22px; font-weight: 500; color: #6e6f6a; letter-spacing: 0; }
+      .float.badge { padding: 20px 32px; font-size: 26px; letter-spacing: 1.5px; font-weight: 800; color: #1f9e63; border-color: rgba(47, 184, 122, 0.4); background: rgba(236, 250, 242, 0.96); }
+
+      /* =============== in-screen (pt space) =============== */
+      .appbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 8px; }
+      .brand { font-size: 18px; font-weight: 600; color: #17191b; letter-spacing: -0.2px; }
+      .scope { display: flex; gap: 3px; padding: 4px; border-radius: 12px; background: #e9eae4; font-size: 12.5px; font-weight: 600; }
+      .scope span { padding: 5px 12px; border-radius: 9px; color: #6e6f6a; }
+      .scope .on { background: #fff; color: #17191b; box-shadow: 0 3px 8px -3px rgba(24, 28, 24, 0.25); }
+      .avatar { width: 32px; height: 32px; border-radius: 16px; background: linear-gradient(135deg, #d9dcd3, #b9beb2); display: flex; align-items: center; justify-content: center; color: #5b6157; font-size: 13px; font-weight: 700; }
+
+      .vcard { margin: 6px 20px 0; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 20px; padding: 18px; position: relative; overflow: hidden; box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06); }
+      .vcard .halo { position: absolute; top: -50px; right: -40px; width: 160px; height: 160px; border-radius: 50%; filter: blur(10px); background: radial-gradient(circle, rgba(47, 184, 122, 0.4), transparent 70%); }
+      .vcard .ctx { position: relative; font-size: 12px; font-weight: 500; color: #6e6f6a; }
+      .pill { position: relative; display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; padding: 6px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.8px; color: #1f9e63; background: rgba(47, 184, 122, 0.13); }
+      .pill .dot { width: 7px; height: 7px; border-radius: 4px; background: #2fb87a; }
+      .vhead { position: relative; margin-top: 10px; font-size: 23px; font-weight: 800; line-height: 27px; letter-spacing: -0.6px; color: #17191b; }
+      .vmsg { position: relative; margin-top: 7px; font-size: 13.5px; line-height: 19px; color: #6e6f6a; }
+
+      .ringrow { display: flex; gap: 10px; margin: 14px 20px 0; }
+      .tile { flex: 1; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 18px; padding: 13px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 7px; box-shadow: 0 8px 18px rgba(23, 25, 27, 0.06); }
+      .tval { font-size: 13px; font-weight: 700; color: #17191b; letter-spacing: -0.1px; }
+      .tlabel { font-size: 10.5px; font-weight: 500; color: #6e6f6a; }
+      .tbadge { background: rgba(47, 184, 122, 0.12); border-radius: 8px; padding: 2px 7px; font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px; color: #1f9e63; }
+
+      .plancard { margin: 12px 20px 0; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 20px; padding: 16px; box-shadow: 0 8px 18px rgba(23, 25, 27, 0.06); }
+      .phead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+      .pe { font-size: 11px; font-weight: 700; letter-spacing: 0.77px; color: #6e6f6a; }
+      .momentum { background: rgba(47, 184, 122, 0.12); border-radius: 8px; padding: 3px 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; color: #1f9e63; }
+      .pstep { display: flex; align-items: stretch; gap: 12px; }
+      .prail { width: 34px; display: flex; align-items: center; justify-content: center; position: relative; }
+      .pline { position: absolute; width: 2px; left: 16px; background: #d7e2da; }
+      .pline.top { top: 0; height: 50%; }
+      .pline.bot { top: 50%; bottom: 0; }
+      .pline.done { background: #2fb87a; }
+      .pnode { width: 34px; height: 34px; border-radius: 11px; background: #e7f4ec; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+      .pnode.done { background: #2fb87a; }
+      .pbody { flex: 1; padding: 11px 0; }
+      .pfocus { font-size: 9.5px; font-weight: 700; letter-spacing: 0.7px; color: #1f9e63; margin-bottom: 2px; }
+      .pbody b { display: block; font-size: 14.5px; font-weight: 700; letter-spacing: -0.15px; color: #17191b; }
+      .pstep.isdone .pbody b { color: #9a9b95; text-decoration: line-through; }
+      .pbody span { display: block; margin-top: 1px; font-size: 12.5px; line-height: 17px; color: #6e6f6a; }
+      .ptrail { display: flex; align-items: center; gap: 7px; align-self: center; }
+      .ppct { font-size: 13px; font-weight: 700; color: #1f9e63; }
+      .pchevbtn { width: 27px; height: 27px; border-radius: 14px; background: rgba(47, 184, 122, 0.12); display: flex; align-items: center; justify-content: center; }
+      .pchev { color: #cbcbc4; font-size: 19px; font-weight: 600; }
+      .pfoot { display: flex; gap: 11px; align-items: center; margin-top: 14px; border-top: 1px solid #e4e3dd; padding-top: 14px; }
+      .pflag { width: 30px; height: 30px; border-radius: 15px; background: #1f9e63; display: flex; align-items: center; justify-content: center; flex: none; }
+      .pfl { font-size: 10px; font-weight: 700; letter-spacing: 0.7px; color: #1f9e63; margin-bottom: 2px; }
+      .pft { font-size: 13px; font-weight: 600; line-height: 18px; letter-spacing: -0.1px; color: #17191b; }
+      .wkdots { display: flex; gap: 4px; align-self: center; }
+      .wkdots i { width: 8px; height: 8px; border-radius: 4px; background: #ecece6; display: block; }
+      .wkdots i.f { background: #2fb87a; }
+      .wkdots i.t { background: #fff; border: 2px solid #2fb87a; }
+
+      /* week strip (plan sheet) */
+      .stripcard { margin: 12px 20px 0; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 20px; padding: 16px; box-shadow: 0 8px 18px rgba(23, 25, 27, 0.06); }
+      .striprow { display: flex; justify-content: space-between; margin-top: 10px; }
+      .sday { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+      .sday .wd { width: 26px; height: 26px; border-radius: 9px; background: #ecece6; display: flex; align-items: center; justify-content: center; }
+      .sday.f .wd { background: #2fb87a; }
+      .sday.t .wd { background: #fff; border: 2px solid #2fb87a; }
+      .sday .wl { font-size: 10px; font-weight: 600; color: #9a9b95; }
+      .sday.t .wl { color: #1f9e63; font-weight: 700; }
+
+      /* verdict report card (This week) */
+      .vhero { margin: 8px 20px 0; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 22px; overflow: hidden; box-shadow: 0 14px 24px rgba(24, 28, 24, 0.09); position: relative; }
+      .vbare { padding: 18px 16px; position: relative; }
+      .vhead2 { position: relative; margin-top: 12px; font-size: 30px; font-weight: 800; line-height: 34px; letter-spacing: -0.9px; color: #17191b; }
+      .vmsg2 { position: relative; margin-top: 9px; font-size: 14px; line-height: 20px; color: #6e6f6a; }
+      .vdiv { height: 1px; background: #e4e3dd; margin: 0 16px; }
+      .bd { padding: 14px 16px 16px; }
+      .bdhead { display: flex; align-items: flex-start; justify-content: space-between; }
+      .bde { font-size: 11px; font-weight: 700; letter-spacing: 0.77px; color: #1f9e63; }
+      .bdscore { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+      .bdscore b { font-size: 30px; font-weight: 800; letter-spacing: -0.9px; color: #17191b; }
+      .bdscore span { font-size: 14px; font-weight: 600; color: #9a9b95; }
+      .whybtn { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; padding: 5px 10px; border-radius: 14px; background: rgba(47, 184, 122, 0.12); border: 1px solid rgba(47, 184, 122, 0.28); font-size: 12px; font-weight: 700; color: #1f9e63; }
+      .comps { display: flex; gap: 8px; margin-top: 14px; }
+      .comp { flex: 1; background: #f3f2ed; border-radius: 12px; padding: 9px 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+      .comp b { font-size: 18px; font-weight: 800; color: #1f9e63; }
+      .comp b.mid { color: #17191b; }
+      .comp span { font-size: 10.5px; font-weight: 500; color: #6e6f6a; }
+      .weak { font-size: 12.5px; line-height: 17px; color: #6e6f6a; margin-top: 13px; border-top: 1px solid #e4e3dd; padding-top: 12px; }
+      .nweek { display: flex; gap: 11px; align-items: center; margin: 0 16px 16px; background: rgba(47, 184, 122, 0.07); border: 1px solid rgba(47, 184, 122, 0.22); border-radius: 14px; padding: 12px 14px; }
+      .nweek .nk { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: #1f9e63; flex: none; }
+      .nweek .nv { flex: 1; font-size: 13px; font-weight: 600; line-height: 18px; letter-spacing: -0.1px; color: #17191b; }
+
+      /* tab bar */
+      .tabbar { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-start; padding: 10px 18px 24px; background: rgba(252, 252, 250, 0.92); border-top: 1px solid #e4e3dd; }
+      .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #9a9b95; }
+      .tab.on { color: #1f9e63; }
+      .fab { flex: none; width: 58px; height: 58px; border-radius: 29px; margin: -32px 6px 0; background: linear-gradient(135deg, #4ecf8b, #1f9e63); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 24px rgba(31, 158, 99, 0.5); }
+
+      /* -------- coach chat (pt space) — CoachChatScreen.tsx 1:1 -------- */
+      .chathead { display: flex; align-items: center; justify-content: space-between; padding: 6px 18px 8px; }
+      .chatclose { width: 34px; height: 34px; border-radius: 17px; background: #ecece6; display: flex; align-items: center; justify-content: center; }
+      .chatid { display: flex; align-items: center; gap: 8px; }
+      .chatdot { width: 24px; height: 24px; border-radius: 12px; background: #1f9e63; display: flex; align-items: center; justify-content: center; }
+      .chattitle { font-size: 16px; font-weight: 700; color: #17191b; }
+      .chatscroll { padding: 8px 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+      .cbubble { align-self: flex-start; max-width: 86%; background: #fcfcfa; border: 1px solid #e4e3dd; border-radius: 18px; border-top-left-radius: 6px; padding: 11px 14px; font-size: 15px; line-height: 22px; color: #17191b; }
+      .cbubble b { font-weight: 700; }
+      .ububble { align-self: flex-end; max-width: 86%; background: #1f9e63; border-radius: 18px; border-top-right-radius: 6px; padding: 11px 14px; font-size: 15px; line-height: 22px; font-weight: 500; color: #f4fbf7; }
+      .sugchip { align-self: flex-start; background: rgba(47, 184, 122, 0.1); border: 1px solid rgba(47, 184, 122, 0.25); border-radius: 18px; padding: 10px 14px; font-size: 13.5px; font-weight: 600; color: #1f9e63; }
+      .chatinput { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 10px 18px 26px; background: rgba(252, 252, 250, 0.92); border-top: 1px solid #e4e3dd; }
+      .chatfield { flex: 1; height: 44px; border-radius: 22px; background: #fff; border: 1px solid #e4e3dd; display: flex; align-items: center; padding: 0 16px; font-size: 14.5px; color: #9a9b95; }
+      .chatsend { width: 44px; height: 44px; border-radius: 22px; background: linear-gradient(135deg, #4ecf8b, #1f9e63); display: flex; align-items: center; justify-content: center; flex: none; }
+
+      /* -------- panel 6: GLP-1 pills -------- */
+      .medpills { position: relative; z-index: 4; display: flex; flex-wrap: wrap; justify-content: center; gap: 36px; margin: 120px 110px 0; }
+      .medpill {
+        display: flex; align-items: center; gap: 22px;
+        background: #fcfcfa; border: 2px solid #e4e3dd; border-radius: 60px; padding: 34px 52px;
+        font-size: 44px; font-weight: 700; letter-spacing: -0.8px; color: #17191b;
+        box-shadow: 0 26px 60px rgba(23, 25, 27, 0.14);
+      }
+      .medpill .mk { width: 58px; height: 58px; border-radius: 29px; flex: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #6fe0a6, #23a869); }
+      .medpill.soft { background: rgba(252, 252, 250, 0.7); border-style: dashed; color: #6e6f6a; box-shadow: none; }
+      .medpill.soft .mk { background: #e9eae4; }
+
+      /* -------- panel 7: review + mascot -------- */
+      .review { position: relative; z-index: 4; background: #fcfcfa; border: 2px solid #e4e3dd; border-radius: 44px; padding: 56px 60px; box-shadow: 0 30px 80px rgba(23, 25, 27, 0.14); }
+      .review .rstars { display: flex; gap: 8px; margin-bottom: 26px; }
+      .review h3 { font-size: 52px; font-weight: 800; letter-spacing: -1.6px; color: #17191b; }
+      .review p { margin-top: 20px; font-size: 34px; line-height: 1.42; font-weight: 500; color: #3a3d3a; }
+      .review .who { margin-top: 26px; font-size: 27px; font-weight: 600; color: #9a9b95; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Leanient<span>.</span> · App Store set v2</h1>
+      <p>
+        Seven panels at 1290×2796, execution-model UI, Pep-AI formula: two-line headline with one
+        emerald word, one subhead, the leaf-tick motif on every panel, floating chips, one feature
+        per device. Generic drug names only. Open with #p1..#p7 for a full-size single-panel export.
+      </p>
+    </header>
+    <div class="gallery" id="g"></div>
+
+    <script>
+      /* ---------------- shared pieces ---------------- */
+      const star = (s, c) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${c || "#E3A65E"}"><path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.65 1.13 6.57L12 17.56l-5.9 3.1 1.13-6.57L2.45 9.44l6.6-.96z"/></svg>`;
+      const check = (s, c, w) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c || "#fff"}" stroke-width="${w || 3}" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`;
+
+      /* the leaf-tick motif: three sprout strokes, our sparkle */
+      const leaf = (s, r, o) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" style="transform:rotate(${r}deg);opacity:${o}"><path d="M12 21c0-6 0-9 0-11" stroke="#1F9E63" stroke-width="2.6" stroke-linecap="round"/><path d="M12 10C12 5.5 15 3 19 3c0 4.5-3 7-7 7z" fill="#2FB87A"/><path d="M12 14c0-3.5-2.5-5.5-6-5.5 0 3.5 2.5 5.5 6 5.5z" fill="#6FE0A6"/></svg>`;
+      const ticks = `<div class="ticks">${leaf(52, -14, 0.55)}${leaf(66, 0, 1)}${leaf(52, 14, 0.55)}</div>`;
+
+      /* the Leanient mark (vial with sprout), scalable — the brand character */
+      const mark = (w) => `<svg width="${w}" height="${(w * 48) / 36}" viewBox="0 0 36 48" fill="none"><defs><linearGradient id="lm${w}" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6FE0A6"/><stop offset="1" stop-color="#23A869"/></linearGradient></defs><rect x="11" y="2" width="14" height="29" rx="7" fill="url(#lm${w})"/><g stroke="#F4F7F0" stroke-width="2" stroke-linecap="round"><path d="M18.5 16h4"/><path d="M18.5 20.5h4"/><path d="M18.5 25h4"/></g><rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="url(#lm${w})"/><rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="url(#lm${w})"/></svg>`;
+
+      const sbar = `<div class="island"></div><div class="sbar"><span class="time">9:41</span>
+        <svg width="68" height="13" viewBox="0 0 68 13" fill="none"><rect x="0" y="6" width="3" height="6" rx="1" fill="#17191B"/><rect x="5" y="4" width="3" height="8" rx="1" fill="#17191B"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#17191B"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#17191B"/><path d="M28 4.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0L28 4.5zm2.8 3.2a4.5 4.5 0 0 1 5.4 0l-1.6 2a2 2 0 0 0-2.2 0l-1.6-2zm2.7 3.3.9 1 .9-1a1.4 1.4 0 0 0-1.8 0z" fill="#17191B"/><rect x="46" y="1" width="20" height="11" rx="3.5" stroke="#17191B" stroke-opacity=".4"/><rect x="48" y="3" width="14" height="7" rx="2" fill="#17191B"/><path d="M67.5 4.5v4a2 2 0 0 0 0-4z" fill="#17191B" fill-opacity=".4"/></svg></div>`;
+
+      const appbar = (scope) => `<div class="appbar"><span class="brand">Leanient</span>
+        <span class="scope"><span class="${scope === "today" ? "on" : ""}">Today</span><span class="${scope === "week" ? "on" : ""}">This week</span></span>
+        <span class="avatar">N</span></div>`;
+
+      const tabbar = `<div class="tabbar">
+        <span class="tab on"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5 11 3.5l7.5 6V18a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/><path d="M9 19v-5h4v5"/></svg>Home</span>
+        <span class="tab"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8"/></svg>Train</span>
+        <span class="fab"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M13 5.5v15M5.5 13h15"/></svg></span>
+        <span class="tab"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17 9 11l3.5 3.5 6-7"/></svg>Progress</span>
+        <span class="tab"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="7.5" r="3.5"/><path d="M4.5 18.5c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5"/></svg>Profile</span>
+      </div>`;
+
+      const heroCard = `<div class="vcard"><div class="halo"></div>
+        <div class="ctx">Tuesday, Jul 7 · Day 44</div>
+        <span class="pill"><span class="dot"></span>SHOT +2 · GOOD ENERGY</span>
+        <div class="vhead">You can push today.</div>
+        <div class="vmsg">Two protein meals and one session.</div></div>`;
+
+      const ring = (pct, inner) => {
+        const C = 113.1, off = C * (1 - pct);
+        return `<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="18" stroke="#E9EAE4" stroke-width="5" fill="none"/><circle cx="23" cy="23" r="18" stroke="#2FB87A" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 23 23)"/>${inner || ""}</svg>`;
+      };
+      const tiles = `<div class="ringrow">
+        <div class="tile">${ring(5 / 7)}<span class="tval">5 of 7</span><span class="tbadge">134 / 140g today</span><span class="tlabel">Protein days</span></div>
+        <div class="tile">${ring(2 / 3)}<span class="tval">2 of 3</span><span class="tbadge">0 / 1 today</span><span class="tlabel">Sessions · 7 days</span></div>
+        <div class="tile"><svg width="46" height="46" viewBox="0 0 46 46" fill="none" stroke="#2FB87A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 34l10-10M25 12l9 9-8 1.5L24.5 14z"/><path d="M23 16.5l6 6"/></svg><span class="tval">in 5 days</span><span class="tbadge">1.0 mg</span><span class="tlabel">Next shot</span></div>
+      </div>`;
+
+      const forkIc = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8"/></svg>`;
+      const dumbIc = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8"/></svg>`;
+
+      const pstep = (o) => `<div class="pstep ${o.done ? "isdone" : ""}">
+        <div class="prail">${o.first ? "" : `<div class="pline top ${o.prevDone ? "done" : ""}"></div>`}${o.last ? "" : `<div class="pline bot ${o.done ? "done" : ""}"></div>`}<div class="pnode ${o.done ? "done" : ""}">${o.done ? check(18) : o.icon}</div></div>
+        <div class="pbody">${o.focus ? '<div class="pfocus">TODAY’S FOCUS</div>' : ""}<b>${o.title}</b><span>${o.sub}</span></div>
+        <div class="ptrail">${o.pct ? `<span class="ppct">${o.pct}</span>` : ""}${o.expand ? `<div class="pchevbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>` : o.chev ? '<span class="pchev">›</span>' : ""}</div>
+      </div>`;
+
+      const planCard = (focusSession) => `<div class="plancard">
+        <div class="phead"><span class="pe">TODAY'S PLAN</span><span class="momentum">5 OF LAST 7</span></div>
+        ${pstep({ first: true, done: true, icon: forkIc, title: "Protein so far · 42g", sub: "One meal logged." })}
+        ${pstep({ prevDone: true, icon: forkIc, title: "Next protein meal · ~35g", sub: "Greek yogurt + whey gets you there.", focus: !focusSession, pct: "64%", expand: true })}
+        ${pstep({ last: true, icon: dumbIc, title: "Upper body · 22 min", sub: "Dumbbells. Energy's up, push a little.", focus: focusSession, chev: true })}
+        <div class="pfoot"><div class="pflag"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V5a2 2 0 0 1 2-2h11l-2.5 4L18 11H7"/></svg></div>
+          <div style="flex:1"><div class="pfl">1 OF 3 DONE · COUNTS TOWARD SUNDAY</div><div class="pft">Finish the plan and today goes in as a won day.</div></div>
+          <div class="wkdots"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="t"></i></div>
+        </div></div>`;
+
+      const weekStrip = `<div class="stripcard">
+        <div class="phead" style="margin-bottom:0"><span class="pe">LAST 7 DAYS · PROTEIN</span><span class="momentum">5 OF 7</span></div>
+        <div class="striprow">
+          ${["Wed", "Thu", "Fri", "Sat", "Sun", "Mon"].map((d, i) => `<div class="sday ${i === 2 ? "" : "f"}"><div class="wd">${i === 2 ? "" : check(13, "#fff", 3.2)}</div><div class="wl">${d}</div></div>`).join("")}
+          <div class="sday t"><div class="wd"></div><div class="wl">Today</div></div>
+        </div></div>`;
+
+      const verdictBlock = `<div class="vhero">
+        <div class="vbare"><div class="halo" style="position:absolute;top:-50px;right:-40px;width:200px;height:200px;border-radius:50%;filter:blur(10px);background:radial-gradient(circle, rgba(47,184,122,.4), transparent 70%)"></div>
+          <div class="ctx" style="position:relative">Week of Jun 29 – Jul 5 · Day 44</div>
+          <span class="pill"><span class="dot"></span>ON TRACK</span>
+          <div class="vhead2">You kept your muscle.</div>
+          <div class="vmsg2">Five protein days, two sessions, pace in the lean-safe range.</div>
+        </div>
+        <div class="vdiv"></div>
+        <div class="bd">
+          <div class="bdhead"><div><div class="bde">MUSCLE RETENTION</div><div class="bdscore"><b>84</b><span>/ 100</span></div></div><span class="whybtn">up 3 this week ›</span></div>
+          <div class="comps"><div class="comp"><b>5/7</b><span>Protein days</span></div><div class="comp"><b class="mid">2/3</b><span>Sessions</span></div><div class="comp"><b>1.3 lb</b><span>Loss pace</span></div></div>
+          <div class="weak">One more session and the week is green.</div>
+        </div>
+        <div class="nweek"><span class="nk">NEXT WEEK</span><span class="nv">Hold five protein days. Add the third session, 20 minutes counts.</span></div>
+      </div>`;
+
+      const phone = (content, top, extra) => `<div class="stage" style="top:${top}px${extra || ""}"><div class="phone"><div class="screen">${sbar}${content}</div></div></div>`;
+      const chip = (style, icon, text, sub) => `<div class="float" style="${style}"><span class="fi">${icon}</span><div>${text}${sub ? `<small>${sub}</small>` : ""}</div></div>`;
+
+      /* ---------------- the 7 panels ---------------- */
+      const P = [];
+
+      /* 1 · HOOK */
+      P.push({
+        tag: "Hook — the wedge, mascot + Home peek",
+        html: `
+        <div class="wash mint" style="width:1300px;height:1300px;top:-420px;left:-380px"></div>
+        <div class="wash deep" style="width:1000px;height:1000px;bottom:-200px;right:-360px"></div>
+        <div class="wordmark">${mark(52)} Leanient</div>
+        <div class="head" style="padding-top:310px">
+          ${ticks}
+          <h1>Lose the fat.<br><span class="em">Keep</span> the muscle.</h1>
+          <div class="sub">The GLP-1 coach that <strong>protects your body</strong>, not just shrinks it.</div>
+        </div>
+        <div style="position:absolute;z-index:5;top:1020px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:40px">
+          ${leaf(74, -18, 0.5)}${mark(200)}${leaf(74, 18, 0.5)}
+        </div>
+        ${phone(appbar("today") + heroCard + tiles + planCard(false) + tabbar, 1400)}
+      `,
+      });
+
+      /* 2 · DAILY PLAN */
+      P.push({
+        tag: "The daily plan — execution core",
+        html: `
+        <div class="wash mint" style="width:1200px;height:1200px;top:-420px;right:-380px"></div>
+        <div class="wash deep" style="width:1000px;height:1000px;bottom:-220px;left:-340px"></div>
+        <div class="head">
+          ${ticks}
+          <h1>Know <span class="em">exactly</span> what<br>to do today.</h1>
+          <div class="sub">A 2-minute daily plan, tuned to <strong>your shot cycle</strong>.</div>
+        </div>
+        ${phone(appbar("today") + heroCard + planCard(false) + weekStrip + tabbar, 950)}
+        ${chip("top:1010px;left:40px", check(30), "Today won", "Checks off as you go")}
+        ${chip("top:2520px;right:40px", `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7z"/></svg>`, "SHOT +2 · GOOD ENERGY", "The plan already knows")}
+      `,
+      });
+
+      /* 3 · PROTEIN CONSISTENCY */
+      P.push({
+        tag: "Protein consistency — the knowing-doing gap",
+        html: `
+        <div class="wash mint" style="width:1200px;height:1200px;top:-400px;left:-360px"></div>
+        <div class="wash honey" style="width:900px;height:900px;bottom:-260px;right:-300px"></div>
+        <div class="head">
+          ${ticks}
+          <h1 style="font-size:88px;letter-spacing:-3px">You know protein matters.<br>Are you <span class="em">hitting</span> it?</h1>
+          <div class="sub">See the days you <strong>actually land it</strong>, not just today.</div>
+        </div>
+        ${phone(appbar("today") + heroCard + tiles + weekStrip + planCard(false) + tabbar, 1000)}
+        ${chip("top:1075px;right:44px", check(30), "5 of 7 days", "Your last week, honestly")}
+        ${chip("top:2440px;left:44px", forkIc.replace(/#1F9E63/g, "#fff").replace(/width="18" height="18"/, 'width="30" height="30"'), "134 / 140g today", "Today still counts")}
+      `,
+      });
+
+      /* 4 · SHOT-CYCLE TRAINING */
+      P.push({
+        tag: "Shot-cycle-aware training",
+        html: `
+        <div class="wash deep" style="width:1100px;height:1100px;top:-380px;right:-360px"></div>
+        <div class="wash mint" style="width:1100px;height:1100px;bottom:-260px;left:-340px"></div>
+        <div class="head">
+          ${ticks}
+          <h1 style="font-size:96px;letter-spacing:-3.2px">Train around <span class="em">your&nbsp;shot</span>,<br>not against it.</h1>
+          <div class="sub">Short sessions timed to <strong>your energy</strong> across the cycle.</div>
+        </div>
+        ${phone(appbar("today") + heroCard + tiles + planCard(true) + tabbar, 1000)}
+        ${chip("top:1080px;left:40px", dumbIc.replace(/#1F9E63/g, "#fff").replace(/width="18" height="18"/, 'width="30" height="30"'), "22 min · upper body", "Matched to shot +2 energy")}
+        ${chip("top:2400px;right:44px", `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4"/></svg>`, "Low-energy days", "Get a gentler session")}
+      `,
+      });
+
+      /* 5 · WEEKLY VERDICT */
+      P.push({
+        tag: "Weekly verdict — the report card",
+        html: `
+        <div class="wash mint" style="width:1200px;height:1200px;top:-420px;left:-380px"></div>
+        <div class="wash deep" style="width:1000px;height:1000px;bottom:-220px;right:-340px"></div>
+        <div class="head">
+          ${ticks}
+          <h1>Proof you're <span class="em">keeping</span><br>your gains.</h1>
+          <div class="sub">An honest weekly read: <strong>fat lost, muscle kept</strong>.</div>
+        </div>
+        ${phone(appbar("week") + verdictBlock + tabbar, 1000)}
+        ${chip("top:1060px;right:40px", `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/><path d="M9 12l2 2 4-4.5"/></svg>`, "Muscle protected", "Week after week")}
+        ${chip("top:2430px;left:44px", check(30), "One directive", "Exactly what to fix next week")}
+      `,
+      });
+
+      /* 6 · ANY GLP-1 */
+      P.push({
+        tag: "Works with any GLP-1 — generic names only",
+        html: `
+        <div class="wash mint" style="width:1300px;height:1300px;top:-440px;right:-400px"></div>
+        <div class="wash deep" style="width:1000px;height:1000px;bottom:-240px;left:-320px"></div>
+        <div class="head">
+          ${ticks}
+          <h1>Works with<br><span class="em">any</span> GLP&#8209;1.</h1>
+          <div class="sub">Weekly shots or daily pills. <strong>Semaglutide, tirzepatide</strong> and more.</div>
+        </div>
+        <div class="medpills">
+          <div class="medpill"><span class="mk">${check(30)}</span>Semaglutide</div>
+          <div class="medpill"><span class="mk">${check(30)}</span>Tirzepatide</div>
+          <div class="medpill"><span class="mk">${check(30)}</span>Liraglutide</div>
+          <div class="medpill"><span class="mk">${check(30)}</span>Compounded</div>
+          <div class="medpill"><span class="mk">${check(30)}</span>Daily pills</div>
+          <div class="medpill soft"><span class="mk">${check(30, "#9A9B95")}</span>and more</div>
+        </div>
+        ${phone(appbar("today") + heroCard + tiles + planCard(false) + tabbar, 1560)}
+      `,
+      });
+
+      /* 7 · EMOTIONAL CLOSE */
+      P.push({
+        tag: "Close — personality + social proof",
+        html: `
+        <div class="wash mint" style="width:1300px;height:1300px;top:-440px;left:-380px"></div>
+        <div class="wash honey" style="width:1000px;height:1000px;bottom:-260px;right:-320px"></div>
+        <div class="head">
+          ${ticks}
+          <h1>People are <span class="em">keeping</span><br>their muscle.</h1>
+        </div>
+        <div style="position:relative;z-index:4;display:flex;justify-content:center;align-items:flex-end;gap:44px;margin-top:110px">
+          ${leaf(90, -18, 0.5)}${mark(210)}${leaf(90, 18, 0.5)}
+        </div>
+        <div style="position:relative;z-index:4;display:flex;flex-direction:column;gap:48px;margin:130px 120px 0">
+          <div class="review" style="transform:rotate(-1deg)">
+            <div class="rstars">${star(34)}${star(34)}${star(34)}${star(34)}${star(34)}</div>
+            <h3>"Down 30 lb and I still look like me."</h3>
+            <p>The daily plan takes two minutes. Sunday tells me it's working. That's the whole app, and it's exactly enough.</p>
+            <div class="who">Member · tirzepatide, month 4</div>
+          </div>
+          <div class="review" style="transform:rotate(.8deg)">
+            <div class="rstars">${star(34)}${star(34)}${star(34)}${star(34)}${star(34)}</div>
+            <h3>"It keeps me honest about protein."</h3>
+            <p>I knew what to do. I just didn't know how often I wasn't doing it. The 7-day view fixed that in two weeks.</p>
+            <div class="who">Member · semaglutide, month 6</div>
+          </div>
+        </div>
+        <div class="float badge" style="bottom:240px;left:50%;transform:translateX(-50%)">${star(36)}&nbsp; 4.8 FROM GLP-1 USERS</div>
+      `,
+      });
+
+      /* 8 · COACH CHAT */
+      const chatScreen = `
+        <div class="chathead">
+          <div class="chatclose"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#17191B" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          <div class="chatid"><div class="chatdot"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z"/></svg></div><div class="chattitle">Your coach</div></div>
+          <div style="width:34px"></div>
+        </div>
+        <div class="chatscroll">
+          <div class="ububble">It's 8pm and I'm 40g short on protein. What do I do?</div>
+          <div class="cbubble">A shake now gets you about <b>30g</b>, Greek yogurt before bed covers the rest. That makes <b>6 protein days of your last 7</b>.</div>
+          <div class="ububble">Is 1.8 lb this week too fast?</div>
+          <div class="cbubble">A touch quick. Hold protein daily and keep tomorrow's <b>upper body session</b>, that keeps the loss coming from fat.</div>
+          <div class="sugchip">What should I eat today?</div>
+          <div class="sugchip">Why did my score dip this week?</div>
+        </div>
+        <div class="chatinput">
+          <div class="chatfield">Ask your coach…</div>
+          <div class="chatsend"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+        </div>`;
+      P.push({
+        tag: "Coach chat — grounded in your data",
+        html: `
+        <div class="wash mint" style="width:1200px;height:1200px;top:-400px;right:-360px"></div>
+        <div class="wash deep" style="width:1000px;height:1000px;bottom:-220px;left:-340px"></div>
+        <div class="head">
+          ${ticks}
+          <h1>A coach that knows<br><span class="em">your</span> week.</h1>
+          <div class="sub">Ask anything. It answers from <strong>your logs, verdict and shot cycle</strong>.</div>
+        </div>
+        ${phone(chatScreen, 950)}
+        ${chip("top:1015px;left:40px", `<svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z"/></svg>`, "Knows your week", "Your logs, verdict and cycle")}
+        ${chip("top:2480px;right:40px", check(30), "Answers like a coach", "Action first, no lectures")}
+      `,
+      });
+
+      /* ---------------- render ---------------- */
+      const g = document.getElementById("g");
+      const one = /^#p([1-8])(i?)$/.exec(location.hash);
+      if (one) {
+        document.body.classList.add("export");
+        if (one[2] === "i") document.body.classList.add("ipad");
+      }
+      P.forEach((p, i) => {
+        if (one && Number(one[1]) !== i + 1) return;
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.innerHTML = `<div class="frame"><div class="canvas">${p.html}</div></div>
+          <div class="tag"><span class="n">0${i + 1}</span><b>${p.tag}</b></div>`;
+        g.appendChild(slot);
+      });
+    </script>
+  </body>
+</html>

@@ -37,10 +37,50 @@ describe("buildPlanChecklist", () => {
     expect(items.map((i) => i.key)).toEqual(["protein-banked", "protein-next", "session"]);
     expect(items[0].done).toBe(true);
     expect(items[0].title).toBe("Protein so far · 42g");
-    expect(items[0].sub).toBe("One meal logged.");
+    expect(items[0].sub).toBe("One meal logged. 98g to go.");
     expect(items[1].title).toContain("Next protein meal");
     expect(items[1].trailingPct).toBe(30);
     expect(items[1].expandsEat).toBe(true);
+  });
+
+  it("reads back the last logged meal by name with the remaining gap", () => {
+    const items = buildPlanChecklist({
+      plan: planWith({ eat: { logged: 10, remaining: 40, pct: 20 } }),
+      mealsLoggedToday: 1,
+      lastMealName: "Greek yogurt",
+      eatDone: false,
+      moveDone: false,
+      doseLoggedToday: false,
+    });
+    expect(items[0].sub).toBe("Greek yogurt logged. 40g to go.");
+  });
+
+  it("names a started-but-unfinished session with its minutes", () => {
+    const items = buildPlanChecklist({
+      plan: planWith({}),
+      mealsLoggedToday: 0,
+      eatDone: false,
+      moveDone: false,
+      sessionStart: { elapsedSeconds: 470 },
+      doseLoggedToday: false,
+    });
+    const session = items.find((i) => i.kind === "session")!;
+    expect(session.done).toBe(false);
+    expect(session.sub).toBe("Started, 8 min in. Pick it back up.");
+  });
+
+  it("ignores the abandoned start once the session is actually done", () => {
+    const items = buildPlanChecklist({
+      plan: planWith({}),
+      mealsLoggedToday: 0,
+      eatDone: false,
+      moveDone: true,
+      sessionStart: { elapsedSeconds: 470 },
+      doseLoggedToday: false,
+    });
+    const session = items.find((i) => i.kind === "session")!;
+    expect(session.done).toBe(true);
+    expect(session.sub).not.toContain("Started");
   });
 
   it("asks for one meal-sized bite, never the whole remaining mountain", () => {

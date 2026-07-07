@@ -33,6 +33,9 @@ import {
 } from "./progressMetrics";
 import { GoalJourneyCard } from "../../components/app/GoalJourneyCard";
 import { buildGoalJourney } from "./goalJourney";
+import { DayReviewCard } from "../../components/app/DayReviewCard";
+import { buildDayReviews } from "./dayReview";
+import { loadSessionStarts, type SessionStartMap } from "./sessionStarts";
 import { buildFaceProgress } from "./faceProgress";
 import { faceFullnessLabel } from "./progressPhotoMeta";
 import { faceConsentState } from "./faceConsent";
@@ -119,6 +122,36 @@ export function ProgressScreen() {
   const profile = data.profile;
   const medication = data.medicationProtocol;
   const weightLogs = data.weightLogs;
+
+  // Device-local started-session map, refreshed when the tab regains focus data.
+  const [sessionStarts, setSessionStarts] = useState<SessionStartMap>({});
+  useEffect(() => {
+    let alive = true;
+    void loadSessionStarts().then((map) => {
+      if (alive) setSessionStarts(map);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [data.workoutHistory]);
+
+  // The last 7 days as what actually happened (protein, session, food, burn).
+  const dayReviews = useMemo(() => {
+    if (!profile) return [];
+    const latestWeight = weightLogs.length ? weightLogs[weightLogs.length - 1] : null;
+    const weightLb = latestWeight ? (latestWeight.unit === "kg" ? latestWeight.value * 2.2046226 : latestWeight.value) : null;
+    return buildDayReviews({
+      meals: data.recentMeals,
+      workouts: data.workoutHistory,
+      sessionStarts,
+      dailyProteinTarget: profile.dailyProteinTarget,
+      dailyCalorieTarget: profile.dailyCalorieTarget,
+      weightLb,
+      now,
+    });
+    // `now` is intentionally omitted: it's a fresh Date each render and the
+    // review only cares about the calendar day.
+  }, [profile, weightLogs, data.recentMeals, data.workoutHistory, sessionStarts]);
 
   useEffect(() => {
     const userId = auth.user?.id;
@@ -371,6 +404,9 @@ export function ProgressScreen() {
 
           {/* journey to goal — start → now → goal, paced by their chosen speed */}
           {goalJourney ? <GoalJourneyCard view={goalJourney} /> : null}
+
+          {/* the last 7 days as what actually happened, expandable per day */}
+          <DayReviewCard reviews={dayReviews} />
 
           {/* face & skin — the analysis signal (not photos), surfaced high */}
           {showFaceSkin ? (

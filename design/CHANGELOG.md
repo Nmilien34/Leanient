@@ -3,6 +3,31 @@
 Running log of changes made in the HTML prototype (`design/onboarding.html`)
 so they can be re-applied to the Paper file when its quota resets.
 
+## 2026-07-05 — App Store screenshot set v2 (`design/store-screenshots.html`)
+
+Seven panels at 1290×2796 for the execution-model release, Pep-AI formula:
+two-line headline with one emerald word, one subhead, a repeating three-leaf
+sprout-tick motif (our sparkle), one feature per angled device, floating
+callout chips, consistent mint/deep washes. Device UI is ported 1:1 from the
+implemented execution screens (directive hero, days-hit tiles, checkable plan,
+LAST 7 DAYS strip, verdict report card). The vial logo-mark plays the mascot
+on panels 1 and 7. Panels: 1 hook (Lose the fat / KEEP the muscle), 2 daily
+plan, 3 protein consistency (are you HITTING it), 4 shot-cycle training,
+5 verdict report card, 6 works with ANY GLP-1 (generic drug names only —
+fixes the live set's trademark exposure), 7 reviews + 4.8 badge.
+Export: open with `#p1`..`#p8` for a single unscaled panel and screenshot at
+1290×2796 headlessly (same pipeline as `marketing/appstore/render.sh`).
+`#p1i`..`#p8i` renders the iPad 13" variant (2064×2752, same recentering trick
+as ipad.css). Panel 8 (added later): coach chat, "A coach that knows YOUR
+week", bubbles/chips ported 1:1 from CoachChatScreen.tsx, answers grounded in
+the user's own numbers. Watch set v2 lives in `design/store-screenshots-watch.html`
+(5 execution faces at 410×502, `#w1`..`#w5` export, watch.css language).
+Rendered PNGs in `design/store-screenshots-png/`: masters, `upload/`
+(1284×2778), `1242x2688/`, `ipad/` (2064×2752), `watch/` (410×502), plus
+`old-set/` re-renders of the kept legacy slides (03 meal scan, 06 workout,
+09 science) at both accepted iPhone sizes.
+AWAITING FEEDBACK; the live `marketing/appstore/` set is untouched.
+
 ## 2026-07-04 — Execution redesign board (`design/execution.html`)
 
 Board for the teacher-to-execution-engine shift, AWAITING SIGN-OFF (no app

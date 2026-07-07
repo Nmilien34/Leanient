@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Watch Screenshots v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&display=swap" rel="stylesheet" />
+    <style>
+      /* Apple Watch App Store set v2 (410×502) — execution model.
+         watchOS rules: pure app UI, no device frames, no marketing copy.
+         Dark surface + emerald family, 1:1 with marketing/appstore/watch/watch.css.
+         Export: open with #w1..#w5 to render one face at exactly 410×502
+         (render at 410×640 headless and top-crop to 502, like render.sh). */
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+      body {
+        font-family: "Geist", system-ui, sans-serif;
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        color: #e7eede;
+        padding: 40px 28px 80px;
+      }
+      body.export { background: #000; padding: 0; }
+      .topbar { max-width: 1500px; margin: 0 auto 40px; }
+      .topbar h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.03em; color: #f4f8ef; }
+      .topbar h1 span { color: #2fb87a; }
+      .topbar p { color: #8ea08a; font-size: 13.5px; line-height: 1.5; max-width: 640px; margin-top: 8px; }
+      .gallery { max-width: 1500px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 34px; justify-content: center; }
+      .slot .tag { display: flex; align-items: baseline; gap: 9px; margin-top: 12px; color: #8ea08a; font-size: 13px; font-weight: 500; }
+      .slot .tag b { color: #e7eede; font-weight: 600; }
+      .slot .tag .n { font-size: 11px; font-weight: 700; color: #11160f; background: #2fb87a; width: 22px; height: 22px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; }
+      .shell { border-radius: 88px; overflow: hidden; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+      body.export .topbar, body.export .slot .tag { display: none; }
+      body.export .gallery { max-width: none; display: block; }
+      body.export .shell { border-radius: 0; box-shadow: none; }
+
+      /* ---- the face: 410×502, watch.css values ---- */
+      .face { position: relative; width: 410px; height: 502px; background: #000; color: #fff; padding: 26px 28px 24px; overflow: hidden; }
+      .statusrow { display: flex; align-items: center; justify-content: space-between; }
+      .appname { font-size: 17px; font-weight: 600; color: #9ca8a0; letter-spacing: 0.2px; }
+      .time { font-size: 19px; font-weight: 600; color: #fff; }
+      .pill { display: inline-flex; align-items: center; gap: 7px; margin-top: 22px; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; color: #6fe0a6; background: rgba(47, 184, 122, 0.18); padding: 7px 13px; border-radius: 14px; }
+      .dot { width: 8px; height: 8px; border-radius: 4px; background: #2fb87a; }
+      .h1 { font-size: 30px; font-weight: 800; line-height: 1.12; letter-spacing: -0.6px; margin-top: 14px; }
+      .sub { font-size: 16px; font-weight: 500; line-height: 1.35; color: #9ca8a0; margin-top: 10px; }
+      .sub b { color: #eaf3ec; font-weight: 700; }
+      .btn { position: absolute; left: 28px; right: 28px; bottom: 24px; height: 48px; border-radius: 24px; background: linear-gradient(135deg, #4ecf8b, #2db87a, #1f9e63); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; color: #0b1510; }
+      .btn.ghost { background: rgba(255, 255, 255, 0.1); color: #eaf3ec; }
+
+      /* execution additions, same voice */
+      .wrow { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+      .wbox { width: 34px; height: 34px; border-radius: 11px; flex: none; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.1); }
+      .wbox.done { background: #2fb87a; }
+      .wrow b { display: block; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+      .wrow.done b { color: #9ca8a0; text-decoration: line-through; }
+      .wrow span { display: block; font-size: 13.5px; color: #9ca8a0; margin-top: 1px; }
+      .wdots { display: flex; gap: 8px; margin-top: 18px; }
+      .wdots i { width: 14px; height: 14px; border-radius: 7px; background: rgba(255, 255, 255, 0.14); display: block; }
+      .wdots i.f { background: #2fb87a; }
+      .wdots i.t { background: transparent; border: 2.5px solid #2fb87a; }
+      .bigring { display: flex; justify-content: center; margin-top: 18px; }
+      .comps { display: flex; gap: 8px; margin-top: 16px; }
+      .comp { flex: 1; background: rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+      .comp b { font-size: 19px; font-weight: 800; color: #6fe0a6; }
+      .comp span { font-size: 11px; font-weight: 500; color: #9ca8a0; }
+      .cent { text-align: center; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Leanient<span>.</span> · Watch set v2</h1>
+      <p>
+        Five faces at 410×502, execution model, pure UI per watchOS screenshot rules. Same dark +
+        emerald language as the live watch set. Open with #w1..#w5 for single-face export.
+      </p>
+    </header>
+    <div class="gallery" id="g"></div>
+
+    <script>
+      const check = (s, c, w) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c || "#fff"}" stroke-width="${w || 3}" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`;
+      const fork = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8"/></svg>`;
+      const dumb = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8"/></svg>`;
+      const syringe = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6FE0A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`;
+      const status = `<div class="statusrow"><span class="appname">Leanient</span><span class="time">9:41</span></div>`;
+
+      const W = [];
+
+      /* w1 · weekly verdict, report card */
+      W.push({
+        tag: "Verdict — report card",
+        html: `${status}
+        <span class="pill"><span class="dot"></span>ON TRACK</span>
+        <div class="h1">You kept your muscle.</div>
+        <div class="comps">
+          <div class="comp"><b>5/7</b><span>Protein</span></div>
+          <div class="comp"><b>2/3</b><span>Sessions</span></div>
+          <div class="comp"><b>1.3</b><span>lb pace</span></div>
+        </div>
+        <div class="btn ghost">See the week</div>`,
+      });
+
+      /* w2 · today's plan checklist */
+      W.push({
+        tag: "Today's plan — checks off",
+        html: `${status}
+        <span class="pill"><span class="dot"></span>TODAY · 1 OF 3</span>
+        <div class="wrow done"><div class="wbox done">${check(16, "#0B1510", 3.4)}</div><div><b>Protein · 42g</b><span>One meal logged</span></div></div>
+        <div class="wrow"><div class="wbox">${fork}</div><div><b>Next meal · ~35g</b><span>Closes the gap</span></div></div>
+        <div class="wrow"><div class="wbox">${dumb}</div><div><b>Upper body · 22 min</b><span>Energy's up today</span></div></div>
+        <div class="btn">Log a meal</div>`,
+      });
+
+      /* w3 · protein days ring */
+      W.push({
+        tag: "Protein days — 5 of last 7",
+        html: `${status}
+        <div class="bigring">
+          <svg width="190" height="190" viewBox="0 0 190 190">
+            <circle cx="95" cy="95" r="80" stroke="rgba(255,255,255,0.12)" stroke-width="14" fill="none"/>
+            <circle cx="95" cy="95" r="80" stroke="#2FB87A" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="502.7" stroke-dashoffset="${502.7 * (1 - 5 / 7)}" transform="rotate(-90 95 95)"/>
+            <text x="95" y="92" text-anchor="middle" font-family="Geist" font-size="44" font-weight="800" fill="#fff">5 of 7</text>
+            <text x="95" y="122" text-anchor="middle" font-family="Geist" font-size="16" font-weight="600" fill="#9CA8A0">protein days</text>
+          </svg>
+        </div>
+        <div class="wdots" style="justify-content:center"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="t"></i></div>
+        <div class="sub cent" style="margin-top:14px"><b>134 / 140g</b> today</div>`,
+      });
+
+      /* w4 · next shot */
+      W.push({
+        tag: "Next shot — cycle anchor",
+        html: `${status}
+        <span class="pill"><span class="dot"></span>SHOT +2 · GOOD ENERGY</span>
+        <div class="h1">Next shot in 5 days.</div>
+        <div class="sub">Sunday · <b>1.0 mg</b>. Appetite's easiest now, bank the protein.</div>
+        <div class="btn">Log dose</div>`,
+      });
+
+      /* w5 · today's session */
+      W.push({
+        tag: "Session — timed to energy",
+        html: `${status}
+        <span class="pill"><span class="dot"></span>TODAY'S SESSION</span>
+        <div class="h1">Upper body.<br>22 minutes.</div>
+        <div class="sub">Dumbbells · matched to <b>shot +2</b> energy.</div>
+        <div class="btn">Start</div>`,
+      });
+
+      const g = document.getElementById("g");
+      const one = /^#w([1-5])$/.exec(location.hash);
+      if (one) document.body.classList.add("export");
+      W.forEach((w, i) => {
+        if (one && Number(one[1]) !== i + 1) return;
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.innerHTML = `<div class="shell"><div class="face">${w.html}</div></div>
+          <div class="tag"><span class="n">w${i + 1}</span><b>${w.tag}</b></div>`;
+        g.appendChild(slot);
+      });
+    </script>
+  </body>
+</html>

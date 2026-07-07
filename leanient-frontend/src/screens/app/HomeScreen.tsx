@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -73,6 +73,7 @@ import { resolveHomeLayout, daysSinceLatest, type HomeSection } from "./homeLayo
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { buildPlanChecklist, deriveTodayPlan, pickWorkout, type DayFocus } from "./todayPlanMetrics";
 import { buildRollingConsistency } from "./consistency";
+import { loadSessionStarts, unfinishedStartFor, type SessionStart } from "./sessionStarts";
 import { buildExecutionReport } from "./executionReport";
 import { buildGuidedWorkoutLogDraft, deriveWorkoutComplete } from "./workoutCompleteMetrics";
 import type { CompletedWorkout } from "./workoutSession";
@@ -359,18 +360,39 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
     [doseLogs, now],
   );
 
+  // The most recent meal, read back to the user in the banked protein step.
+  const lastMealName = useMemo(() => {
+    const meals = [...data.todaysMeals].sort((a, b) => (a.recordedAt < b.recordedAt ? 1 : -1));
+    return meals[0]?.foodName ?? null;
+  }, [data.todaysMeals]);
+
+  // Today's started-but-unfinished player session, reloaded when the player
+  // closes or a session gets logged, so the checklist reflects it immediately.
+  const [sessionStart, setSessionStart] = useState<SessionStart | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadSessionStarts().then((map) => {
+      if (alive) setSessionStart(unfinishedStartFor(map, now));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [playerOpen, today.session.done, now]);
+
   const planChecklist = useMemo(
     () =>
       todayPlan
         ? buildPlanChecklist({
             plan: todayPlan,
             mealsLoggedToday: todayLog.meals.length,
+            lastMealName,
             eatDone: today.protein.ratio >= 0.9,
             moveDone: today.session.done > 0,
+            sessionStart,
             doseLoggedToday,
           })
         : [],
-    [todayPlan, todayLog.meals.length, today.protein.ratio, today.session.done, doseLoggedToday],
+    [todayPlan, todayLog.meals.length, lastMealName, today.protein.ratio, today.session.done, sessionStart, doseLoggedToday],
   );
 
   const contextLabel = useMemo(() => {
@@ -750,14 +772,16 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                 </>
               ) : null}
 
-              {/* metric rings */}
+              {/* metric rings — the same forgiving days-hit story as the report card
+                  above; a perfect Tuesday must never read as a 27% week. */}
               {verdict.status !== "no_data" ? (
                 <StaggeredReveal index={2}>
                   <View style={styles.rings}>
                     <MetricRing
-                      ratio={protein.ratio}
-                      value={`${protein.logged} / ${protein.target}g`}
-                      label="Protein"
+                      ratio={executionReport.daysElapsed ? executionReport.proteinDays / executionReport.daysElapsed : 0}
+                      value={`${executionReport.proteinDays} of ${executionReport.daysElapsed}`}
+                      badge={`${protein.logged} / ${protein.target}g`}
+                      label="Protein days"
                     />
                     <MetricRing
                       ratio={training.ratio}

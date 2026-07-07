@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Svg, { Circle, G, Path } from "react-native-svg";
 import type { Workout } from "@leanient/shared";
+import { recordSessionCompleted, recordSessionProgress, recordSessionStart } from "../../screens/app/sessionStarts";
 import { ExerciseIcon } from "./ExerciseIcon";
 import { font } from "../../theme/fonts";
 
@@ -70,6 +71,19 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
     return () => clearInterval(id);
   }, [state.phase]);
 
+  // Opening the player counts as STARTING the session, so an abandoned one can
+  // be named honestly ("started, N min in") instead of looking untouched.
+  useEffect(() => {
+    void recordSessionStart(workout.title);
+  }, [workout.title]);
+
+  const handleClose = async () => {
+    // Persist the abandoned session's minutes BEFORE unmounting, so the Home
+    // checklist reload sees "started, N min in" rather than a stale map.
+    await recordSessionProgress(elapsedRef.current);
+    onClose();
+  };
+
   // Exercise and rest countdowns tick once a second; the reducer advances at 0.
   useEffect(() => {
     if (state.phase !== "active" && state.phase !== "resting") return;
@@ -80,6 +94,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
   // Hand the completed-session summary (screen 21) back to the parent.
   useEffect(() => {
     if (state.phase !== "complete") return;
+    void recordSessionCompleted(elapsedRef.current);
     onComplete({
       workoutId: workout.id,
       title: workout.title,
@@ -143,7 +158,7 @@ function PlayerInner({ workout, restCue, onClose, onComplete }: PlayerInnerProps
       <ModalSafeArea style={styles.safe}>
         {/* top bar */}
         <View style={styles.top}>
-          <Pressable accessibilityLabel="Close workout" onPress={onClose} style={styles.x}>
+          <Pressable accessibilityLabel="Close workout" onPress={handleClose} style={styles.x}>
             <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#EAF3EC" strokeWidth={2.2} strokeLinecap="round">
               <Path d="M6 6l12 12M18 6L6 18" />
             </Svg>

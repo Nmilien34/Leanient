@@ -1,5 +1,5 @@
-import React, { useState, type ReactNode } from "react";
-import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
+import { Animated, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -48,6 +48,37 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+/**
+ * The completion moment: when a step flips to done, the node springs in and a
+ * ring bursts outward. Runs only on the false→true transition, never on mount,
+ * so restored state doesn't replay the celebration.
+ */
+function useCompletionPop(done: boolean) {
+  const pop = useRef(new Animated.Value(1)).current;
+  const ring = useRef(new Animated.Value(0)).current;
+  const wasDone = useRef(done);
+
+  useEffect(() => {
+    if (done && !wasDone.current) {
+      pop.setValue(0.4);
+      ring.setValue(0);
+      Animated.parallel([
+        Animated.spring(pop, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }),
+        Animated.timing(ring, { toValue: 1, duration: 480, useNativeDriver: true }),
+      ]).start();
+    }
+    wasDone.current = done;
+  }, [done, pop, ring]);
+
+  return {
+    nodeStyle: { transform: [{ scale: pop }] },
+    ringStyle: {
+      opacity: ring.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.85, 0] }),
+      transform: [{ scale: ring.interpolate({ inputRange: [0, 1], outputRange: [1, 2.1] }) }],
+    },
+  };
+}
+
 /** One stop on the plan timeline: a rail (connecting line + node) plus the action. */
 function StepRow({
   step,
@@ -70,13 +101,17 @@ function StepRow({
   // the next step, or this step's own expanded panel.
   const showBottom = !isLast || (expandable && expanded);
   const trailing = typeof step.trailing === "string" ? <Text style={styles.trailingPct}>{step.trailing}</Text> : step.trailing;
+  const { nodeStyle, ringStyle } = useCompletionPop(step.done);
 
   const header = (
     <View style={styles.row}>
       <View style={styles.rail}>
         {isFirst ? null : <View style={[styles.line, styles.lineTop, prevDone && styles.lineDone]} />}
         {showBottom ? <View style={[styles.line, styles.lineBottom, step.done && styles.lineDone]} /> : null}
-        <View style={[styles.node, step.done ? styles.nodeDone : step.amber ? styles.nodeAmber : null]}>{step.done ? checkMark : step.icon}</View>
+        <Animated.View pointerEvents="none" style={[styles.burstRing, ringStyle]} />
+        <Animated.View style={[styles.node, step.done ? styles.nodeDone : step.amber ? styles.nodeAmber : null, nodeStyle]}>
+          {step.done ? checkMark : step.icon}
+        </Animated.View>
       </View>
       <View style={styles.body}>
         {step.focus && !step.done ? <Text style={styles.focusEyebrow}>TODAY'S FOCUS</Text> : null}
@@ -160,6 +195,7 @@ const styles = StyleSheet.create({
   lineFull: { top: 0, bottom: 0 },
   lineDone: { backgroundColor: colors.emerald },
   node: { width: NODE, height: NODE, borderRadius: 11, backgroundColor: "#E7F4EC", alignItems: "center", justifyContent: "center" },
+  burstRing: { position: "absolute", width: NODE, height: NODE, borderRadius: 11, borderWidth: 2, borderColor: colors.emerald },
   nodeAmber: { backgroundColor: "#F7ECDB" },
   nodeDone: { backgroundColor: colors.emerald },
   body: { flex: 1, paddingVertical: 11, justifyContent: "center" },

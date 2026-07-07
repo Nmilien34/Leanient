@@ -20,6 +20,10 @@ export interface ExecutionRow {
 
 export interface ExecutionReport {
   rows: ExecutionRow[];
+  /** Protein days hit so far this week (numerator of the first row). */
+  proteinDays: number;
+  /** Days elapsed in the week so far (the forgiving denominator). */
+  daysElapsed: number;
   /** One line naming what would turn every row green. */
   summary: string;
   /** The single directive for next week. */
@@ -29,14 +33,21 @@ export interface ExecutionReport {
 /** Weekly loss beyond this (lb) risks muscle; at or under it is lean-safe. */
 export const LEAN_SAFE_LB = 1.6;
 
-/** Local YYYY-MM-DD key, so days bucket in the user's own timezone. */
+/**
+ * UTC YYYY-MM-DD key. The week tab deliberately buckets in UTC: `weekMeals`
+ * is fetched by the Monday-start UTC week (weekRange), the backend's weekly
+ * engine and `sessionsThisWeek` use the same startOfUtcWeek convention, and
+ * mixing local days over that UTC-windowed dataset undercounts around
+ * midnight UTC (a US user reviewing on Sunday evening would see an empty
+ * week). Days-hit here must slice the same way the platform slices weeks.
+ */
 function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+  return d.toISOString().slice(0, 10);
 }
 
-/** Days elapsed in the Monday-start week `now` falls in (1..7). */
+/** Days elapsed in the Monday-start UTC week `now` falls in (1..7). */
 export function weekDaysElapsed(now: Date): number {
-  return ((now.getDay() + 6) % 7) + 1;
+  return ((now.getUTCDay() + 6) % 7) + 1;
 }
 
 export function buildExecutionReport(args: {
@@ -64,7 +75,7 @@ export function buildExecutionReport(args: {
   }
   let proteinDays = 0;
   for (let back = 0; back < elapsed; back += 1) {
-    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+    const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
     if ((byDay.get(dayKey(day)) ?? 0) >= needed) proteinDays += 1;
   }
 
@@ -115,5 +126,5 @@ export function buildExecutionReport(args: {
     nextWeek = "Same again: protein daily, every session, steady pace.";
   }
 
-  return { rows, summary, nextWeek };
+  return { rows, proteinDays, daysElapsed: elapsed, summary, nextWeek };
 }

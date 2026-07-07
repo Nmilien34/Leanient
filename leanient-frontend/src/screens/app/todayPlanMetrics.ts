@@ -288,11 +288,15 @@ const roundTo5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
 export function buildPlanChecklist(args: {
   plan: TodayPlan;
   mealsLoggedToday: number;
+  /** The most recent logged meal's name, for the "you logged X" read-back. */
+  lastMealName?: string | null;
   eatDone: boolean;
   moveDone: boolean;
+  /** Today's abandoned player session (started, not completed), if any. */
+  sessionStart?: { elapsedSeconds: number } | null;
   doseLoggedToday: boolean;
 }): PlanChecklistItem[] {
-  const { plan, mealsLoggedToday, eatDone, moveDone, doseLoggedToday } = args;
+  const { plan, mealsLoggedToday, lastMealName, eatDone, moveDone, sessionStart, doseLoggedToday } = args;
   const items: PlanChecklistItem[] = [];
   const { logged, target, remaining, pct, suggestions } = plan.eat;
 
@@ -308,11 +312,14 @@ export function buildPlanChecklist(args: {
     });
   } else {
     if (logged > 0) {
+      // Read back what they logged, and name what's still owed: the honest
+      // "you did X, X' to go" moment right after a log.
+      const mealsLine = `${cap(numberWord(mealsLoggedToday))} meal${mealsLoggedToday === 1 ? "" : "s"} logged.`;
       items.push({
         key: "protein-banked",
         kind: "protein",
         title: `Protein so far · ${logged}g`,
-        sub: `${cap(numberWord(mealsLoggedToday))} meal${mealsLoggedToday === 1 ? "" : "s"} logged.`,
+        sub: `${lastMealName ? `${lastMealName} logged.` : mealsLine} ${remaining}g to go.`,
         done: true,
         focus: false,
       });
@@ -332,13 +339,15 @@ export function buildPlanChecklist(args: {
     });
   }
 
-  // Session: the co-equal core loop.
+  // Session: the co-equal core loop. A started-but-unfinished session gets
+  // named honestly (with credit for the minutes) instead of looking untouched.
   if (plan.move) {
+    const startedMin = sessionStart && !moveDone ? Math.max(1, Math.round(sessionStart.elapsedSeconds / 60)) : null;
     items.push({
       key: "session",
       kind: "session",
       title: `${plan.move.title.split(" · ")[0]} · ${plan.move.duration}`,
-      sub: plan.move.subline,
+      sub: startedMin != null ? `Started, ${startedMin} min in. Pick it back up.` : plan.move.subline,
       done: moveDone,
       focus: plan.focus === "training" && !moveDone,
     });
