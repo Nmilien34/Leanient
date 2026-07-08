@@ -2,14 +2,14 @@
   "expo": {
     "name": "Leanient",
     "slug": "leanient",
-    "version": "1.1",
+    "version": "1.2",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.boltzman.leanient",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

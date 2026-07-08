@@ -1,9 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { Button } from "../../components/ui/Button";
@@ -14,8 +13,7 @@ import { useOnboarding } from "../../context/OnboardingContext";
 import { extractApiError } from "../../services/apiError";
 import revenueCatService from "../../services/revenueCat.service";
 import { buildPlanPreview } from "../../onboarding/planPreview";
-import { startPaywallTrial } from "../../onboarding/paywallPurchase";
-import { completePaywallOnboarding } from "../../onboarding/paywallSubmit";
+import { startPaywallSubscription } from "../../onboarding/paywallPurchase";
 import type { YourPlanTargets } from "../../onboarding/yourPlan";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -29,7 +27,7 @@ interface PlanTierDef {
   unit: string;
   note: string;
   badge?: string;
-  trialNote: string;
+  billingNote: string;
 }
 
 const TIERS: PlanTierDef[] = [
@@ -40,7 +38,7 @@ const TIERS: PlanTierDef[] = [
     unit: " /yr",
     note: "just $2.50/mo",
     badge: "SAVE 69%",
-    trialNote: "7 days free, then $29.99/yr · cancel anytime",
+    billingNote: "Billed $29.99 yearly · cancel anytime",
   },
   {
     id: "monthly",
@@ -48,7 +46,7 @@ const TIERS: PlanTierDef[] = [
     price: "$7.99",
     unit: " /mo",
     note: "billed monthly",
-    trialNote: "7 days free, then $7.99/mo · cancel anytime",
+    billingNote: "Billed $7.99 monthly · cancel anytime",
   },
 ];
 
@@ -57,22 +55,6 @@ function Star() {
     <Svg width={15} height={15} viewBox="0 0 24 24" fill={colors.emerald}>
       <Path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" />
     </Svg>
-  );
-}
-
-function CloseButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Skip"
-      hitSlop={10}
-      onPress={onPress}
-      style={({ pressed }) => [styles.close, pressed && { backgroundColor: colors.sageSoft }]}
-    >
-      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-        <Path d="M6 6l12 12M18 6L6 18" stroke={colors.muted} strokeWidth={2.2} strokeLinecap="round" />
-      </Svg>
-    </Pressable>
   );
 }
 
@@ -141,57 +123,12 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
 
   const tier = TIERS.find((t) => t.id === selected) ?? TIERS[0];
 
-  // Retention sheet shown when the user taps the X — one last $0 nudge before
-  // letting them leave to the app (they can still subscribe in settings later).
-  const [exitOpen, setExitOpen] = useState(false);
-  const sheet = useRef(new Animated.Value(0)).current;
-
-  const openExit = () => {
-    setExitOpen(true);
-    Animated.timing(sheet, {
-      toValue: 1,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
-  const closeExit = () => {
-    Animated.timing(sheet, { toValue: 0, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(
-      () => setExitOpen(false),
-    );
-  };
-
-  // Persist onboarding (POST /onboarding/complete) before leaving the flow. The
-  // draft lives in OnboardingContext, so on failure we surface a retry and the
-  // answers are NOT lost. onComplete() (App handler) then refreshes home data;
-  // once the new profile arrives the router advances to the main app.
-  const complete = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const planTargets = await completePaywallOnboarding({
-        submit,
-        updateCachedUser: auth.updateCachedUser,
-      });
-      // Capture the backend-computed targets and switch to the celebration view.
-      // We deliberately do NOT call onComplete() here — the user advances to the
-      // app only when they tap Continue on YourPlanView. If the app is backgrounded
-      // here, auth already reflects the backend's completed user state.
-      setSubmittedPlan(planTargets);
-      setSubmitting(false);
-    } catch (e) {
-      setSubmitError(messageFromSubmitError(e));
-      setSubmitting(false);
-    }
-  };
-
-  const startTrial = () => {
+  const startSubscription = () => {
     if (submitting) return;
     setSubmitting(true);
     setSubmitError(null);
 
-    void startPaywallTrial({
+    void startPaywallSubscription({
       user: auth.user,
       planId: selected,
       purchasePlan: (input) => revenueCatService.purchasePlan(input),
@@ -201,6 +138,8 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       .then((result) => {
         if (result.status === "completed") {
           setSubmittedPlan(result.plan);
+        } else if (result.status === "inactive") {
+          setSubmitError("Purchase is still syncing. Try Restore in a moment to unlock Leanient.");
         }
       })
       .catch((e) => {
@@ -209,11 +148,6 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       .finally(() => {
         setSubmitting(false);
       });
-  };
-  const skipForNow = () => {
-    // Leave without subscribing → subscriptionStatus stays "free"; can upgrade in settings.
-    closeExit();
-    void complete();
   };
 
   // Once onboarding has been persisted, hold the user on the celebration view that
@@ -227,9 +161,6 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       <StatusBar style="dark" />
       <ScreenGround />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.closeRow}>
-          <CloseButton onPress={openExit} />
-        </View>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.titleBlock}>
             <Text style={styles.eyebrow}>YOUR PLAN IS READY</Text>
@@ -254,13 +185,9 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
             ))}
           </View>
 
-          <Button label="Start my 7-day free trial" onPress={startTrial} style={styles.cta} loading={submitting} disabled={submitting} />
+          <Button label="Subscribe" onPress={startSubscription} style={styles.cta} loading={submitting} disabled={submitting} />
           {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
-          <Text style={styles.trialNote}>{tier.trialNote}</Text>
-
-          <Pressable accessibilityRole="button" onPress={openExit} style={styles.notNow}>
-            <Text style={styles.notNowText}>Not now</Text>
-          </Pressable>
+          <Text style={styles.billingNote}>{tier.billingNote}</Text>
 
           <View style={styles.proof}>
             <View style={styles.stars}>
@@ -274,45 +201,6 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
           <SubscriptionLegal style={styles.legal} />
         </ScrollView>
       </SafeAreaView>
-
-      {exitOpen ? (
-        <View style={styles.overlay}>
-          {/* Frosted "bridge" between the paywall and the app: heavy blur + paper
-              wash so the paywall reads as abstract shapes, not a legible screen. */}
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: sheet }]}>
-            <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFill} />
-            <View style={styles.backdropTint} />
-            <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Dismiss" onPress={closeExit} />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.sheet,
-              { transform: [{ translateY: sheet.interpolate({ inputRange: [0, 1], outputRange: [460, 0] }) }] },
-            ]}
-          >
-            <View style={styles.grabber} />
-            <Text style={styles.sheetEyebrow}>BEFORE YOU GO</Text>
-            <Text style={styles.sheetTitle}>Try it free — pay nothing today</Text>
-
-            <View style={styles.zeroRow}>
-              <Text style={styles.zero}>$0</Text>
-              <Text style={styles.zeroUnit}>due today</Text>
-            </View>
-            <Text style={styles.sheetSub}>
-              7 days free, then {tier.price}{tier.unit.trim()}. Cancel anytime — we'll remind you 2 days before it
-              renews.
-            </Text>
-
-            <Button label="Start my 7-day free trial" onPress={startTrial} style={styles.sheetCta} loading={submitting} disabled={submitting} />
-            {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
-            <Pressable accessibilityRole="button" onPress={skipForNow} disabled={submitting} style={styles.sheetSkip}>
-              <Text style={styles.sheetSkipText}>I'll set it up in settings later</Text>
-            </Pressable>
-            <SubscriptionLegal style={styles.sheetLegal} muted />
-          </Animated.View>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -320,16 +208,7 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   safe: { flex: 1 },
-  closeRow: { alignItems: "flex-end", paddingHorizontal: 20, paddingTop: 6, height: 42 },
-  close: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.sageFill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scroll: { paddingHorizontal: 24, paddingTop: 2, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
   titleBlock: { alignItems: "center", gap: 6 },
   eyebrow: {
     fontFamily: font.semibold,
@@ -423,83 +302,19 @@ const styles = StyleSheet.create({
   },
   // cta + notes
   cta: { marginTop: 16 },
-  trialNote: {
+  billingNote: {
     fontFamily: font.medium,
     fontSize: 13,
     color: colors.muted,
     textAlign: "center",
     marginTop: 10,
   },
-  notNow: { alignSelf: "center", paddingVertical: 8, marginTop: 2 },
-  notNowText: { fontFamily: font.medium, fontSize: 14, color: colors.faint },
   submitError: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", textAlign: "center", marginTop: 10 },
   // proof
   proof: { alignItems: "center", gap: 8, marginTop: 18 },
   stars: { flexDirection: "row", gap: 3 },
   who: { fontFamily: font.medium, fontSize: 12, letterSpacing: 0.24, color: colors.faint },
   legal: { marginTop: 20, paddingHorizontal: 8 },
-  // retention sheet
-  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
-  backdropTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(243,242,237,0.55)" },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 34,
-    alignItems: "center",
-    shadowColor: "rgba(12,16,11,1)",
-    shadowOffset: { width: 0, height: -8 },
-    shadowRadius: 24,
-    shadowOpacity: 0.18,
-    elevation: 16,
-  },
-  grabber: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.faintest,
-    marginBottom: 18,
-  },
-  sheetEyebrow: {
-    fontFamily: font.semibold,
-    fontSize: 12,
-    letterSpacing: 1.08,
-    color: colors.muted,
-  },
-  sheetTitle: {
-    fontFamily: font.extrabold,
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: -0.6,
-    color: colors.ink,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  zeroRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 14 },
-  zero: {
-    fontFamily: font.light,
-    fontWeight: "300",
-    fontSize: 60,
-    lineHeight: 62,
-    letterSpacing: -1.8,
-    color: colors.emeraldDeep,
-  },
-  zeroUnit: { fontFamily: font.medium, fontSize: 16, color: colors.muted, marginBottom: 10 },
-  sheetSub: {
-    fontFamily: font.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: -0.14,
-    color: colors.muted,
-    textAlign: "center",
-    marginTop: 10,
-  },
-  sheetCta: { marginTop: 20, alignSelf: "stretch" },
-  sheetSkip: { paddingVertical: 12, marginTop: 4 },
-  sheetLegal: { marginTop: 6 },
-  sheetSkipText: { fontFamily: font.medium, fontSize: 14, color: colors.faint },
 });
 
 export default PaywallScreen;

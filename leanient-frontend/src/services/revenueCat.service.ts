@@ -75,6 +75,11 @@ function activeEntitlementFromCustomerInfo(customerInfo: CustomerInfo) {
   return Object.values(customerInfo.entitlements.active).find((entitlement) => entitlement.isActive);
 }
 
+/** Whether this customer currently holds any active entitlement (restore path). */
+export function hasActiveEntitlement(customerInfo: CustomerInfo): boolean {
+  return Boolean(activeEntitlementFromCustomerInfo(customerInfo));
+}
+
 function statusFromEntitlement(entitlement: ReturnType<typeof activeEntitlementFromCustomerInfo>): SubscriptionStatus {
   if (!entitlement) return "free";
   if (!entitlement.willRenew && entitlement.expirationDate) return "active_canceled";

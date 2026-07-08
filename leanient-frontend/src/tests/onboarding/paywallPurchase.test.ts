@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { startPaywallTrial } from "../../onboarding/paywallPurchase";
+import { startPaywallSubscription } from "../../onboarding/paywallPurchase";
 import { mockMedicationProtocol, mockProfile, mockWeightLogs } from "../../mocks/home";
 import { mockUser } from "../../mocks/user";
 import type { CompleteOnboardingResult } from "../../context/OnboardingContext";
@@ -36,7 +36,7 @@ function makeCustomerInfo() {
   };
 }
 
-describe("startPaywallTrial", () => {
+describe("startPaywallSubscription", () => {
   it("purchases before completing onboarding and caches the RevenueCat subscription state", async () => {
     const result = makeResult();
     const purchasePlan = vi.fn().mockResolvedValue({
@@ -46,7 +46,7 @@ describe("startPaywallTrial", () => {
     const submit = vi.fn().mockResolvedValue(result);
     const updateCachedUser = vi.fn().mockResolvedValue(result.user);
 
-    const outcome = await startPaywallTrial({
+    const outcome = await startPaywallSubscription({
       user: { ...mockUser, id: "user_1" },
       planId: "annual",
       purchasePlan,
@@ -72,7 +72,7 @@ describe("startPaywallTrial", () => {
     const submit = vi.fn();
     const updateCachedUser = vi.fn();
 
-    const outcome = await startPaywallTrial({
+    const outcome = await startPaywallSubscription({
       user: { ...mockUser, id: "user_1" },
       planId: "monthly",
       purchasePlan,
@@ -81,6 +81,33 @@ describe("startPaywallTrial", () => {
     });
 
     expect(outcome).toEqual({ status: "cancelled" });
+    expect(submit).not.toHaveBeenCalled();
+    expect(updateCachedUser).not.toHaveBeenCalled();
+  });
+
+  it("does not submit onboarding when the purchase has not unlocked an active entitlement", async () => {
+    const purchasePlan = vi.fn().mockResolvedValue({
+      status: "purchased",
+      customerInfo: {
+        originalAppUserId: "user_1",
+        entitlements: {
+          active: {},
+          all: {},
+        },
+      },
+    });
+    const submit = vi.fn();
+    const updateCachedUser = vi.fn();
+
+    const outcome = await startPaywallSubscription({
+      user: { ...mockUser, id: "user_1" },
+      planId: "annual",
+      purchasePlan,
+      submit,
+      updateCachedUser,
+    });
+
+    expect(outcome).toEqual({ status: "inactive" });
     expect(submit).not.toHaveBeenCalled();
     expect(updateCachedUser).not.toHaveBeenCalled();
   });
