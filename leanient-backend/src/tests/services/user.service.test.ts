@@ -1,4 +1,9 @@
-import { ERROR_CODES, type AuthProvider, type SubscriptionStatus } from "@leanient/shared";
+import {
+  ERROR_CODES,
+  userResponseSchema,
+  type AuthProvider,
+  type SubscriptionStatus,
+} from "@leanient/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderIdentity } from "../../auth/identity";
 
@@ -14,6 +19,8 @@ interface MockUserInit {
   authProviders?: MockLinkedAuthProvider[];
   displayName?: string;
   avatarUrl?: string;
+  revenueCatCustomerId?: string | null;
+  revenueCatEntitlement?: string | null;
 }
 
 interface MockUserDocument {
@@ -26,6 +33,8 @@ interface MockUserDocument {
   authProviders: MockLinkedAuthProvider[];
   displayName?: string;
   avatarUrl?: string;
+  revenueCatCustomerId?: string | null;
+  revenueCatEntitlement?: string | null;
   subscriptionStatus: SubscriptionStatus;
   subscriptionWillRenew: boolean;
   createdAt: Date;
@@ -66,6 +75,8 @@ const userModelMock = vi.hoisted(() => {
       authProviders: init.authProviders ? [...init.authProviders] : [],
       displayName: init.displayName,
       avatarUrl: init.avatarUrl,
+      revenueCatCustomerId: init.revenueCatCustomerId,
+      revenueCatEntitlement: init.revenueCatEntitlement,
       subscriptionStatus: "free",
       subscriptionWillRenew: false,
       createdAt: new Date("2026-06-01T12:00:00.000Z"),
@@ -300,6 +311,20 @@ describe("user service", () => {
         providerUserId: "apple_relay_1",
       },
     ]);
+  });
+
+  it("omits null RevenueCat fields from serialized user responses", () => {
+    const user = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      revenueCatCustomerId: null,
+      revenueCatEntitlement: null,
+    });
+
+    const serialized = serializeUser(user);
+
+    expect(serialized.revenueCatCustomerId).toBeUndefined();
+    expect(serialized.revenueCatEntitlement).toBeUndefined();
+    expect(userResponseSchema.parse(serialized)).toEqual(serialized);
   });
 
   it("links a new Apple identity to the current signed-in user without creating another user", async () => {
