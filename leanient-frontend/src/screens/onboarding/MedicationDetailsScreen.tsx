@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Eyebrow } from "../../components/ui/Eyebrow";
-import { Button } from "../../components/ui/Button";
+import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { Wheel, type WheelItem } from "../../components/ui/Wheel";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useOnboarding } from "../../context/OnboardingContext";
@@ -23,10 +18,10 @@ import {
   toIsoDate,
   type DateParts,
 } from "../../onboarding/medicationDetails";
+import { onboardingProgress } from "../../onboarding/flowProgress";
+import { ink } from "../../theme/inkTokens";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
-
-const RISE_EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 interface MedicationDetailsScreenProps {
   onBack?: () => void;
@@ -36,10 +31,10 @@ interface MedicationDetailsScreenProps {
 const MONTH_ITEMS: WheelItem[] = MONTHS_SHORT.map((label, value) => ({ label, value }));
 
 /**
- * Medication Details (onboarding, after the GLP picker). Fills the contract's
- * required `startDate` + `doseUnit`. Variant A: the dose unit is derived from the
- * selected medication's catalog entry and shown read-only, so the user only sets
- * the start date. Everything is dynamic from the chosen medication.
+ * Start date + dose, as a conversation turn. Fills the contract's required
+ * `startDate` + `doseUnit`; the dose is derived from the chosen medication's
+ * catalog entry. The light Wheel pickers sit on a paper panel — an input
+ * surface on the ink ground — so the shared Wheel stays untouched.
  */
 export function MedicationDetailsScreen({ onBack, onContinue }: MedicationDetailsScreenProps) {
   const { draft, setMedication } = useOnboarding();
@@ -73,15 +68,6 @@ export function MedicationDetailsScreen({ onBack, onContinue }: MedicationDetail
     [parts.year, parts.month],
   );
 
-  const rise = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(rise, { toValue: 1, duration: 520, easing: RISE_EASE, useNativeDriver: true }).start();
-  }, [rise]);
-  const bodyStyle = {
-    opacity: rise,
-    transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-  };
-
   const dateLabel = formatLongDate(clampToToday(parts, now));
 
   const handleContinue = () => {
@@ -95,94 +81,87 @@ export function MedicationDetailsScreen({ onBack, onContinue }: MedicationDetail
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScreenHeader progress={0.18} onBack={onBack} />
-
-        <Animated.View style={[styles.body, bodyStyle]}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.h1}>When did you start {view.medName}?</Text>
-            <Text style={styles.sub}>We'll time your weekly check-ins and progress from this date.</Text>
+    <ConvoScreen
+      progress={onboardingProgress("medicationDetails")}
+      onBack={onBack}
+      context={`${view.medName}. Got it.`}
+      question="When did you start?"
+      sub="Your check-ins and progress are timed from this date."
+      footer={<ConvoButton label="Continue" onPress={handleContinue} />}
+    >
+      <View style={styles.labelRow}>
+        <Text style={styles.eyebrow}>START DATE</Text>
+        <Text style={styles.dateLabel}>{dateLabel}</Text>
+      </View>
+      <View style={styles.panel}>
+        <View style={styles.wheelRow}>
+          <View style={styles.wheelCol}>
+            <Wheel
+              items={MONTH_ITEMS}
+              value={parts.month}
+              onChange={(month) => setParts((p) => clampDay({ ...p, month }))}
+              height={178}
+              fontSize={19}
+              centerScale={1.25}
+            />
           </View>
-
-          <View style={styles.eyebrowRow}>
-            <Eyebrow>START DATE</Eyebrow>
-            <Text style={styles.dateLabel}>{dateLabel}</Text>
+          <View style={styles.wheelCol}>
+            <Wheel
+              key={`day-${parts.year}-${parts.month}`}
+              items={dayItems}
+              value={Math.min(parts.day, dayItems.length)}
+              onChange={(day) => setParts((p) => ({ ...p, day }))}
+              height={178}
+              fontSize={19}
+              centerScale={1.25}
+            />
           </View>
-          <View style={styles.wheelRow}>
-            <View style={styles.wheelCol}>
-              <Wheel
-                items={MONTH_ITEMS}
-                value={parts.month}
-                onChange={(month) => setParts((p) => clampDay({ ...p, month }))}
-                height={186}
-                fontSize={19}
-                centerScale={1.25}
-              />
-            </View>
-            <View style={styles.wheelCol}>
-              <Wheel
-                key={`day-${parts.year}-${parts.month}`}
-                items={dayItems}
-                value={Math.min(parts.day, dayItems.length)}
-                onChange={(day) => setParts((p) => ({ ...p, day }))}
-                height={186}
-                fontSize={19}
-                centerScale={1.25}
-              />
-            </View>
-            <View style={styles.wheelCol}>
-              <Wheel
-                items={yearItems}
-                value={parts.year}
-                onChange={(year) => setParts((p) => clampDay({ ...p, year }))}
-                height={186}
-                fontSize={19}
-                centerScale={1.25}
-              />
-            </View>
+          <View style={styles.wheelCol}>
+            <Wheel
+              items={yearItems}
+              value={parts.year}
+              onChange={(year) => setParts((p) => clampDay({ ...p, year }))}
+              height={178}
+              fontSize={19}
+              centerScale={1.25}
+            />
           </View>
+        </View>
+      </View>
 
-          <Eyebrow style={styles.doseEyebrow}>YOUR DOSE</Eyebrow>
-          <View style={styles.doseCard}>
-            <View style={styles.doseIcon}>
-              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
-              </Svg>
-            </View>
-            <View style={styles.doseText}>
-              <Text style={styles.doseValue}>{view.doseLabel}</Text>
-              <Text style={styles.doseNote}>
-                {view.hasDerivedAmount
-                  ? `Starting dose, set from ${view.medName}. You can change it later in settings.`
-                  : `Set automatically from ${view.medName}. You can fine-tune it later in settings.`}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.spacer} />
-
-          <Button label="Continue" onPress={handleContinue} />
-        </Animated.View>
-      </SafeAreaView>
-    </View>
+      <Text style={[styles.eyebrow, styles.doseEyebrow]}>YOUR DOSE</Text>
+      <View style={styles.doseCard}>
+        <View style={styles.doseIcon}>
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={ink.emeraldHi} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4" />
+          </Svg>
+        </View>
+        <View style={styles.doseText}>
+          <Text style={styles.doseValue}>{view.doseLabel}</Text>
+          <Text style={styles.doseNote}>
+            {view.hasDerivedAmount
+              ? `Starting dose, set from ${view.medName}. You can change it later in settings.`
+              : `Set automatically from ${view.medName}. You can fine-tune it later in settings.`}
+          </Text>
+        </View>
+      </View>
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  safe: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  titleBlock: { marginBottom: 8 },
-  h1: { fontFamily: font.extrabold, fontSize: 30, lineHeight: 34, letterSpacing: -0.75, color: colors.ink },
-  sub: { fontFamily: font.regular, fontSize: 16, lineHeight: 23, letterSpacing: -0.16, color: colors.muted, marginTop: 10 },
-  eyebrowRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 22, marginBottom: 6 },
-  dateLabel: { fontFamily: font.semibold, fontSize: 14, letterSpacing: -0.14, color: colors.emeraldDeep },
+  labelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 26, marginBottom: 8 },
+  eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.99, color: ink.faint },
+  dateLabel: { fontFamily: font.semibold, fontSize: 14, letterSpacing: -0.14, color: ink.emeraldHi },
+  panel: {
+    borderRadius: 20,
+    backgroundColor: colors.paper,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
   wheelRow: { flexDirection: "row", gap: 8 },
   wheelCol: { flex: 1 },
-  doseEyebrow: { marginTop: 24, marginBottom: 12 },
+  doseEyebrow: { marginTop: 24, marginBottom: 10 },
   doseCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -190,9 +169,9 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: "rgba(47,184,122,0.08)",
+    backgroundColor: "rgba(47,184,122,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(47,184,122,0.22)",
+    borderColor: "rgba(111,224,166,0.30)",
   },
   doseIcon: {
     width: 36,
@@ -200,12 +179,11 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#EEF7F1",
+    backgroundColor: "rgba(238,244,234,0.10)",
   },
   doseText: { flex: 1 },
-  doseValue: { fontFamily: font.bold, fontSize: 16, letterSpacing: -0.16, color: colors.emeraldDeep },
-  doseNote: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: colors.muted, marginTop: 2 },
-  spacer: { flex: 1, minHeight: 18 },
+  doseValue: { fontFamily: font.bold, fontSize: 16, letterSpacing: -0.16, color: ink.emeraldHi },
+  doseNote: { fontFamily: font.regular, fontSize: 12.5, lineHeight: 17, color: ink.soft, marginTop: 2 },
 });
 
 export default MedicationDetailsScreen;

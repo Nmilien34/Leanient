@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo } from "react";
-import { SingleSelectScreen } from "./SingleSelectScreen";
+import { ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { buildGlpOptions, type GlpSelection } from "../../onboarding/options";
 import { mockMedicationCatalog } from "../../mocks/medications";
 import { useLeanientData } from "../../context/LeanientDataContext";
 import { useOnboarding } from "../../context/OnboardingContext";
+import { onboardingProgress } from "../../onboarding/flowProgress";
 
 interface GlpScreenProps {
   onBack?: () => void;
@@ -39,12 +40,13 @@ export function GlpScreen({ onBack, onAnswer }: GlpScreenProps) {
   };
 
   return (
-    <SingleSelectScreen<GlpSelection>
-      progress={0.12}
-      title="Are you on a GLP-1 medication?"
-      sub="Leanient is built specifically for people on these. If you're not, we may not be the right fit."
-      options={options}
+    <ConvoScreen<GlpSelection>
+      progress={onboardingProgress("glp")}
       onBack={onBack}
+      context="Got it."
+      question="What are you taking?"
+      sub="No judgment here. This tunes everything to your med's rhythm."
+      options={options.map((o) => ({ label: o.label, value: o.value }))}
       onAnswer={handleAnswer}
     />
   );

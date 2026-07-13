@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Platform, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScreenGround } from "../../components/layout/ScreenGround";
 import { RadialGlow } from "../../components/layout/RadialGlow";
 import { BackButton } from "../../components/ui/BackButton";
 import { useOnboarding } from "../../context/OnboardingContext";
@@ -12,12 +12,16 @@ import { PACE_OPTIONS } from "../../onboarding/options";
 import { paceForBucket, paceRange, projectTargetDate, formatLongDate } from "../../onboarding/pace";
 import { DEFAULT_WEIGHT_LB } from "../../onboarding/units";
 import { colors } from "../../theme/tokens";
+import { ink } from "../../theme/inkTokens";
 import { font } from "../../theme/fonts";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const R = 80;
 const C = 2 * Math.PI * R; // 502.65
+// Step completion points (matches the StepDef thresholds below) — each crossing
+// fires a haptic tick so the build is felt, piece by piece.
+const STEP_THRESHOLDS = [22, 46, 70, 96];
 // Beat after the ring hits 100% before advancing.
 const HOLD_MS = 900;
 
@@ -181,6 +185,14 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
     const listener = progress.addListener(({ value }) => {
       const p = Math.round(value);
       if (p !== lastPct.current) {
+        // Each completed build step lands with a physical tick, so the plan
+        // feels assembled piece by piece rather than watched.
+        if (Platform.OS !== "web") {
+          const crossed = STEP_THRESHOLDS.some((t) => lastPct.current < t && p >= t);
+          if (crossed) {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }
+        }
         lastPct.current = p;
         setPct(p);
       }
@@ -245,8 +257,7 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
+      <StatusBar style="light" />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {onBack ? (
           <View style={styles.backRow}>
@@ -275,7 +286,7 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
                     <Stop offset="100%" stopColor="#E3A65E" />
                   </SvgGradient>
                 </Defs>
-                <Circle cx={92} cy={92} r={R} stroke="rgba(62,94,65,0.12)" strokeWidth={16} fill="none" />
+                <Circle cx={92} cy={92} r={R} stroke="rgba(238,244,234,0.12)" strokeWidth={16} fill="none" />
                 <AnimatedCircle
                   cx={92}
                   cy={92}
@@ -315,7 +326,7 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
+  root: { flex: 1, backgroundColor: ink.ground },
   safe: { flex: 1 },
   backRow: { paddingHorizontal: 24, paddingTop: 10 },
   body: {
@@ -337,7 +348,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     fontSize: 54,
     letterSpacing: -1.62,
-    color: colors.ink,
+    color: ink.bright,
     fontVariant: ["tabular-nums"],
     lineHeight: 54,
   },
@@ -345,7 +356,7 @@ const styles = StyleSheet.create({
     fontFamily: font.regular,
     fontSize: 24,
     lineHeight: 26,
-    color: colors.muted,
+    color: ink.soft,
     marginLeft: 2,
   },
   textGroup: { alignItems: "center", gap: 8 },
@@ -353,7 +364,7 @@ const styles = StyleSheet.create({
     fontFamily: font.extrabold,
     fontSize: 26,
     letterSpacing: -0.65,
-    color: colors.ink,
+    color: ink.bright,
     textAlign: "center",
   },
   sub: {
@@ -361,7 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     letterSpacing: -0.15,
-    color: colors.muted,
+    color: ink.soft,
     textAlign: "center",
   },
   steps: { alignSelf: "stretch", gap: 12 },
@@ -372,9 +383,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 16,
     borderRadius: 18,
-    backgroundColor: colors.glass,
+    backgroundColor: ink.bubbleGround,
     borderWidth: 1,
-    borderColor: colors.glassLine,
+    borderColor: ink.bubbleLine,
     shadowColor: "rgba(24,28,24,1)",
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 16,
@@ -394,9 +405,9 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 19,
     letterSpacing: -0.145,
-    color: colors.ink,
+    color: ink.bright,
   },
-  stepTextWait: { color: colors.muted },
+  stepTextWait: { color: ink.soft },
   endDone: {
     width: 26,
     height: 26,
@@ -415,14 +426,14 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: colors.faintest,
+    borderColor: ink.chipBorder,
   },
   spinner: {
     width: 26,
     height: 26,
     borderRadius: 13,
     borderWidth: 2.5,
-    borderColor: colors.emeraldDeep,
+    borderColor: ink.emeraldHi,
     borderRightColor: "transparent",
   },
 });

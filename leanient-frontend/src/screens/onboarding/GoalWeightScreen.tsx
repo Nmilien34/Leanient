@@ -1,19 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Eyebrow } from "../../components/ui/Eyebrow";
-import { BigNum } from "../../components/ui/BigNum";
+import React, { useMemo, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { Slider } from "../../components/ui/Slider";
-import { Button } from "../../components/ui/Button";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { goalWeightRange, DEFAULT_WEIGHT_LB } from "../../onboarding/units";
-import { colors } from "../../theme/tokens";
+import { onboardingProgress } from "../../onboarding/flowProgress";
+import { ink } from "../../theme/inkTokens";
 import { font } from "../../theme/fonts";
-
-const RISE_EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 interface GoalWeightScreenProps {
   onBack?: () => void;
@@ -34,18 +27,8 @@ export function GoalWeightScreen({ onBack, onContinue }: GoalWeightScreenProps) 
   const diff = currentWeight - goal;
   const helper =
     diff > 0
-      ? `${diff} ${unit} below where you are today`
-      : `Your current weight`;
-
-  const rise = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(rise, { toValue: 1, duration: 520, easing: RISE_EASE, useNativeDriver: true }).start();
-  }, [rise]);
-
-  const bodyStyle = {
-    opacity: rise,
-    transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-  };
+      ? `${diff} ${unit} to go. Completely doable, the keeping-your-muscle way.`
+      : "Your current weight";
 
   const handleContinue = () => {
     setProfile({ goalWeight: goal, goalWeightUnit: unit });
@@ -53,80 +36,44 @@ export function GoalWeightScreen({ onBack, onContinue }: GoalWeightScreenProps) 
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScreenHeader progress={0.72} onBack={onBack} />
+    <ConvoScreen
+      progress={onboardingProgress("goalWeight")}
+      onBack={onBack}
+      context={`${currentWeight} ${unit} today. Thanks for trusting me with that.`}
+      question="Where do you want to land?"
+      sub="Set the weight you want to hold long-term. A number for life, never a crash target."
+      footer={<ConvoButton label="Continue" onPress={handleContinue} />}
+    >
+      <View style={styles.readout}>
+        <Text style={styles.goalNum}>
+          {goal} <Text style={styles.goalUnit}>{unit}</Text>
+        </Text>
+        <Text style={styles.helper}>{helper}</Text>
+      </View>
 
-        <Animated.View style={[styles.body, bodyStyle]}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.h1}>Where do you want to land?</Text>
-            <Text style={styles.sub}>Set the weight you want to hold long-term. Not a temporary number.</Text>
-          </View>
-
-          <View style={styles.readout}>
-            <Eyebrow>GOAL WEIGHT</Eyebrow>
-            <BigNum value={String(goal)} unit={unit} />
-            <Text style={styles.helper}>{helper}</Text>
-          </View>
-
-          <View style={styles.sliderBlock}>
-            <Slider min={range.min} max={range.max} value={goal} onChange={setGoal} />
-            <View style={styles.marks}>
-              <Text style={styles.mark}>
-                {range.min} {unit}
-              </Text>
-              <Text style={styles.mark}>
-                {range.max} {unit}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.spacer} />
-
-          <Button label="Continue" onPress={handleContinue} />
-        </Animated.View>
-      </SafeAreaView>
-    </View>
+      <View style={styles.sliderBlock}>
+        <Slider min={range.min} max={range.max} value={goal} onChange={setGoal} />
+        <View style={styles.marks}>
+          <Text style={styles.mark}>
+            {range.min} {unit}
+          </Text>
+          <Text style={styles.mark}>
+            {range.max} {unit}
+          </Text>
+        </View>
+      </View>
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  safe: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  titleBlock: { marginBottom: 8 },
-  h1: {
-    fontFamily: font.extrabold,
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -0.75,
-    color: colors.ink,
-  },
-  sub: {
-    fontFamily: font.regular,
-    fontSize: 16,
-    lineHeight: 23,
-    letterSpacing: -0.16,
-    color: colors.muted,
-    marginTop: 10,
-  },
-  readout: { alignItems: "center", gap: 6, marginTop: 48 },
-  helper: {
-    fontFamily: font.medium,
-    fontSize: 15,
-    letterSpacing: -0.15,
-    color: colors.muted,
-  },
-  sliderBlock: { marginTop: 44, gap: 14 },
-  marks: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 2 },
-  mark: {
-    fontFamily: font.medium,
-    fontSize: 13,
-    color: colors.faint,
-  },
-  spacer: { flex: 1, minHeight: 18 },
+  readout: { marginTop: 30 },
+  goalNum: { fontFamily: font.extrabold, fontSize: 56, letterSpacing: -1.96, color: ink.bright },
+  goalUnit: { fontFamily: font.semibold, fontSize: 20, color: ink.soft },
+  helper: { fontFamily: font.medium, fontSize: 13.5, lineHeight: 19, color: ink.soft, marginTop: 8 },
+  sliderBlock: { marginTop: 22 },
+  marks: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
+  mark: { fontFamily: font.semibold, fontSize: 12, color: ink.faint },
 });
 
 export default GoalWeightScreen;

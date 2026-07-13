@@ -1,7 +1,8 @@
 import React from "react";
-import { SingleSelectScreen } from "./SingleSelectScreen";
+import { ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { TRAINING_STATUS_OPTIONS } from "../../onboarding/options";
 import { useOnboarding } from "../../context/OnboardingContext";
+import { onboardingProgress } from "../../onboarding/flowProgress";
 import type { TrainingStatus } from "@leanient/shared";
 
 interface TrainingStatusScreenProps {
@@ -10,9 +11,10 @@ interface TrainingStatusScreenProps {
 }
 
 /**
- * Training Status (onboarding). Captures the required `profile.trainingStatus`,
- * which feeds the backend Mifflin-St Jeor calorie model plus the inferred weekly
- * workout target / equipment access. Single-select with title + subtext cards.
+ * Training status. Captures the required `profile.trainingStatus`, which feeds
+ * the backend Mifflin-St Jeor calorie model plus the inferred weekly workout
+ * target / equipment access. Options keep their sub-lines so "not yet" reads
+ * as the perfect starting point, never a confession.
  */
 export function TrainingStatusScreen({ onBack, onAnswer }: TrainingStatusScreenProps) {
   const { setProfile } = useOnboarding();
@@ -23,12 +25,12 @@ export function TrainingStatusScreen({ onBack, onAnswer }: TrainingStatusScreenP
   };
 
   return (
-    <SingleSelectScreen<TrainingStatus>
-      progress={0.66}
-      title="How are you training right now?"
-      sub="This helps us calibrate your daily calorie target. You can adjust later."
-      options={TRAINING_STATUS_OPTIONS}
+    <ConvoScreen<TrainingStatus>
+      progress={onboardingProgress("trainingStatus")}
       onBack={onBack}
+      context="Last one. Be honest."
+      question="How are you training right now?"
+      options={TRAINING_STATUS_OPTIONS.map((o) => ({ label: o.label, sub: o.sub, value: o.value }))}
       onAnswer={handleAnswer}
     />
   );

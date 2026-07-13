@@ -1,13 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Eyebrow } from "../../components/ui/Eyebrow";
+import React, { useMemo, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { Wheel } from "../../components/ui/Wheel";
-import { Toggle } from "../../components/ui/Toggle";
-import { Button } from "../../components/ui/Button";
 import { useOnboarding } from "../../context/OnboardingContext";
 import {
   buildHeightItems,
@@ -20,10 +15,10 @@ import {
   weightUnitFor,
   type UnitSystem,
 } from "../../onboarding/units";
+import { onboardingProgress } from "../../onboarding/flowProgress";
+import { ink } from "../../theme/inkTokens";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
-
-const RISE_EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 const SYSTEM_OPTIONS = [
   { label: "Imperial", value: "imperial" as UnitSystem },
@@ -61,19 +56,12 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
 
   const handleSystemChange = (next: UnitSystem) => {
     if (next === system) return;
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     setHeightSel((prev) => ({ value: convertHeight(prev.value, prev.unit, heightUnitFor(next)), unit: heightUnitFor(next) }));
     setWeightSel((prev) => ({ value: convertWeight(prev.value, prev.unit, weightUnitFor(next)), unit: weightUnitFor(next) }));
     setSystem(next);
-  };
-
-  const rise = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(rise, { toValue: 1, duration: 520, easing: RISE_EASE, useNativeDriver: true }).start();
-  }, [rise]);
-
-  const bodyStyle = {
-    opacity: rise,
-    transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
   };
 
   const handleContinue = () => {
@@ -86,85 +74,83 @@ export function HeightWeightScreen({ onBack, onContinue }: HeightWeightScreenPro
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScreenHeader progress={0.6} onBack={onBack} />
+    <ConvoScreen
+      progress={onboardingProgress("heightWeight")}
+      onBack={onBack}
+      context="Thanks for trusting me with the basics."
+      question="Your starting point."
+      sub="This stays private. It's the baseline we measure progress against."
+      footer={<ConvoButton label="Continue" onPress={handleContinue} />}
+    >
+      <View style={styles.segRow}>
+        {SYSTEM_OPTIONS.map((o) => {
+          const on = system === o.value;
+          return (
+            <Pressable
+              key={o.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={o.label}
+              onPress={() => handleSystemChange(o.value)}
+              style={[styles.seg, on && styles.segOn]}
+            >
+              <Text style={[styles.segText, on && styles.segTextOn]}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-        <Animated.View style={[styles.body, bodyStyle]}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.h1}>Your starting point.</Text>
-            <Text style={styles.sub}>
-              We'll keep this private. It's the baseline we measure progress against.
-            </Text>
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.eyebrow}>HEIGHT</Text>
+          <View style={styles.panel}>
+            <Wheel
+              key={`height-${heightUnit}`}
+              items={heightItems}
+              value={height.value}
+              onChange={handleHeightChange}
+              height={220}
+              fontSize={20}
+              centerScale={1.3}
+            />
           </View>
-
-          <View style={styles.row}>
-            <View style={styles.col}>
-              <Eyebrow style={styles.eyebrow}>HEIGHT</Eyebrow>
-              <Wheel
-                key={`height-${heightUnit}`}
-                items={heightItems}
-                value={height.value}
-                onChange={handleHeightChange}
-                height={240}
-                fontSize={20}
-                centerScale={1.3}
-              />
-            </View>
-            <View style={styles.col}>
-              <Eyebrow style={styles.eyebrow}>WEIGHT</Eyebrow>
-              <Wheel
-                key={`weight-${weightUnit}`}
-                items={weightItems}
-                value={weight.value}
-                onChange={handleWeightChange}
-                height={240}
-                fontSize={20}
-                centerScale={1.3}
-              />
-            </View>
+        </View>
+        <View style={styles.col}>
+          <Text style={styles.eyebrow}>WEIGHT</Text>
+          <View style={styles.panel}>
+            <Wheel
+              key={`weight-${weightUnit}`}
+              items={weightItems}
+              value={weight.value}
+              onChange={handleWeightChange}
+              height={220}
+              fontSize={20}
+              centerScale={1.3}
+            />
           </View>
-
-          <View style={styles.toggleWrap}>
-            <Toggle options={SYSTEM_OPTIONS} value={system} onChange={handleSystemChange} />
-          </View>
-
-          <View style={styles.spacer} />
-
-          <Button label="Continue" onPress={handleContinue} />
-        </Animated.View>
-      </SafeAreaView>
-    </View>
+        </View>
+      </View>
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  safe: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  titleBlock: { marginBottom: 8 },
-  h1: {
-    fontFamily: font.extrabold,
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -0.75,
-    color: colors.ink,
+  segRow: { flexDirection: "row", gap: 10, marginTop: 26 },
+  seg: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 22,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: ink.chipBorder,
   },
-  sub: {
-    fontFamily: font.regular,
-    fontSize: 16,
-    lineHeight: 23,
-    letterSpacing: -0.16,
-    color: colors.muted,
-    marginTop: 10,
-  },
-  row: { flexDirection: "row", gap: 14, marginTop: 30 },
-  col: { flex: 1, gap: 12 },
-  eyebrow: { textAlign: "center" },
-  toggleWrap: { marginTop: 20 },
-  spacer: { flex: 1, minHeight: 18 },
+  segOn: { backgroundColor: ink.emerald, borderColor: ink.emerald },
+  segText: { fontFamily: font.semibold, fontSize: 14.5, color: ink.chipText },
+  segTextOn: { fontFamily: font.bold, color: ink.onEmerald },
+  row: { flexDirection: "row", gap: 10, marginTop: 22 },
+  col: { flex: 1 },
+  eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.99, color: ink.faint, marginBottom: 10 },
+  panel: { borderRadius: 20, backgroundColor: colors.paper, paddingVertical: 8, paddingHorizontal: 8 },
 });
 
 export default HeightWeightScreen;

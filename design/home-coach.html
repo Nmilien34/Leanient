@@ -1,0 +1,2614 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Coach Home Redesign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ================= tokens: 1:1 with src/theme/tokens.ts ================= */
+      :root {
+        --paper: #f3f2ed;
+        --card: #fcfcfa;
+        --ink: #17191b;
+        --ink-soft: #3a3d3a;
+        --muted: #6e6f6a;
+        --faint: #9a9b95;
+        --faintest: #cbcbc4;
+        --line: #e4e3dd;
+        --sage-fill: #ecece6;
+        --glass: rgba(255, 255, 255, 0.55);
+        --glass-line: rgba(255, 255, 255, 0.75);
+        --emerald-hi: #6fe0a6;
+        --emerald: #2fb87a;
+        --emerald-deep: #1f9e63;
+        --amber: #e3a65e;
+        --amber-deep: #c8843a;
+        --slate: #566159;
+        --font: "Geist", system-ui, sans-serif;
+        --w-regular: 400;
+        --w-medium: 500;
+        --w-semibold: 600;
+        --w-bold: 700;
+        --w-extrabold: 800;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        font-family: var(--font);
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        background-repeat: no-repeat;
+        color: #e7eede;
+        padding: 40px 28px 80px;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.045;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .topbar {
+        max-width: 1320px;
+        margin: 0 auto 44px;
+        display: flex;
+        align-items: flex-end;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .brand .m {
+        width: 30px;
+        height: 36px;
+        display: flex;
+        filter: drop-shadow(0 4px 10px rgba(47, 184, 122, 0.4));
+      }
+      .brand h1 {
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #f4f8ef;
+      }
+      .brand h1 span {
+        color: var(--emerald);
+      }
+      .topbar p {
+        color: #8ea08a;
+        font-size: 13.5px;
+        line-height: 1.5;
+        max-width: 720px;
+        margin-top: 6px;
+      }
+      .gallery {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 56px 44px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .dev {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .dev .tag {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        color: #8ea08a;
+        font-size: 13px;
+        font-weight: 500;
+        max-width: 390px;
+        text-align: center;
+      }
+      .dev .tag b {
+        color: #e7eede;
+        font-weight: 600;
+      }
+      .dev .tag .n {
+        font-size: 11px;
+        font-weight: 700;
+        color: #11160f;
+        background: var(--emerald);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .device {
+        width: 390px;
+        flex: none;
+        position: relative;
+        background: #0c100b;
+        border-radius: 54px;
+        padding: 9px;
+        box-shadow:
+          0 2px 0 1px #2a352440 inset,
+          0 50px 90px -40px rgba(0, 0, 0, 0.85),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .screen {
+        width: 100%;
+        border-radius: 46px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        color: var(--ink);
+        background:
+          radial-gradient(80% 40% at 100% 0%, rgba(47, 184, 122, 0.06), transparent 60%),
+          var(--paper);
+      }
+      .sb {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 26px 6px;
+        flex: none;
+      }
+      .sb .t {
+        font-size: 16px;
+        font-weight: var(--w-semibold);
+      }
+
+      /* ============ app bar — HomeScreen appbar/wm/wtog/avatar, exact ============ */
+      .appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 20px 10px;
+      }
+      .appbar .wm {
+        font-weight: var(--w-semibold);
+        font-size: 18px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .wtog {
+        display: flex;
+        gap: 3px;
+        padding: 4px;
+        border-radius: 12px;
+        background: #e9eae4;
+      }
+      .wtog div {
+        padding: 6px 13px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        font-weight: var(--w-semibold);
+        color: var(--muted);
+      }
+      .wtog div.on {
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 3px 8px -3px rgba(24, 28, 24, 0.25);
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(150deg, #d9dcd3, #b9beb2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: var(--w-bold);
+        font-size: 13px;
+        color: #5b6157;
+      }
+      /* the streak chip: ubiquitous, every screen's app bar */
+      .stkchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(47, 184, 122, 0.12);
+        border-radius: 11px;
+        padding: 5px 9px;
+        font-weight: var(--w-extrabold);
+        font-size: 12.5px;
+        letter-spacing: -0.01em;
+        color: var(--emerald-deep);
+      }
+
+      /* ============ achievements: award sheet + medal grid ============ */
+      .awardwrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 6px 6px 2px;
+        text-align: center;
+      }
+      .bigmedal {
+        width: 76px;
+        height: 76px;
+        border-radius: 38px;
+        background: linear-gradient(160deg, #4ecf8b, #1f9e63);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 16px 30px rgba(31, 158, 99, 0.4);
+        margin-bottom: 14px;
+      }
+      .awardwrap h3 {
+        padding: 0 !important;
+      }
+      .stknum {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .stknum b {
+        font-weight: var(--w-extrabold);
+        font-size: 44px;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+      }
+      .stknum span {
+        font-weight: var(--w-semibold);
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .awarddots {
+        display: flex;
+        gap: 7px;
+        margin-top: 14px;
+      }
+      .awarddots i {
+        width: 13px;
+        height: 13px;
+        border-radius: 7px;
+        background: var(--sage-fill);
+        display: block;
+      }
+      .awarddots i.f {
+        background: var(--emerald);
+      }
+      .awarddots i.t {
+        background: #fff;
+        border: 2.5px solid var(--emerald);
+      }
+      .nextbadge {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        margin-top: 18px;
+        background: rgba(227, 166, 94, 0.1);
+        border: 1px solid rgba(227, 166, 94, 0.3);
+        border-radius: 16px;
+        padding: 12px 14px;
+        text-align: left;
+      }
+      .nextbadge .nbic {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        background: var(--amber);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .nextbadge .nbt {
+        font-weight: var(--w-extrabold);
+        font-size: 14px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+      }
+      .nextbadge .nbs {
+        font-weight: var(--w-medium);
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .awardcoach {
+        font-weight: var(--w-medium);
+        font-size: 13.5px;
+        line-height: 19px;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+      /* medal grid (achievements screen) */
+      .medgrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin: 10px 20px 0;
+      }
+      .medal {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 10px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .medal .mico {
+        width: 44px;
+        height: 44px;
+        border-radius: 22px;
+        background: linear-gradient(160deg, #4ecf8b, #1f9e63);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+      .medal .mico.amber {
+        background: linear-gradient(160deg, #ecc084, #c8843a);
+      }
+      .medal.locked .mico {
+        background: var(--sage-fill);
+      }
+      .medal .mn {
+        font-weight: var(--w-extrabold);
+        font-size: 12px;
+        letter-spacing: -0.01em;
+        line-height: 15px;
+        color: var(--ink);
+      }
+      .medal.locked .mn {
+        color: var(--muted);
+      }
+      .medal .mdte {
+        font-weight: var(--w-medium);
+        font-size: 10px;
+        color: var(--faint);
+        margin-top: 3px;
+      }
+      .medal .mbar {
+        width: 100%;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--sage-fill);
+        margin-top: 7px;
+        overflow: hidden;
+      }
+      .medal .mbar i {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        background: var(--emerald);
+      }
+      .passrow {
+        margin: 12px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--glass);
+        border: 1px solid var(--glass-line);
+        border-radius: 16px;
+        padding: 12px 14px;
+        backdrop-filter: blur(12px);
+      }
+      .passrow .pic2 {
+        width: 34px;
+        height: 34px;
+        border-radius: 17px;
+        background: rgba(47, 184, 122, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .passrow .pt2 {
+        font-weight: var(--w-bold);
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+      .passrow .ps2 {
+        font-weight: var(--w-medium);
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+
+      /* ============ morning read v2 — greeting + one stat pill, no paragraph ============ */
+      .morning {
+        padding: 2px 22px 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .morning .mg {
+        font-weight: var(--w-extrabold);
+        font-size: 24px;
+        letter-spacing: -0.026em;
+        color: var(--ink);
+      }
+      .ypill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(47, 184, 122, 0.12);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: -0.01em;
+        color: var(--emerald-deep);
+        flex: none;
+      }
+
+      /* ============ cycle hero v2 — ribbon carries the story, one short line ============ */
+      .cyclecard {
+        margin: 10px 20px 0;
+        border-radius: 22px;
+        padding: 18px 18px 16px;
+        position: relative;
+        overflow: hidden;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 14px 24px rgba(24, 28, 24, 0.09);
+      }
+      .cyclecard .halo {
+        position: absolute;
+        top: -50px;
+        right: -40px;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        filter: blur(10px);
+        pointer-events: none;
+        background: radial-gradient(circle, rgba(47, 184, 122, 0.35), transparent 70%);
+      }
+      .cyclecard.guard .halo {
+        background: radial-gradient(circle, rgba(227, 166, 94, 0.32), transparent 70%);
+      }
+      .cyclecard .crow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+      }
+      .cyclecard .ctx {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: var(--w-medium);
+      }
+      .cpill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 11px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: var(--w-bold);
+        letter-spacing: 0.07em;
+        position: relative;
+        background: rgba(47, 184, 122, 0.13);
+        color: var(--emerald-deep);
+      }
+      .cpill .d {
+        width: 7px;
+        height: 7px;
+        border-radius: 4px;
+        background: var(--emerald);
+      }
+      .cpill.amber {
+        background: rgba(227, 166, 94, 0.16);
+        color: var(--amber-deep);
+      }
+      .cpill.amber .d {
+        background: var(--amber);
+      }
+      .cyclecard .chead {
+        font-weight: var(--w-extrabold);
+        font-size: 24px;
+        line-height: 28px;
+        letter-spacing: -0.026em;
+        color: var(--ink);
+        margin-top: 10px;
+        position: relative;
+      }
+      .cyclecard .chead span {
+        color: var(--muted);
+        font-weight: var(--w-semibold);
+        font-size: 15px;
+        letter-spacing: -0.01em;
+      }
+      /* the ribbon: med-level curve + 7 day nodes, today ringed */
+      .ribbon {
+        position: relative;
+        margin-top: 16px;
+        padding-top: 8px;
+      }
+      .ribbon svg.curve {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 48px;
+      }
+      .rnodes {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        padding-top: 26px;
+      }
+      .rnode {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 40px;
+      }
+      .rnode .rc {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: var(--sage-fill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      /* shot-day marker: the syringe badge every user watches for */
+      .rbadge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: #f7ecdb;
+        border: 1.5px solid var(--card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(24, 28, 24, 0.15);
+      }
+      .rnode.past .rc {
+        background: #e7f4ec;
+      }
+      .rnode.today .rc {
+        background: #fff;
+        border: 2.5px solid var(--emerald);
+        box-shadow: 0 4px 10px rgba(47, 184, 122, 0.35);
+      }
+      .rnode.today.amber .rc {
+        border-color: var(--amber);
+        box-shadow: 0 4px 10px rgba(227, 166, 94, 0.4);
+      }
+      .rnode .rl {
+        font-size: 10px;
+        font-weight: var(--w-bold);
+        letter-spacing: 0.05em;
+        color: var(--faint);
+      }
+      .rnode.today .rl {
+        color: var(--emerald-deep);
+      }
+      .rnode.today.amber .rl {
+        color: var(--amber-deep);
+      }
+      /* pattern row: icon + a few words */
+      .pattern {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 14px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+        position: relative;
+      }
+      .pattern .pic {
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        background: rgba(47, 184, 122, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .pattern .pk {
+        font-weight: var(--w-bold);
+        font-size: 9.5px;
+        letter-spacing: 0.08em;
+        color: var(--emerald-deep);
+      }
+      .pattern .pv {
+        font-weight: var(--w-semibold);
+        font-size: 13px;
+        line-height: 17px;
+        color: var(--ink-soft);
+        margin-top: 1px;
+      }
+
+      /* ============ plan v2 — flat tap-cards, no expansion (Wellspoken move) ============ */
+      .planwrap {
+        padding: 16px 20px 0;
+      }
+      .planhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 2px;
+      }
+      .eyebrow {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+      }
+      .eyebrow b {
+        color: var(--emerald-deep);
+      }
+      .eyebrow b.am {
+        color: var(--amber-deep);
+      }
+      .streakchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(47, 184, 122, 0.12);
+        border-radius: 8px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: 0.04em;
+        color: var(--emerald-deep);
+      }
+      .task {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-top: 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 14px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+        position: relative;
+      }
+      .task.focus {
+        border: 1.5px solid var(--emerald);
+        box-shadow: 0 10px 22px rgba(47, 184, 122, 0.16);
+      }
+      .task.donecard {
+        background: var(--sage-fill);
+        border-color: var(--line);
+        box-shadow: none;
+        padding: 10px 14px;
+      }
+      .task .tic {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #e7f4ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .task .tic.amber {
+        background: #f7ecdb;
+      }
+      .task .tic.donetic {
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        background: var(--emerald);
+      }
+      .task .tbody {
+        flex: 1;
+        min-width: 0;
+      }
+      .task .tfocus {
+        font-weight: var(--w-bold);
+        font-size: 9.5px;
+        letter-spacing: 0.08em;
+        color: var(--emerald-deep);
+        margin-bottom: 3px;
+      }
+      .task .ttl {
+        font-weight: var(--w-extrabold);
+        font-size: 16.5px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .task.donecard .ttl {
+        font-size: 14.5px;
+        font-weight: var(--w-bold);
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      .task .ttl b {
+        color: var(--emerald-deep);
+      }
+      .tchips {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--sage-fill);
+        border-radius: 8px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: var(--w-bold);
+        color: var(--muted);
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+      }
+      .chip.am {
+        background: rgba(227, 166, 94, 0.16);
+        color: var(--amber-deep);
+      }
+      .chip.em {
+        background: rgba(47, 184, 122, 0.12);
+        color: var(--emerald-deep);
+      }
+      /* right side: go button / play / mini ring */
+      .tgo {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        background: rgba(47, 184, 122, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .tgo.primary {
+        background: var(--emerald-deep);
+        box-shadow: 0 8px 16px rgba(31, 158, 99, 0.4);
+      }
+      .tring {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tring .tpv {
+        position: absolute;
+        font-size: 10.5px;
+        font-weight: var(--w-extrabold);
+        color: var(--emerald-deep);
+      }
+      /* plan footer: progress bar + week dots, one short line */
+      .planfoot {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 0 4px;
+      }
+      .pbar {
+        flex: 1;
+        height: 7px;
+        border-radius: 4px;
+        background: #e4e5df;
+        overflow: hidden;
+      }
+      .pbar i {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--emerald-hi), var(--emerald-deep));
+      }
+      .pfl {
+        font-size: 12px;
+        font-weight: var(--w-extrabold);
+        color: var(--emerald-deep);
+        flex: none;
+      }
+      .wkdots {
+        display: flex;
+        gap: 5px;
+        flex: none;
+      }
+      .wkdots i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--sage-fill);
+        display: block;
+      }
+      .wkdots i.f {
+        background: var(--emerald);
+      }
+      .wkdots i.t {
+        background: #fff;
+        border: 2px solid var(--emerald);
+      }
+
+      /* ============ metric tiles — exact MetricRing / InfoTile styles ============ */
+      .rings {
+        display: flex;
+        gap: 10px;
+        padding: 14px 20px 0;
+      }
+      .tile {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.08);
+      }
+      .tile .tv {
+        font-size: 13.5px;
+        font-weight: var(--w-extrabold);
+        color: var(--ink);
+        text-align: center;
+      }
+      .tile .tl {
+        font-size: 11px;
+        font-weight: var(--w-medium);
+        color: var(--muted);
+        text-align: center;
+      }
+      .tile .tbadge {
+        background: rgba(47, 184, 122, 0.12);
+        border-radius: 8px;
+        padding: 2px 8px;
+        margin-top: -2px;
+        font-size: 12px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: -0.015em;
+        color: var(--emerald-deep);
+      }
+      .tile .ticon {
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ============ CoachInsightCard — exact shipped anatomy ============ */
+      .coach {
+        margin: 12px 20px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .coach .chead2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .coach .cdot {
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        background: var(--emerald-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .coach .ctag {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--emerald-deep);
+      }
+      .coach .cfrom {
+        font-weight: var(--w-semibold);
+        font-size: 10px;
+        letter-spacing: 0.07em;
+        color: var(--faint);
+        margin-left: auto;
+      }
+      .coach .chl {
+        font-weight: var(--w-extrabold);
+        font-size: 16.5px;
+        letter-spacing: -0.018em;
+        color: var(--ink);
+        margin-top: 12px;
+      }
+      .coach .cbody {
+        font-weight: var(--w-regular);
+        font-size: 13.5px;
+        line-height: 20px;
+        color: var(--ink-soft);
+        margin-top: 5px;
+      }
+      .coach .cbody b {
+        font-weight: var(--w-bold);
+        color: var(--emerald-deep);
+      }
+      .coach .cask {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 12px;
+        border-top: 1px solid var(--line);
+        padding-top: 11px;
+        font-weight: var(--w-semibold);
+        font-size: 13px;
+        color: var(--emerald-deep);
+      }
+
+      /* ============ dose row — exact HomeScreen med (glass) ============ */
+      .med {
+        margin: 12px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--glass);
+        border: 1px solid var(--glass-line);
+        border-radius: 16px;
+        padding: 13px 16px;
+        backdrop-filter: blur(12px);
+      }
+      .med .mk {
+        font-size: 11px;
+        color: var(--faint);
+        font-weight: var(--w-semibold);
+        letter-spacing: 0.03em;
+      }
+      .med .mv {
+        font-size: 14px;
+        color: var(--ink);
+        font-weight: var(--w-semibold);
+        margin-top: 1px;
+      }
+      .med .mdiv {
+        width: 1px;
+        height: 26px;
+        background: var(--line);
+      }
+      .med .mlog {
+        margin-left: auto;
+        font-size: 13px;
+        font-weight: var(--w-semibold);
+        color: var(--emerald-deep);
+      }
+
+      /* ============ week: RetentionHero gauge (exact) as the hero ============ */
+      .whero {
+        margin: 4px 20px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 16px;
+        box-shadow: 0 14px 24px rgba(24, 28, 24, 0.09);
+        position: relative;
+        overflow: hidden;
+      }
+      .whero .halo {
+        position: absolute;
+        top: -50px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        filter: blur(10px);
+        pointer-events: none;
+        background: radial-gradient(circle, rgba(47, 184, 122, 0.3), transparent 70%);
+      }
+      .whero .wtop {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        position: relative;
+      }
+      .whero .winfo {
+        flex: 1;
+      }
+      .whero .weyebrow {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+      }
+      .whero .wstatus {
+        font-weight: var(--w-extrabold);
+        font-size: 22px;
+        letter-spacing: -0.02em;
+        color: var(--emerald-deep);
+        margin-top: 2px;
+      }
+      .whero .wdelta {
+        display: inline-flex;
+        margin-top: 9px;
+        border-radius: 10px;
+        padding: 4px 9px;
+        background: rgba(47, 184, 122, 0.12);
+        font-weight: var(--w-bold);
+        font-size: 12px;
+        color: var(--emerald-deep);
+      }
+      .levers {
+        display: flex;
+        gap: 12px;
+        margin-top: 14px;
+        border-top: 1px solid var(--line);
+        padding-top: 13px;
+        position: relative;
+      }
+      .lever {
+        flex: 1;
+      }
+      .lever .lh {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .lever .ll {
+        font-weight: var(--w-medium);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .lever .ls {
+        font-weight: var(--w-extrabold);
+        font-size: 13px;
+        color: var(--emerald-deep);
+      }
+      .lever .ls.am {
+        color: var(--amber-deep);
+      }
+      .lever .lt {
+        height: 5px;
+        border-radius: 3px;
+        background: var(--sage-fill);
+        margin-top: 5px;
+        overflow: hidden;
+      }
+      .lever .lf {
+        height: 5px;
+        border-radius: 3px;
+        background: var(--emerald);
+      }
+      .lever .lf.am {
+        background: var(--amber);
+      }
+      .nextweek {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        margin-top: 13px;
+        background: rgba(47, 184, 122, 0.07);
+        border: 1px solid rgba(47, 184, 122, 0.22);
+        border-radius: 14px;
+        padding: 11px 14px;
+        position: relative;
+      }
+      .nextweek .nk {
+        font-weight: var(--w-bold);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--emerald-deep);
+        flex: none;
+      }
+      .nextweek .nv {
+        font-weight: var(--w-extrabold);
+        font-size: 14px;
+        line-height: 18px;
+        color: var(--ink);
+        letter-spacing: -0.012em;
+      }
+      /* week map: the week laid over the cycle */
+      .weekmap {
+        margin: 12px 20px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .wmrow {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 13px;
+      }
+      .wmday {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 40px;
+        padding: 8px 0 7px;
+        border-radius: 12px;
+      }
+      .wmday.today {
+        background: rgba(47, 184, 122, 0.09);
+        border: 1.5px solid var(--emerald);
+      }
+      .wmday .wdn {
+        font-size: 10px;
+        font-weight: var(--w-bold);
+        color: var(--faint);
+        letter-spacing: 0.04em;
+      }
+      .wmday.today .wdn {
+        color: var(--emerald-deep);
+      }
+      .wmday .wic {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        background: var(--sage-fill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wmday .wic.hit {
+        background: var(--emerald);
+      }
+      .wmday .wic.shot {
+        background: #f7ecdb;
+      }
+      .wmday .wph {
+        font-size: 8.5px;
+        font-weight: var(--w-bold);
+        letter-spacing: 0.06em;
+        color: var(--faint);
+      }
+      .wmday .wph.ez {
+        color: var(--emerald-deep);
+      }
+      .wmday .wph.gd {
+        color: var(--amber-deep);
+      }
+      .wmcap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: var(--w-bold);
+        font-size: 13px;
+        color: var(--ink-soft);
+        margin-top: 13px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      /* NSV card */
+      .nsv {
+        margin: 12px 20px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+        position: relative;
+        overflow: hidden;
+      }
+      .nsv .halo {
+        position: absolute;
+        top: -60px;
+        right: -50px;
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        filter: blur(12px);
+        background: radial-gradient(circle, rgba(227, 166, 94, 0.22), transparent 70%);
+        pointer-events: none;
+      }
+      .nsv .nhead {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+      }
+      .nsv .ndot {
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        background: var(--amber);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nsv .ntag {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--amber-deep);
+      }
+      .nsv .nquote {
+        font-weight: var(--w-extrabold);
+        font-size: 19px;
+        line-height: 24px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin-top: 11px;
+        position: relative;
+      }
+      .nsv .nsub {
+        font-weight: var(--w-medium);
+        font-size: 12px;
+        color: var(--faint);
+        margin-top: 5px;
+        position: relative;
+      }
+
+      /* ============ log sheet — QuickLogSheet chrome, one-tap meal rows ============ */
+      .sheetscreen {
+        background: #0c100b;
+      }
+      .behind {
+        filter: saturate(0.9) brightness(0.96) blur(1px);
+        display: flex;
+        flex-direction: column;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(12, 16, 11, 0.55);
+        backdrop-filter: blur(2px);
+      }
+      .sheet {
+        position: relative;
+        margin-top: auto;
+        background: var(--card);
+        border-radius: 28px 28px 46px 46px;
+        padding: 10px 18px 30px;
+        box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.5);
+      }
+      .grab {
+        width: 38px;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--faintest);
+        margin: 6px auto 14px;
+      }
+      .sheet h3 {
+        font-size: 22px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        padding: 0 4px 2px;
+      }
+      .sheet .ssub {
+        font-size: 12.5px;
+        font-weight: var(--w-medium);
+        color: var(--muted);
+        padding: 0 4px 10px;
+      }
+      .sheet .ssub b {
+        font-weight: var(--w-extrabold);
+        color: var(--emerald-deep);
+      }
+      .mealrow {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-top: 9px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 14px;
+        box-shadow: 0 6px 14px rgba(24, 28, 24, 0.05);
+      }
+      .mealrow .tic {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #e7f4ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .mealrow .mbody {
+        flex: 1;
+        min-width: 0;
+      }
+      .mealrow .mttl {
+        font-weight: var(--w-extrabold);
+        font-size: 16px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+      }
+      .mealrow .mchips {
+        display: flex;
+        gap: 6px;
+        margin-top: 5px;
+      }
+      .addbtn {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: rgba(47, 184, 122, 0.13);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .scanbtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        height: 50px;
+        border-radius: 25px;
+        background: var(--emerald-deep);
+        color: #f4fbf7;
+        font-weight: var(--w-semibold);
+        font-size: 15.5px;
+        letter-spacing: -0.007em;
+        box-shadow: 0 12px 22px rgba(31, 158, 99, 0.35);
+      }
+      .typelink {
+        text-align: center;
+        margin-top: 13px;
+        font-weight: var(--w-semibold);
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: underline;
+      }
+
+      /* ============ scrolled state: sticky plan chip ============ */
+      .stickyplan {
+        margin: 2px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--glass);
+        border: 1px solid var(--glass-line);
+        border-radius: 14px;
+        padding: 10px 14px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 6px 14px rgba(24, 28, 24, 0.07);
+      }
+      .stickyplan .spk {
+        font-weight: var(--w-bold);
+        font-size: 10.5px;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        flex: none;
+      }
+      .stickyplan .pbar {
+        flex: 1;
+      }
+      .stickyplan .spv {
+        font-weight: var(--w-extrabold);
+        font-size: 12px;
+        color: var(--emerald-deep);
+        flex: none;
+      }
+      .stickyplan .spchev {
+        font-weight: var(--w-semibold);
+        font-size: 15px;
+        color: var(--faint);
+        flex: none;
+        transform: rotate(-90deg);
+      }
+
+      /* ============ QuickActionRow — exact ============ */
+      .qrow {
+        display: flex;
+        gap: 8px;
+        margin: 12px 20px 0;
+      }
+      .qbtn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 7px;
+        padding: 12px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+      .qic {
+        width: 34px;
+        height: 34px;
+        border-radius: 17px;
+        background: rgba(47, 184, 122, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .qbtn .ql {
+        font-weight: var(--w-semibold);
+        font-size: 11.5px;
+        letter-spacing: -0.008em;
+        color: var(--ink);
+      }
+
+      /* ============ For-today shelf — cycle-picked library reads ============ */
+      .shelf {
+        padding: 16px 20px 0;
+      }
+      .shelfhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 2px;
+      }
+      .shelfhead .more {
+        font-weight: var(--w-semibold);
+        font-size: 12.5px;
+        color: var(--emerald-deep);
+      }
+      .shelfrow {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .readcard {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .readcard .rimg {
+        height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .readcard .rimg.mint {
+        background: linear-gradient(150deg, #e5f3eb, #d4ebde);
+      }
+      .readcard .rimg.sun {
+        background: linear-gradient(150deg, #f7ecdb, #f2e0c4);
+      }
+      .readcard .rimg .rglyph {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: rgba(252, 252, 250, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 12px rgba(24, 28, 24, 0.1);
+      }
+      .readcard .rbody {
+        padding: 11px 13px 13px;
+      }
+      .readcard .rtitle {
+        font-weight: var(--w-bold);
+        font-size: 13.5px;
+        line-height: 18px;
+        letter-spacing: -0.012em;
+        color: var(--ink);
+      }
+      .readcard .rmeta {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      /* ============ optional photo card — below the plan, never counted ============ */
+      .optcard {
+        margin: 12px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        background: var(--card);
+        border: 1.5px dashed var(--faintest);
+        border-radius: 18px;
+        padding: 12px 14px;
+      }
+      .optcard .tic {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #e7f4ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .optcard .obody {
+        flex: 1;
+        min-width: 0;
+      }
+      .optcard .oeyebrow {
+        font-weight: var(--w-bold);
+        font-size: 9.5px;
+        letter-spacing: 0.08em;
+        color: var(--faint);
+        margin-bottom: 3px;
+      }
+      .optcard .ttl {
+        font-weight: var(--w-extrabold);
+        font-size: 15.5px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+      }
+      .optcard .lastph {
+        width: 36px;
+        height: 44px;
+        border-radius: 10px;
+        background: linear-gradient(160deg, #dfe4da, #c2ccba);
+        flex: none;
+        position: relative;
+        overflow: hidden;
+      }
+      .optcard .lastph span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        text-align: center;
+        font-size: 7.5px;
+        font-weight: var(--w-bold);
+        letter-spacing: 0.05em;
+        color: #f4f8ef;
+        background: rgba(23, 25, 27, 0.6);
+        padding: 2px 0;
+      }
+
+      /* ============ coach chat — exact CoachChatScreen anatomy ============ */
+      .chathead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 18px 8px;
+      }
+      .chathead .closebtn {
+        width: 34px;
+        height: 34px;
+        border-radius: 17px;
+        background: var(--sage-fill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: var(--muted);
+        font-weight: var(--w-semibold);
+      }
+      .chathead .hc {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .chathead .coachdot {
+        width: 24px;
+        height: 24px;
+        border-radius: 12px;
+        background: var(--emerald-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .chathead .ht {
+        font-weight: var(--w-bold);
+        font-size: 16px;
+        color: var(--ink);
+      }
+      .chatbody {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 8px 18px 16px;
+      }
+      .cbub {
+        align-self: flex-start;
+        max-width: 86%;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        border-top-left-radius: 6px;
+        padding: 11px 14px;
+        font-weight: var(--w-regular);
+        font-size: 15px;
+        line-height: 22px;
+        color: var(--ink);
+      }
+      .cbub b {
+        font-weight: var(--w-bold);
+        color: var(--emerald-deep);
+      }
+      .ubub {
+        align-self: flex-end;
+        max-width: 86%;
+        background: var(--emerald-deep);
+        border-radius: 18px;
+        border-top-right-radius: 6px;
+        padding: 11px 14px;
+        font-weight: var(--w-medium);
+        font-size: 15px;
+        line-height: 22px;
+        color: #f4fbf7;
+      }
+      .asklabel {
+        font-weight: var(--w-bold);
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        color: var(--faint);
+        margin-top: 8px;
+        padding: 0 2px;
+      }
+      .qchips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .qchip {
+        background: var(--card);
+        border: 1px solid rgba(47, 184, 122, 0.35);
+        border-radius: 18px;
+        padding: 9px 13px;
+        font-weight: var(--w-semibold);
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        color: var(--emerald-deep);
+      }
+      .chatinput {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 18px 26px;
+      }
+      .chatinput .field {
+        flex: 1;
+        height: 48px;
+        border-radius: 24px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        padding: 0 18px;
+        font-weight: var(--w-medium);
+        font-size: 14.5px;
+        color: var(--faint);
+        box-shadow: 0 6px 14px rgba(24, 28, 24, 0.06);
+      }
+      .chatinput .send {
+        width: 48px;
+        height: 48px;
+        border-radius: 24px;
+        background: var(--emerald-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        box-shadow: 0 10px 18px rgba(31, 158, 99, 0.35);
+      }
+
+      /* ============ undo toast — instant-tick feedback, ink glass ============ */
+      .toast {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        bottom: 116px;
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        background: rgba(23, 25, 27, 0.94);
+        border-radius: 18px;
+        padding: 13px 15px;
+        box-shadow: 0 18px 34px rgba(12, 16, 11, 0.45);
+        backdrop-filter: blur(10px);
+      }
+      .toast .tdot {
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        background: var(--emerald);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .toast .ttext {
+        flex: 1;
+        font-weight: var(--w-bold);
+        font-size: 14px;
+        letter-spacing: -0.01em;
+        color: #f4f8ef;
+      }
+      .toast .tundo {
+        font-weight: var(--w-extrabold);
+        font-size: 13.5px;
+        color: var(--emerald-hi);
+        padding: 6px 10px;
+        border-radius: 12px;
+        background: rgba(47, 184, 122, 0.16);
+      }
+
+      /* ============ tab bar — exact TabBar ============ */
+      .tabbar {
+        margin-top: 18px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        padding: 12px 18px 30px;
+        background: rgba(252, 252, 250, 0.85);
+        backdrop-filter: blur(18px);
+        border-top: 1px solid var(--line);
+        position: relative;
+      }
+      .tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        color: var(--faint);
+      }
+      .tab.on {
+        color: var(--emerald-deep);
+      }
+      .tab .tl {
+        font-size: 10.5px;
+        font-weight: var(--w-semibold);
+      }
+      .tabplus {
+        flex: none;
+        width: 58px;
+        height: 58px;
+        border-radius: 29px;
+        margin-top: -26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #4ecf8b, #1f9e63);
+        box-shadow: 0 14px 26px rgba(31, 158, 99, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <div class="brand">
+          <div class="m"></div>
+          <h1>Leanient<span>.</span></h1>
+        </div>
+        <p>
+          Coach Home v2, rebuilt after feedback for an older audience: fewer words everywhere,
+          numbers and visuals carry the story. The plan drops the expandable timeline for flat
+          tap-cards (the Wellspoken move): one card per action, 3-4 word titles, chips instead of
+          sentences, a ring or a play button instead of prose. The cycle ribbon, pattern line, week
+          map, gauge, and lever bars do the explaining. Card anatomy, tokens, and type stay 1:1
+          with the shipped RN StyleSheets.
+        </p>
+      </div>
+    </header>
+    <div class="gallery" id="g"></div>
+
+    <script>
+      const SB = (c) => `<div class="sb"><div class="t" style="color:${c || "#17191B"}">9:41</div>
+  <svg width="74" height="13" viewBox="0 0 74 13" fill="${c || "#17191B"}"><rect x="0" y="4" width="3" height="5" rx="1"/><rect x="5" y="2" width="3" height="7" rx="1"/><rect x="10" y="0" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="9" rx="1" opacity=".35"/><rect x="48" y="1" width="19" height="10" rx="2.5" fill="none" stroke="${c || "#17191B"}" stroke-width="1.1" opacity=".5"/><rect x="49.6" y="2.6" width="14" height="6.8" rx="1.4"/><rect x="68" y="4.2" width="1.6" height="3.6" rx="1" opacity=".5"/></svg></div>`;
+
+      const logo = `<svg width="30" height="36" viewBox="0 0 36 48" fill="none"><defs><linearGradient id="lm" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6FE0A6"/><stop offset="1" stop-color="#23A869"/></linearGradient></defs><rect x="11" y="2" width="14" height="29" rx="7" fill="url(#lm)"/><g stroke="#F4F7F0" stroke-width="2" stroke-linecap="round"><path d="M18.5 16h4"/><path d="M18.5 20.5h4"/><path d="M18.5 25h4"/></g><rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="url(#lm)"/><rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="url(#lm)"/></svg>`;
+
+      /* icons: exact paths from the RN components */
+      const I = {
+        home: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg>`,
+        train: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8"/></svg>`,
+        progress: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 14l4-4 3 2 5-6"/></svg>`,
+        profile: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>`,
+        plus: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+        check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`,
+        checkSm: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2FB87A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`,
+        checkWh: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`,
+        fork: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8"/></svg>`,
+        dumb: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v12M15 5v12M3.5 8v6M18.5 8v6M7 11h8"/></svg>`,
+        syr: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`,
+        syrGreen: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2FB87A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`,
+        syrTiny: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`,
+        syrMicro: `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`,
+        water: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.5 6 7.8 6 11a6 6 0 0 1-12 0c0-3.2 2.5-6.5 6-11z"/></svg>`,
+        walk: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4.5" r="1.6"/><path d="M12.5 8l-2.5 5 2 2.5 1 5M12.5 8l3 2.5 2.5 1M12.5 8L9 9.5 7.5 12.5M10 13l-2.5 6.5"/></svg>`,
+        cam: `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>`,
+        spark: `<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z"/></svg>`,
+        wave: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-10 5-10 2.5 5 3 5"/></svg>`,
+        trophy: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5"/></svg>`,
+        play: `<svg width="15" height="15" viewBox="0 0 24 24" fill="#1F9E63"><path d="M8 5.5v13l11-6.5z"/></svg>`,
+        playWh: `<svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>`,
+        arrWh: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`,
+        chevG: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`,
+        scan: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4FBF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V7a2 2 0 0 1 2-2h2M17 5h2a2 2 0 0 1 2 2v2M21 15v2a2 2 0 0 1-2 2h-2M7 19H5a2 2 0 0 1-2-2v-2"/><path d="M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>`,
+        qmeal: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8"/></svg>`,
+        qwork: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round"><path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8"/></svg>`,
+        qweight: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13zM9 9a3 3 0 0 1 6 0"/></svg>`,
+        qside: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12,3 21,19 3,19 12,3"/><path d="M12 9v5M12 17v.5"/></svg>`,
+        waveAm: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8843A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-10 5-10 2.5 5 3 5"/></svg>`,
+        forkBig: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8"/></svg>`,
+        plusG: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+        sprout: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z"/><path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z"/></svg>`,
+        sproutBig: `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z"/><path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z"/></svg>`,
+        sproutWh: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z"/><path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z"/></svg>`,
+        shield: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>`,
+        trophyWh: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5"/></svg>`,
+        medalCam: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>`,
+        medalSyr: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/></svg>`,
+        medalScale: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1.5 11h-13zM9 9a3 3 0 0 1 6 0"/></svg>`,
+        medalLock: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A9B95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
+      };
+
+      /* MetricRing: 46px svg, r18, stroke 5, track #E9EAE4 */
+      function ringSvg(pct, color, size) {
+        const s = size || 46,
+          r = s === 46 ? 18 : 15,
+          C = 2 * Math.PI * r,
+          off = C * (1 - pct);
+        return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><circle cx="${s / 2}" cy="${s / 2}" r="${r}" stroke="#E9EAE4" stroke-width="5" fill="none"/><circle cx="${s / 2}" cy="${s / 2}" r="${r}" stroke="${color || "#2FB87A"}" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 ${s / 2} ${s / 2})"/></svg>`;
+      }
+      const metricRing = (pct, value, badge, label) => `<div class="tile">
+    ${ringSvg(pct)}
+    <div class="tv">${value}</div>
+    ${badge ? `<div class="tbadge">${badge}</div>` : ""}
+    <div class="tl">${label}</div>
+  </div>`;
+      const infoTile = (icon, value, badge, label) => `<div class="tile">
+    <div class="ticon">${icon}</div>
+    <div class="tv">${value}</div>
+    ${badge ? `<div class="tbadge">${badge}</div>` : ""}
+    <div class="tl">${label}</div>
+  </div>`;
+
+      /* task card: icon tile · short title · chips · one visual on the right */
+      function task(opts) {
+        const { icon, amber, title, focus, focusLabel, chips, right, done } = opts;
+        if (done)
+          return `<div class="task donecard">
+    <div class="tic donetic">${I.check}</div>
+    <div class="tbody"><div class="ttl">${title}</div></div>
+    ${chips ? `<div class="chip">${chips[0]}</div>` : ""}
+  </div>`;
+        return `<div class="task ${focus ? "focus" : ""}">
+    <div class="tic ${amber ? "amber" : ""}">${icon}</div>
+    <div class="tbody">
+      ${focus ? `<div class="tfocus">${focusLabel || "TODAY'S FOCUS"}</div>` : ""}
+      <div class="ttl">${title}</div>
+      ${chips && chips.length ? `<div class="tchips">${chips.map((c) => `<div class="chip ${c.k || ""}">${c.t}</div>`).join("")}</div>` : ""}
+    </div>
+    ${right || ""}
+  </div>`;
+      }
+      const goBtn = (primary, icon) => `<div class="tgo ${primary ? "primary" : ""}">${icon || (primary ? I.arrWh : I.chevG)}</div>`;
+      const miniRing = (pct) => `<div class="tring">${ringSvg(pct, "#2FB87A", 40)}<div class="tpv">${Math.round(pct * 100)}%</div></div>`;
+
+      const tabbar = `<div class="tabbar">
+  <div class="tab on">${I.home}<div class="tl">Home</div></div>
+  <div class="tab">${I.train}<div class="tl">Train</div></div>
+  <div class="tabplus">${I.plus}</div>
+  <div class="tab">${I.progress}<div class="tl">Progress</div></div>
+  <div class="tab">${I.profile}<div class="tl">Profile</div></div>
+</div>`;
+
+      const appbar = (scope) => `<div class="appbar">
+  <div class="wm">Leanient</div>
+  <div class="wtog"><div class="${scope === "today" ? "on" : ""}">Today</div><div class="${scope === "week" ? "on" : ""}">This week</div></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="stkchip">${I.sprout}12</div>
+    <div class="avatar">N</div>
+  </div>
+</div>`;
+
+      /* cycle ribbon: med-level curve + 7 nodes, today ringed */
+      function ribbon(todayIdx, amberToday) {
+        const labels = ["SHOT", "+1", "+2", "+3", "+4", "+5", "+6"];
+        const xs = [21, 68, 115, 162, 209, 256, 303];
+        const ys = [32, 12, 8, 13, 21, 30, 38];
+        const dotX = xs[todayIdx],
+          dotY = ys[todayIdx];
+        const nodes = labels
+          .map((l, i) => {
+            const state = i < todayIdx ? "past" : i === todayIdx ? "today" : "";
+            const inner =
+              i < todayIdx
+                ? I.checkSm
+                : i === todayIdx
+                  ? `<div style="width:9px;height:9px;border-radius:5px;background:${amberToday ? "var(--amber)" : "var(--emerald)"}"></div>`
+                  : "";
+            const badge = i === 0 ? `<div class="rbadge">${I.syrMicro}</div>` : "";
+            return `<div class="rnode ${state} ${i === todayIdx && amberToday ? "amber" : ""}"><div class="rc">${inner}${badge}</div><div class="rl">${i === todayIdx ? "TODAY" : l}</div></div>`;
+          })
+          .join("");
+        return `<div class="ribbon">
+    <svg class="curve" viewBox="0 0 324 48" preserveAspectRatio="none">
+      <path d="M21 32 C 40 18, 52 12, 68 12 S 100 8, 115 8 S 146 10, 162 13 S 194 17, 209 21 S 241 26, 256 30 S 288 35, 303 38"
+        fill="none" stroke="rgba(47,184,122,0.35)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${dotX}" cy="${dotY}" r="5.5" fill="${amberToday ? "#E3A65E" : "#2FB87A"}" stroke="#fff" stroke-width="2.5"/>
+    </svg>
+    <div class="rnodes">${nodes}</div>
+  </div>`;
+      }
+
+      /* the coach's read: headline = a personal claim from their data,
+         body = one reassurance + one action, nothing generic */
+      const coachCard = (headline, body) => `<div class="coach">
+  <div class="chead2"><div class="cdot">${I.spark}</div><div class="ctag">COACH'S READ</div><div class="cfrom">FROM YOUR COACH</div></div>
+  <div class="chl">${headline}</div>
+  <div class="cbody">${body}</div>
+  <div class="cask">Ask your coach <span style="font-size:17px">›</span></div>
+</div>`;
+
+      /* ============ 01 · TODAY — defense day (shot +5) ============ */
+      const defenseDay = `
+  ${SB()}
+  ${appbar("today")}
+
+  <div class="morning">
+    <div class="mg">Morning, Nick.</div>
+    <div class="ypill">${I.checkSm} 96g yesterday</div>
+  </div>
+
+  <div class="cyclecard guard">
+    <div class="halo"></div>
+    <div class="crow">
+      <div class="ctx">Thu · Day 46 · Wegovy 1.0 mg</div>
+    </div>
+    <div class="cpill amber"><span class="d"></span>SHOT +5 · HUNGER TONIGHT</div>
+    <div class="chead">Defense day. <span>Protein early.</span></div>
+    ${ribbon(5, true)}
+    <div class="pattern">
+      <div class="pic">${I.wave}</div>
+      <div>
+        <div class="pk">YOUR PATTERN</div>
+        <div class="pv">Day 5 dipped in your last 3 cycles.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="planwrap">
+    <div class="planhead">
+      <div class="eyebrow">TODAY'S PLAN · <b class="am">DEFENSE DAY</b></div>
+      <div class="streakchip">5 OF LAST 7</div>
+    </div>
+    ${task({ done: true, title: "Breakfast · 41g", chips: ["8:10a"] })}
+    ${task({
+      icon: I.fork,
+      title: "Lunch · 40g",
+      focus: true,
+      focusLabel: "BEFORE 2PM",
+      chips: [{ t: "Chicken bowl · Tue", k: "em" }, { t: "or scan", k: "" }],
+      right: miniRing(0.34),
+    })}
+    ${task({
+      icon: I.dumb,
+      title: "Upper body · 22 min",
+      chips: [{ t: "dumbbells" }],
+      right: goBtn(false, I.play),
+    })}
+    ${task({
+      icon: I.walk,
+      amber: true,
+      title: "Walk · 10 min",
+      chips: [{ t: "after dinner", k: "am" }],
+      right: goBtn(false),
+    })}
+    <div class="planfoot">
+      <div class="pfl">1 OF 4</div>
+      <div class="pbar"><i style="width:25%"></i></div>
+      <div class="wkdots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="t"></i><i></i></div>
+    </div>
+  </div>
+
+  <div class="rings">
+    ${metricRing(5 / 7, "5 of 7", "41 / 120g", "Protein days")}
+    ${metricRing(2 / 3, "2 of 3", null, "Sessions")}
+    ${infoTile(I.syrGreen, "in 2 days", "1.0 mg", "Next shot")}
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 02 · TODAY — reset day (shot day) ============ */
+      const resetDay = `
+  ${SB()}
+  ${appbar("today")}
+
+  <div class="morning">
+    <div class="mg">Shot day.</div>
+    <div class="ypill">${I.checkSm} 6 weeks steady</div>
+  </div>
+
+  <div class="cyclecard">
+    <div class="halo"></div>
+    <div class="crow">
+      <div class="ctx">Sat · Day 48 · Wegovy 1.0 mg</div>
+    </div>
+    <div class="cpill"><span class="d"></span>SHOT DAY · NEW CYCLE</div>
+    <div class="chead">Reset day. <span>Keep it gentle.</span></div>
+    ${ribbon(0, false)}
+    <div class="pattern">
+      <div class="pic">${I.wave}</div>
+      <div>
+        <div class="pk">YOUR PATTERN</div>
+        <div class="pv">Days 1 and 2 run smooth at this dose.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="planwrap">
+    <div class="planhead">
+      <div class="eyebrow">TODAY'S PLAN · <b>RESET DAY</b></div>
+      <div class="streakchip">SHOT = DAY WON</div>
+    </div>
+    ${task({
+      icon: I.syr,
+      amber: true,
+      title: "Log your shot · 1.0 mg",
+      focus: true,
+      focusLabel: "ANCHORS YOUR WEEK",
+      chips: [{ t: "left thigh next", k: "am" }],
+      right: goBtn(true),
+    })}
+    ${task({
+      icon: I.water,
+      amber: true,
+      title: "Water · 2L",
+      chips: [{ t: "0.5L so far" }],
+      right: miniRing(0.25),
+    })}
+    ${task({
+      icon: I.fork,
+      title: "Easy protein · 90g",
+      chips: [{ t: "target flexed down", k: "em" }, { t: "shake counts" }],
+      right: miniRing(0.1),
+    })}
+    ${task({
+      icon: I.dumb,
+      title: "Mobility · 15 min",
+      chips: [{ t: "gentle", k: "am" }, { t: "still counts" }],
+      right: goBtn(false, I.play),
+    })}
+    <div class="planfoot">
+      <div class="pfl">0 OF 4</div>
+      <div class="pbar"><i style="width:4%"></i></div>
+      <div class="wkdots"><i class="t"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <div class="optcard">
+    <div class="tic">${I.cam}</div>
+    <div class="obody">
+      <div class="oeyebrow">PHOTO DAY · OPTIONAL</div>
+      <div class="ttl">Week 7 photo</div>
+      <div class="tchips"><div class="chip">same mirror, same light</div><div class="chip em">20 seconds</div></div>
+    </div>
+    <div class="lastph"><span>WK 6</span></div>
+    ${goBtn(false)}
+  </div>
+
+  ${coachCard(
+    "Six shots in, never missed",
+    "That streak beats any perfect day. Your easiest eating window opens tomorrow, so today just needs the shot.",
+  )}
+
+  ${tabbar}
+`;
+
+      /* ============ 03 · TODAY — green light day (shot +2) ============ */
+      const greenDay = `
+  ${SB()}
+  ${appbar("today")}
+
+  <div class="morning">
+    <div class="mg">Morning, Nick.</div>
+    <div class="ypill">${I.checkSm} ↓ 14 lb · muscle 84</div>
+  </div>
+
+  <div class="cyclecard">
+    <div class="halo"></div>
+    <div class="crow">
+      <div class="ctx">Mon · Day 50 · Wegovy 1.0 mg</div>
+    </div>
+    <div class="cpill"><span class="d"></span>SHOT +2 · STRONGEST WINDOW</div>
+    <div class="chead">Green light. <span>Bank the big stuff.</span></div>
+    ${ribbon(2, false)}
+    <div class="pattern">
+      <div class="pic">${I.wave}</div>
+      <div>
+        <div class="pk">YOUR PATTERN</div>
+        <div class="pv">Day 2 is your best lift day.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="planwrap">
+    <div class="planhead">
+      <div class="eyebrow">TODAY'S PLAN · <b>GREEN LIGHT DAY</b></div>
+      <div class="streakchip">5 OF LAST 7</div>
+    </div>
+    ${task({
+      icon: I.fork,
+      title: "Protein · 45g",
+      focus: true,
+      chips: [{ t: "Salmon plate · yours", k: "em" }],
+      right: miniRing(0),
+    })}
+    ${task({
+      icon: I.dumb,
+      title: "Lower body · 25 min",
+      chips: [{ t: "your strongest slot", k: "em" }],
+      right: goBtn(true, I.playWh),
+    })}
+    ${task({
+      icon: I.qweight,
+      title: "Morning weigh-in",
+      chips: [{ t: "30 seconds" }, { t: "day 2 reads truest", k: "em" }],
+      right: goBtn(false),
+    })}
+    <div class="planfoot">
+      <div class="pfl">0 OF 3</div>
+      <div class="pbar"><i style="width:4%"></i></div>
+      <div class="wkdots"><i class="f"></i><i class="f"></i><i class="t"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <div class="rings">
+    ${metricRing(5 / 7, "5 of 7", "0 / 120g", "Protein days")}
+    ${metricRing(0, "0 of 3", "New week", "Sessions")}
+    ${infoTile(I.syrGreen, "in 5 days", "1.0 mg", "Next shot")}
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 04 · THIS WEEK — gauge hero, week map, the win ============ */
+      const gauge = `<svg width="108" height="108" viewBox="0 0 108 108">
+  <circle cx="54" cy="54" r="46" fill="none" stroke="#E4E3DD" stroke-width="9"/>
+  <circle cx="54" cy="54" r="46" fill="none" stroke="#2FB87A" stroke-width="9" stroke-linecap="round"
+    stroke-dasharray="289" stroke-dashoffset="46" transform="rotate(-90 54 54)"/>
+  <text x="54" y="52" text-anchor="middle" font-family="Geist" font-weight="800" font-size="30" fill="#17191B">84</text>
+  <text x="54" y="70" text-anchor="middle" font-family="Geist" font-weight="500" font-size="11" fill="#6E6F6A">/ 100</text>
+</svg>`;
+
+      const weekView = `
+  ${SB()}
+  ${appbar("week")}
+
+  <div class="whero">
+    <div class="halo"></div>
+    <div class="wtop">
+      ${gauge}
+      <div class="winfo">
+        <div class="weyebrow">MUSCLE · WEEK&nbsp;6</div>
+        <div class="wstatus">Muscle kept</div>
+        <div class="wdelta">↑ 3 this week</div>
+      </div>
+    </div>
+    <div class="levers">
+      <div class="lever"><div class="lh"><div class="ll">Protein</div><div class="ls">5/7</div></div><div class="lt"><div class="lf" style="width:71%"></div></div></div>
+      <div class="lever"><div class="lh"><div class="ll">Training</div><div class="ls">2/2</div></div><div class="lt"><div class="lf" style="width:100%"></div></div></div>
+      <div class="lever"><div class="lh"><div class="ll">Pace</div><div class="ls">safe</div></div><div class="lt"><div class="lf" style="width:81%"></div></div></div>
+    </div>
+    <div class="nextweek">
+      <div class="nk">NEXT WEEK</div>
+      <div class="nv">Protein on Thu + Fri. That's it.</div>
+    </div>
+  </div>
+
+  <div class="weekmap">
+    <div class="planhead">
+      <div class="eyebrow">YOUR WEEK, ON YOUR CYCLE</div>
+      <div style="font-weight:600;font-size:12.5px;color:var(--emerald-deep)">Details ›</div>
+    </div>
+    <div class="wmrow">
+      <div class="wmday"><div class="wdn">SAT</div><div class="wic shot">${I.syrTiny}</div><div class="wph gd">SHOT</div></div>
+      <div class="wmday"><div class="wdn">SUN</div><div class="wic hit">${I.checkWh}</div><div class="wph ez">EASY</div></div>
+      <div class="wmday"><div class="wdn">MON</div><div class="wic hit">${I.checkWh}</div><div class="wph ez">EASY</div></div>
+      <div class="wmday"><div class="wdn">TUE</div><div class="wic hit">${I.checkWh}</div><div class="wph ez">MID</div></div>
+      <div class="wmday today"><div class="wdn">WED</div><div class="wic"></div><div class="wph">MID</div></div>
+      <div class="wmday"><div class="wdn">THU</div><div class="wic"></div><div class="wph gd">GUARD</div></div>
+      <div class="wmday"><div class="wdn">FRI</div><div class="wic"></div><div class="wph gd">GUARD</div></div>
+    </div>
+    <div class="wmcap">${I.wave} Thu + Fri already have a plan.</div>
+  </div>
+
+  <div class="nsv">
+    <div class="halo"></div>
+    <div class="nhead"><div class="ndot">${I.trophy}</div><div class="ntag">YOUR WIN THIS WEEK</div></div>
+    <div class="nquote">“The 2019 jeans buttoned.”</div>
+    <div class="nsub">From your check-in</div>
+  </div>
+
+  <div class="med">
+    <div><div class="mk">LAST DOSE</div><div class="mv">4 days ago</div></div>
+    <div class="mdiv"></div>
+    <div><div class="mk">NEXT DOSE</div><div class="mv">Saturday</div></div>
+    <div class="mlog">Log dose ›</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 05 · LUNCH TAP — the one-tap log sheet ============ */
+      const mealRow = (name, grams, note) => `<div class="mealrow">
+    <div class="tic">${I.fork}</div>
+    <div class="mbody">
+      <div class="mttl">${name}</div>
+      <div class="mchips"><div class="chip em">${grams}</div><div class="chip">${note}</div></div>
+    </div>
+    <div class="addbtn">${I.plusG}</div>
+  </div>`;
+
+      const lunchSheet = `
+  <div class="behind">
+    ${SB()}
+    ${appbar("today")}
+    <div class="morning">
+      <div class="mg">Morning, Nick.</div>
+      <div class="ypill">${I.checkSm} 96g yesterday</div>
+    </div>
+    <div class="cyclecard guard">
+      <div class="halo"></div>
+      <div class="crow"><div class="ctx">Thu · Day 46 · Wegovy 1.0 mg</div></div>
+      <div class="cpill amber"><span class="d"></span>SHOT +5 · HUNGER TONIGHT</div>
+      <div class="chead">Defense day. <span>Protein early.</span></div>
+    </div>
+    <div style="height:300px"></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Lunch · 40g</h3>
+    <div class="ssub"><b>79g</b> left today. One tap logs it.</div>
+    ${mealRow("Chicken bowl", "~42g", "Tue")}
+    ${mealRow("Cottage cheese + peaches", "~24g", "3× this month")}
+    ${mealRow("Protein shake", "~30g", "your backup")}
+    <div class="scanbtn">${I.scan} Scan a meal</div>
+    <div class="typelink">Type it instead</div>
+  </div>
+`;
+
+      /* ============ 06 · WALK TICKED — instant check + undo toast ============ */
+      const tickState = `
+  ${SB()}
+  ${appbar("today")}
+
+  <div class="morning">
+    <div class="mg">Morning, Nick.</div>
+    <div class="ypill">${I.checkSm} 96g yesterday</div>
+  </div>
+
+  <div class="cyclecard guard">
+    <div class="halo"></div>
+    <div class="crow">
+      <div class="ctx">Thu · Day 46 · Wegovy 1.0 mg</div>
+    </div>
+    <div class="cpill amber"><span class="d"></span>SHOT +5 · HUNGER TONIGHT</div>
+    <div class="chead">Defense day. <span>Protein early.</span></div>
+    ${ribbon(5, true)}
+  </div>
+
+  <div class="planwrap">
+    <div class="planhead">
+      <div class="eyebrow">TODAY'S PLAN · <b class="am">DEFENSE DAY</b></div>
+      <div class="streakchip">5 OF LAST 7</div>
+    </div>
+    ${task({ done: true, title: "Breakfast · 41g", chips: ["8:10a"] })}
+    ${task({
+      icon: I.fork,
+      title: "Lunch · 40g",
+      focus: true,
+      focusLabel: "BEFORE 2PM",
+      chips: [{ t: "Chicken bowl · Tue", k: "em" }, { t: "or scan", k: "" }],
+      right: miniRing(0.34),
+    })}
+    ${task({
+      icon: I.dumb,
+      title: "Upper body · 22 min",
+      chips: [{ t: "dumbbells" }],
+      right: goBtn(false, I.play),
+    })}
+    ${task({ done: true, title: "Walk · 10 min", chips: ["just now"] })}
+    <div class="planfoot">
+      <div class="pfl">2 OF 4</div>
+      <div class="pbar"><i style="width:50%"></i></div>
+      <div class="wkdots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="t"></i><i></i></div>
+    </div>
+  </div>
+
+  <div class="rings">
+    ${metricRing(5 / 7, "5 of 7", "41 / 120g", "Protein days")}
+    ${metricRing(2 / 3, "2 of 3", null, "Sessions")}
+    ${infoTile(I.syrGreen, "in 2 days", "1.0 mg", "Next shot")}
+  </div>
+
+  <div class="toast">
+    <div class="tdot">${I.checkWh}</div>
+    <div class="ttext">Walk done. Two left today.</div>
+    <div class="tundo">Undo</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 07 · HOME SCROLLED — coach read, shortcuts, For-today shelf ============ */
+      const belowFold = `
+  ${SB()}
+
+  <div class="stickyplan">
+    <div class="spk">TODAY'S PLAN</div>
+    <div class="pbar"><i style="width:50%"></i></div>
+    <div class="spv">2 OF 4</div>
+    <div class="spchev">›</div>
+  </div>
+
+  <div class="rings">
+    ${metricRing(5 / 7, "5 of 7", "41 / 120g", "Protein days")}
+    ${metricRing(2 / 3, "2 of 3", null, "Sessions")}
+    ${infoTile(I.syrGreen, "in 2 days", "1.0 mg", "Next shot")}
+  </div>
+
+  ${coachCard(
+    "You've beaten day 5 before",
+    "Tonight's hunger is the meds fading, and it's normal. Three cycles, three wins with the same play: <b>protein by 2pm</b>, walk after dinner.",
+  )}
+
+  <div class="qrow">
+    <div class="qbtn"><div class="qic">${I.qmeal}</div><div class="ql">Log food</div></div>
+    <div class="qbtn"><div class="qic">${I.qwork}</div><div class="ql">Workout</div></div>
+    <div class="qbtn"><div class="qic">${I.qweight}</div><div class="ql">Weight</div></div>
+    <div class="qbtn"><div class="qic">${I.qside}</div><div class="ql">Side effect</div></div>
+  </div>
+
+  <div class="shelf">
+    <div class="shelfhead">
+      <div class="eyebrow">FOR TODAY · <b class="am">DAY 5</b></div>
+      <div class="more">Library ›</div>
+    </div>
+    <div class="shelfrow">
+      <div class="readcard">
+        <div class="rimg sun"><div class="rglyph">${I.waveAm}</div></div>
+        <div class="rbody">
+          <div class="rtitle">Why hunger returns on day 5</div>
+          <div class="rmeta"><div class="chip am">3 min</div><div class="chip">matches today</div></div>
+        </div>
+      </div>
+      <div class="readcard">
+        <div class="rimg mint"><div class="rglyph">${I.forkBig}</div></div>
+        <div class="rbody">
+          <div class="rtitle">Protein when appetite is quiet</div>
+          <div class="rmeta"><div class="chip em">2 min</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="med">
+    <div><div class="mk">LAST DOSE</div><div class="mv">5 days ago</div></div>
+    <div class="mdiv"></div>
+    <div><div class="mk">NEXT DOSE</div><div class="mv">in 2 days</div></div>
+    <div class="mlog">Log dose ›</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 08 · ASK YOUR COACH — the app that answers everything ============ */
+      const coachChat = `
+  ${SB()}
+  <div class="chathead">
+    <div class="closebtn">✕</div>
+    <div class="hc"><div class="coachdot">${I.spark}</div><div class="ht">Your coach</div></div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="chatbody">
+    <div class="cbub">Day 5 tonight, Nick. Hunger may knock. Ask me anything, I've got you.</div>
+    <div class="ubub">Is it normal to be starving the night before my shot?</div>
+    <div class="cbub">Completely normal. Med levels run lowest right now, so hunger gets louder. Yours shows up on day 5, it did in your last three cycles.<br><br>Tonight: <b>your shake first</b>, then decide if you still want more. One loud evening undoes nothing.</div>
+    <div class="asklabel">PEOPLE ON YOUR MED ASK</div>
+    <div class="qchips">
+      <div class="qchip">Why did the scale jump overnight?</div>
+      <div class="qchip">What do I eat when nothing sounds good?</div>
+      <div class="qchip">Will I lose progress if I miss a shot?</div>
+      <div class="qchip">Is "Ozempic face" real?</div>
+    </div>
+  </div>
+  <div class="chatinput">
+    <div class="field">Ask anything…</div>
+    <div class="send">${I.arrWh}</div>
+  </div>
+`;
+
+      /* ============ 09 · DAY WON — the streak grows ============ */
+      const dayWon = `
+  <div class="behind">
+    ${SB()}
+    ${appbar("today")}
+    <div class="morning">
+      <div class="mg">Morning, Nick.</div>
+      <div class="ypill">${I.checkSm} 96g yesterday</div>
+    </div>
+    <div class="cyclecard guard">
+      <div class="halo"></div>
+      <div class="crow"><div class="ctx">Thu · Day 46 · Wegovy 1.0 mg</div></div>
+      <div class="cpill amber"><span class="d"></span>SHOT +5 · HUNGER TONIGHT</div>
+      <div class="chead">Defense day. <span>Protein early.</span></div>
+    </div>
+    <div style="height:280px"></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="awardwrap">
+      <div class="bigmedal">${I.sproutBig}</div>
+      <h3>Day won.</h3>
+      <div class="stknum"><b>12</b><span>days steady</span></div>
+      <div class="awarddots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="t"></i></div>
+      <div class="nextbadge">
+        <div class="nbic">${I.trophyWh}</div>
+        <div>
+          <div class="nbt">Two steady weeks</div>
+          <div class="nbs">2 more days. Your longest yet.</div>
+        </div>
+      </div>
+      <div class="awardcoach">Day 5 was the hard one, and you took it. Rhythm, not perfection.</div>
+    </div>
+    <div class="scanbtn" style="margin-top:16px">Keep going</div>
+  </div>
+`;
+
+      /* ============ 10 · YOUR STREAK — medals, dignified ============ */
+      const achievements = `
+  ${SB()}
+  <div class="chathead">
+    <div class="closebtn">✕</div>
+    <div class="hc"><div class="coachdot">${I.sproutWh}</div><div class="ht">Your streak</div></div>
+    <div style="width:34px"></div>
+  </div>
+
+  <div class="morning" style="justify-content:center;padding-top:10px">
+    <div style="text-align:center">
+      <div class="stknum" style="justify-content:center"><b>12</b><span>days steady</span></div>
+      <div class="chips" style="justify-content:center;margin-top:8px">
+        <div class="chip em">longest yet</div>
+        <div class="chip">${I.shield} 1 pass left this week</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="planwrap" style="padding-top:10px">
+    <div class="planhead"><div class="eyebrow">EARNED · <b>4 MEDALS</b></div></div>
+  </div>
+  <div class="medgrid">
+    <div class="medal">
+      <div class="mico">${I.medalSyr}</div>
+      <div class="mn">First shot logged</div>
+      <div class="mdte">Jun 1</div>
+    </div>
+    <div class="medal">
+      <div class="mico">${I.medalScale}</div>
+      <div class="mn">10 lb down</div>
+      <div class="mdte">Jun 28</div>
+    </div>
+    <div class="medal">
+      <div class="mico amber">${I.trophyWh}</div>
+      <div class="mn">4 weeks steady</div>
+      <div class="mdte">Jul 5</div>
+    </div>
+    <div class="medal">
+      <div class="mico">${I.sproutWh}</div>
+      <div class="mn">Muscle kept · first verdict</div>
+      <div class="mdte">Jun 8</div>
+    </div>
+    <div class="medal locked">
+      <div class="mico">${I.medalLock}</div>
+      <div class="mn">Two steady weeks</div>
+      <div class="mbar"><i style="width:86%"></i></div>
+      <div class="mdte">12 of 14 days</div>
+    </div>
+    <div class="medal locked">
+      <div class="mico">${I.medalLock}</div>
+      <div class="mn">Photo month</div>
+      <div class="mbar"><i style="width:75%"></i></div>
+      <div class="mdte">3 of 4 weeks</div>
+    </div>
+  </div>
+
+  <div class="passrow">
+    <div class="pic2">${I.shield}</div>
+    <div>
+      <div class="pt2">Your steady pass</div>
+      <div class="ps2">Covers one missed day a week, automatically. Streaks bend, they don't break.</div>
+    </div>
+  </div>
+
+  ${tabbar}
+`;
+
+      const SCREENS = [
+        {
+          n: "01",
+          tag: "Today · Defense day — greeting + one stat pill, cycle ribbon carries the story, plan is flat tap-cards: 3-word titles, chips, a ring instead of prose",
+          html: defenseDay,
+        },
+        {
+          n: "02",
+          tag: "Today · Reset day — shot day is a FULL day: 4 cards (shot primary, water, flexed protein, gentle mobility), and shot day doubles as PHOTO DAY: the optional dashed card below the plan (last week's thumb for continuity) never counts against the 4.",
+          html: resetDay,
+        },
+        {
+          n: "03",
+          tag: "Today · Green light day — big protein and the best lift slot as cards, morning weigh-in as the fresh third micro (day 2 reads truest). Photos moved to photo day.",
+          html: greenDay,
+        },
+        {
+          n: "04",
+          tag: "This week — the gauge and lever bars ARE the recap, week map shows guard days visually, NSV quote stays (it's five words)",
+          html: weekView,
+        },
+        {
+          n: "05",
+          tag: "Lunch card tapped — a one-tap log sheet: their three meals as big rows (tap = logged, sheet closes), Scan as the primary button. No expansion, no forms.",
+          html: lunchSheet,
+          cls: "sheetscreen",
+          flex: true,
+        },
+        {
+          n: "06",
+          tag: "Walk card ticked — zero-decision actions get zero screens: tap the circle, the card compresses to a done strip, an ink toast confirms with Undo. No sheet, no navigation.",
+          html: tickState,
+        },
+        {
+          n: "07",
+          tag: "Home scrolled — sticky plan chip keeps the day's state visible, then the full coach's read (personal claim + one reassurance + one action), shortcuts, and the For-today shelf: two library reads picked by cycle day. History lives in Progress, not here.",
+          html: belowFold,
+        },
+        {
+          n: "08",
+          tag: "Ask your coach — the app that answers everything: coach opens with today's context, answers in the voice (normalize → their data → one action), and the chips are real community questions. Clinical asks route to the prescriber.",
+          html: coachChat,
+          flex: true,
+        },
+        {
+          n: "09",
+          tag: "Day won — the last card ticks and the streak grows: sprout medal, 12 days steady, next badge 2 days out. The coach names the hard part ('Day 5 was the hard one'). Streak chip lives in every app bar.",
+          html: dayWon,
+          cls: "sheetscreen",
+          flex: true,
+        },
+        {
+          n: "10",
+          tag: "Your streak — dignified medals for real journey feats (first shot, 10 lb, 4 weeks steady, first verdict), locked ones show exact progress, and the steady pass: one covered miss a week. Streaks bend, they don't break.",
+          html: achievements,
+        },
+      ];
+
+      const g = document.getElementById("g");
+      document.querySelector(".brand .m").innerHTML = logo;
+      SCREENS.forEach((s) => {
+        const dev = document.createElement("div");
+        dev.className = "dev";
+        dev.innerHTML = `<div class="device"><div class="screen ${s.cls || ""}" ${s.flex ? 'style="min-height:840px"' : ""}>${s.html}</div></div>
+    <div class="tag"><span class="n">${s.n}</span><b>${s.tag}</b></div>`;
+        g.appendChild(dev);
+      });
+    </script>
+  </body>
+</html>

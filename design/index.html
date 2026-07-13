@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Design Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --emerald: #2fb87a;
+        --emerald-hi: #6fe0a6;
+        --amber: #e3a65e;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        font-family: "Geist", system-ui, sans-serif;
+        min-height: 100vh;
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        background-repeat: no-repeat;
+        color: #e7eede;
+        padding: 52px 32px 90px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .brand .m {
+        width: 30px;
+        height: 36px;
+        display: flex;
+        filter: drop-shadow(0 4px 10px rgba(47, 184, 122, 0.4));
+      }
+      h1 {
+        font-size: 27px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #f4f8ef;
+      }
+      h1 span {
+        color: var(--emerald);
+      }
+      .sub {
+        color: #8ea08a;
+        font-size: 13.5px;
+        line-height: 1.5;
+        margin: 10px 0 36px;
+        max-width: 640px;
+      }
+      .sect {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: #8ea08a;
+        margin: 30px 0 6px;
+      }
+      a.board {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 20px;
+        margin-top: 12px;
+        border-radius: 18px;
+        background: rgba(252, 252, 250, 0.04);
+        border: 1px solid rgba(231, 238, 222, 0.09);
+        text-decoration: none;
+        color: inherit;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          transform 0.15s;
+      }
+      a.board:hover {
+        background: rgba(47, 184, 122, 0.08);
+        border-color: rgba(47, 184, 122, 0.35);
+        transform: translateY(-1px);
+      }
+      .num {
+        font-size: 12px;
+        font-weight: 800;
+        color: #11160f;
+        background: var(--emerald);
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .binfo {
+        flex: 1;
+        min-width: 0;
+      }
+      .btitle {
+        font-size: 16.5px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        color: #f4f8ef;
+      }
+      .bdesc {
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: #8ea08a;
+        margin-top: 4px;
+      }
+      .bmeta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        flex: none;
+      }
+      .status {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 5px 10px;
+        border-radius: 20px;
+      }
+      .status.active {
+        background: rgba(47, 184, 122, 0.16);
+        color: var(--emerald-hi);
+        border: 1px solid rgba(47, 184, 122, 0.4);
+      }
+      .status.review {
+        background: rgba(227, 166, 94, 0.14);
+        color: #eec18a;
+        border: 1px solid rgba(227, 166, 94, 0.35);
+      }
+      .status.shipped {
+        background: rgba(231, 238, 222, 0.08);
+        color: #b9c7b0;
+        border: 1px solid rgba(231, 238, 222, 0.16);
+      }
+      .status.ref {
+        background: transparent;
+        color: #6f8069;
+        border: 1px solid rgba(231, 238, 222, 0.12);
+      }
+      .bdate {
+        font-size: 11px;
+        color: #6f8069;
+        font-weight: 500;
+      }
+      .foot {
+        margin-top: 40px;
+        font-size: 12px;
+        color: #6f8069;
+        line-height: 1.6;
+      }
+      .foot code {
+        background: rgba(252, 252, 250, 0.06);
+        border: 1px solid rgba(231, 238, 222, 0.1);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <div class="m">
+          <svg width="30" height="36" viewBox="0 0 36 48" fill="none"><defs><linearGradient id="lm" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6FE0A6"/><stop offset="1" stop-color="#23A869"/></linearGradient></defs><rect x="11" y="2" width="14" height="29" rx="7" fill="url(#lm)"/><g stroke="#F4F7F0" stroke-width="2" stroke-linecap="round"><path d="M18.5 16h4"/><path d="M18.5 20.5h4"/><path d="M18.5 25h4"/></g><rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="url(#lm)"/><rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="url(#lm)"/></svg>
+        </div>
+        <h1>Leanient<span>.</span> Design Hub</h1>
+      </div>
+      <p class="sub">
+        Every design board in one place. Boards are HTML prototypes ported 1:1 from the shipped RN
+        StyleSheets; the changelog in <code>design/CHANGELOG.md</code> tracks every revision.
+      </p>
+
+      <div class="sect">ACTIVE</div>
+      <a class="board" href="home-coach.html">
+        <div class="num">01</div>
+        <div class="binfo">
+          <div class="btitle">Coach Home Redesign · v2</div>
+          <div class="bdesc">
+            The coach pivot, home screen. Cycle ribbon with day personalities (defense / reset /
+            green light), flat tap-card plan, one-tap log sheet, instant-tick toast, gauge week
+            view. 6 frames.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status active">AWAITING SIGN-OFF</span><span class="bdate">Jul 12, 2026</span></div>
+      </a>
+      <a class="board" href="progress.html">
+        <div class="num">·</div>
+        <div class="binfo">
+          <div class="btitle">Progress Redesign</div>
+          <div class="bdesc">
+            Skia-style trend graphs: smoothed weight line, goal path vs the onboarding plan,
+            consistency heat, milestones, and locked reads that name what unlocks them. 3 frames.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status active">AWAITING SIGN-OFF</span><span class="bdate">Jul 12, 2026</span></div>
+      </a>
+      <a class="board" href="onboarding-v2.html">
+        <div class="num">·</div>
+        <div class="binfo">
+          <div class="btitle">Onboarding v2 · Conversion Flow</div>
+          <div class="bdesc">
+            The hard-paywall funnel: typewriter conversation with haptics, cited stats, belonging
+            beats, plan crafting, personalized paywall, post-purchase review ask. 8 frames.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status active">AWAITING SIGN-OFF</span><span class="bdate">Jul 12, 2026</span></div>
+      </a>
+      <a class="board" href="settings.html">
+        <div class="num">·</div>
+        <div class="binfo">
+          <div class="btitle">Settings Redesign</div>
+          <div class="bdesc">
+            From admin list to control room: editable plan (goal, targets, photo day), YOUR COACH
+            section (voice picker, cycle-aware reminders), and the doctor report. 3 frames.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status active">AWAITING SIGN-OFF</span><span class="bdate">Jul 12, 2026</span></div>
+      </a>
+      <a class="board" href="coach-voice.html">
+        <div class="num">·</div>
+        <div class="binfo">
+          <div class="btitle">Coach Voice Guide</div>
+          <div class="bdesc">
+            The six rules for every string in the app (reassure first, their data, steady, every
+            dead end coaches) plus before/after rewrites of real surfaces.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status active">VOICE GUIDE</span><span class="bdate">Jul 12, 2026</span></div>
+      </a>
+      <a class="board" href="store-screenshots.html">
+        <div class="num">02</div>
+        <div class="binfo">
+          <div class="btitle">App Store Screenshots · v2</div>
+          <div class="bdesc">
+            8 panels at 1290×2796 for the execution-model release. Generic drug names. Export via
+            #p1..#p8, iPad via #p1i..#p8i.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status review">AWAITING FEEDBACK</span><span class="bdate">Jul 5, 2026</span></div>
+      </a>
+      <a class="board" href="store-screenshots-watch.html">
+        <div class="num">03</div>
+        <div class="binfo">
+          <div class="btitle">Watch Screenshots · v2</div>
+          <div class="bdesc">5 execution faces at 410×502. Export via #w1..#w5.</div>
+        </div>
+        <div class="bmeta"><span class="status review">AWAITING FEEDBACK</span><span class="bdate">Jul 5, 2026</span></div>
+      </a>
+
+      <div class="sect">SHIPPED</div>
+      <a class="board" href="execution.html">
+        <div class="num">04</div>
+        <div class="binfo">
+          <div class="btitle">Execution Redesign</div>
+          <div class="bdesc">
+            The teacher-to-execution-engine shift: directive hero, days-hit tiles, checkable plan
+            timeline. Implemented in the RN app Jul 5. Superseded on Home by the Coach Home v2
+            direction above.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status shipped">IMPLEMENTED</span><span class="bdate">Jul 4, 2026</span></div>
+      </a>
+
+      <div class="sect">REFERENCE</div>
+      <a class="board" href="onboarding.html">
+        <div class="num">05</div>
+        <div class="binfo">
+          <div class="btitle">Onboarding Flow</div>
+          <div class="bdesc">The original onboarding prototype. Source of the design tokens (:root palette).</div>
+        </div>
+        <div class="bmeta"><span class="status ref">REFERENCE</span></div>
+      </a>
+      <a class="board" href="app.html">
+        <div class="num">06</div>
+        <div class="binfo">
+          <div class="btitle">In-App Screens (design lab)</div>
+          <div class="bdesc">
+            Early full-app explorations. Stale relative to the shipped RN components; port from the
+            live StyleSheets, never from here.
+          </div>
+        </div>
+        <div class="bmeta"><span class="status ref">STALE · DO NOT PORT</span></div>
+      </a>
+
+      <p class="foot">
+        Serve locally: the <code>leanient-design</code> launch config runs
+        <code>python3 -m http.server 4321</code> on this folder, so this hub is
+        <code>localhost:4321/</code> and every board is one click away.
+      </p>
+    </div>
+  </body>
+</html>

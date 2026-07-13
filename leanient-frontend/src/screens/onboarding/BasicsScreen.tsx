@@ -1,19 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Eyebrow } from "../../components/ui/Eyebrow";
-import { SegButton } from "../../components/ui/SegButton";
+import React, { useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { AgeWheel } from "../../components/ui/AgeWheel";
-import { Button } from "../../components/ui/Button";
+import { ink } from "../../theme/inkTokens";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 import { useOnboarding } from "../../context/OnboardingContext";
+import { onboardingProgress } from "../../onboarding/flowProgress";
 import type { SexAssignedAtBirth } from "../../onboarding/draft";
-
-const RISE_EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 interface BasicsScreenProps {
   onBack?: () => void;
@@ -33,94 +28,79 @@ export function BasicsScreen({ onBack, onContinue }: BasicsScreenProps) {
   const [sex, setSex] = useState<SexAssignedAtBirth | null>(null);
   const [age, setAge] = useState(30);
 
-  const rise = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(rise, { toValue: 1, duration: 520, easing: RISE_EASE, useNativeDriver: true }).start();
-  }, [rise]);
-
-  const bodyStyle = {
-    opacity: rise,
-    transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+  const pickSex = (key: SexAssignedAtBirth) => {
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSex(key);
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScreenHeader progress={0.48} onBack={onBack} />
+    <ConvoScreen
+      progress={onboardingProgress("basics")}
+      onBack={onBack}
+      context="Now we calibrate."
+      question="A couple basics."
+      sub="These set your protein and calorie targets. Nothing else."
+      footer={
+        <ConvoButton
+          label="Continue"
+          disabled={sex === null}
+          onPress={() => {
+            if (!sex) return;
+            setBasics({ sexAssignedAtBirth: sex, age });
+            onContinue?.();
+          }}
+        />
+      }
+    >
+      <Text style={[styles.eyebrow, { marginTop: 26 }]}>SEX ASSIGNED AT BIRTH</Text>
+      <View style={styles.segRow}>
+        {SEX_OPTIONS.map((o) => {
+          const on = sex === o.key;
+          return (
+            <Pressable
+              key={o.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={o.label}
+              onPress={() => pickSex(o.key)}
+              style={[styles.seg, on && styles.segOn]}
+            >
+              <Text style={[styles.segText, on && styles.segTextOn]}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={styles.sexCaption}>
+        We use this to calculate your calorie target accurately. This is a biological input
+        separate from gender identity.
+      </Text>
 
-        <Animated.View style={[styles.body, bodyStyle]}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.h1}>A couple basics so we calibrate right.</Text>
-            <Text style={styles.sub}>
-              We use this to set protein targets and metabolic baselines. Nothing else.
-            </Text>
-          </View>
-
-          <Eyebrow style={styles.eyebrowFirst}>SEX ASSIGNED AT BIRTH</Eyebrow>
-          <View style={styles.segRow}>
-            {SEX_OPTIONS.map((o) => (
-              <SegButton key={o.key} label={o.label} selected={sex === o.key} onPress={() => setSex(o.key)} />
-            ))}
-          </View>
-          <Text style={styles.sexCaption}>
-            We use this to calculate your calorie target accurately. This is a biological input
-            separate from gender identity.
-          </Text>
-
-          <Eyebrow style={styles.eyebrowAge}>AGE</Eyebrow>
-          <AgeWheel value={age} onChange={setAge} />
-
-          <View style={styles.spacer} />
-
-          <Button
-            label="Continue"
-            disabled={sex === null}
-            onPress={() => {
-              if (!sex) return;
-              setBasics({ sexAssignedAtBirth: sex, age });
-              onContinue?.();
-            }}
-          />
-        </Animated.View>
-      </SafeAreaView>
-    </View>
+      <Text style={[styles.eyebrow, { marginTop: 28, marginBottom: 12 }]}>AGE</Text>
+      <View style={styles.panel}>
+        <AgeWheel value={age} onChange={setAge} />
+      </View>
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  safe: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  titleBlock: { marginBottom: 8 },
-  h1: {
-    fontFamily: font.extrabold,
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -0.75,
-    color: colors.ink,
-  },
-  sub: {
-    fontFamily: font.regular,
-    fontSize: 16,
-    lineHeight: 23,
-    letterSpacing: -0.16,
-    color: colors.muted,
-    marginTop: 10,
-  },
-  eyebrowFirst: { marginTop: 22, marginBottom: 12 },
+  eyebrow: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.99, color: ink.faint, marginBottom: 12 },
   segRow: { flexDirection: "row", gap: 10 },
-  sexCaption: {
-    fontFamily: font.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: -0.08,
-    color: colors.muted,
-    marginTop: 10,
+  seg: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 22,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: ink.chipBorder,
   },
-  eyebrowAge: { marginTop: 28, marginBottom: 12 },
-  spacer: { flex: 1, minHeight: 18 },
+  segOn: { backgroundColor: ink.emerald, borderColor: ink.emerald },
+  segText: { fontFamily: font.semibold, fontSize: 15, color: ink.chipText },
+  segTextOn: { fontFamily: font.bold, color: ink.onEmerald },
+  sexCaption: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: ink.soft, marginTop: 10 },
+  panel: { borderRadius: 20, backgroundColor: colors.paper, paddingVertical: 8, paddingHorizontal: 10 },
 });
 
 export default BasicsScreen;

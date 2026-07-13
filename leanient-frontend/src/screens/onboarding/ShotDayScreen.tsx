@@ -1,19 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import type { Weekday } from "@leanient/shared";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { Eyebrow } from "../../components/ui/Eyebrow";
-import { Button } from "../../components/ui/Button";
-import { CoachPill } from "../../components/ui/CoachPill";
+import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { SHOT_DAY_OPTIONS, shotDayCoachNote, sortShotDays } from "../../onboarding/shotDay";
-import { colors } from "../../theme/tokens";
+import { onboardingProgress } from "../../onboarding/flowProgress";
+import { ink } from "../../theme/inkTokens";
 import { font } from "../../theme/fonts";
-
-const RISE_EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 interface ShotDayScreenProps {
   onBack?: () => void;
@@ -21,31 +15,27 @@ interface ShotDayScreenProps {
 }
 
 /**
- * Shot Day (onboarding, after Medication Details). Captures the contract's
- * required `shotDays` as a non-empty `Weekday[]`. Most users pick one day;
- * split-dose protocols pick several. Days are shown in calendar order; the coach
- * line is dynamic on the selected medication + days.
+ * Shot day, the anchor question. Captures the contract's required `shotDays`
+ * as a non-empty `Weekday[]`; most users pick one day, split-dose protocols
+ * pick several (so it keeps a Continue footer). The coach note stays dynamic
+ * on the selected medication + days.
  */
 export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
   const { draft, setMedication } = useOnboarding();
   const [days, setDays] = useState<Weekday[]>(draft.medicationProtocol.shotDays ?? []);
 
   const toggleDay = (key: Weekday) => {
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     setDays((current) =>
       current.includes(key) ? current.filter((d) => d !== key) : sortShotDays([...current, key]),
     );
   };
 
-  const rise = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(rise, { toValue: 1, duration: 520, easing: RISE_EASE, useNativeDriver: true }).start();
-  }, [rise]);
-  const bodyStyle = {
-    opacity: rise,
-    transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-  };
-
   const coach = shotDayCoachNote(draft.medicationProtocol.medicationName, days);
+  const dose = draft.medicationProtocol.doseAmount;
+  const context = dose != null ? `${dose} ${draft.medicationProtocol.doseUnit ?? "mg"}, noted.` : "Noted.";
 
   const handleContinue = () => {
     if (days.length === 0) return;
@@ -54,77 +44,64 @@ export function ShotDayScreen({ onBack, onContinue }: ShotDayScreenProps) {
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScreenHeader progress={0.21} onBack={onBack} />
+    <ConvoScreen
+      progress={onboardingProgress("shotDay")}
+      onBack={onBack}
+      context={context}
+      question="What days do you take your shot?"
+      sub="This one matters most. Your whole plan beats to it. Most people pick one; choose more if you split your dose."
+      footer={<ConvoButton label="Continue" disabled={days.length === 0} onPress={handleContinue} />}
+    >
+      <View style={styles.chipRow}>
+        {SHOT_DAY_OPTIONS.map((o) => {
+          const on = days.includes(o.key);
+          return (
+            <Pressable
+              key={o.key}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+              accessibilityLabel={o.long}
+              onPress={() => toggleDay(o.key)}
+              style={[styles.chip, on && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.short}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-        <Animated.View style={[styles.body, bodyStyle]}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.h1}>What days do you take your shot?</Text>
-            <Text style={styles.sub}>
-              Pick every day you inject. Most people take one; choose more if you split your dose.
-            </Text>
-          </View>
-
-          <Eyebrow style={styles.eyebrow}>SHOT DAYS</Eyebrow>
-          <View style={styles.chipRow}>
-            {SHOT_DAY_OPTIONS.map((o) => {
-              const on = days.includes(o.key);
-              return (
-                <Pressable
-                  key={o.key}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={o.long}
-                  onPress={() => toggleDay(o.key)}
-                  style={[styles.chip, on && styles.chipOn]}
-                >
-                  <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.short}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {coach ? (
-            <View style={styles.coachWrap}>
-              <CoachPill>{coach}</CoachPill>
-            </View>
-          ) : null}
-
-          <View style={styles.spacer} />
-
-          <Button label="Continue" disabled={days.length === 0} onPress={handleContinue} />
-        </Animated.View>
-      </SafeAreaView>
-    </View>
+      {coach ? (
+        <View style={styles.coach}>
+          <Text style={styles.coachText}>{coach}</Text>
+        </View>
+      ) : null}
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.paper },
-  safe: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  titleBlock: { marginBottom: 8 },
-  h1: { fontFamily: font.extrabold, fontSize: 30, lineHeight: 34, letterSpacing: -0.75, color: colors.ink },
-  sub: { fontFamily: font.regular, fontSize: 16, lineHeight: 23, letterSpacing: -0.16, color: colors.muted, marginTop: 10 },
-  eyebrow: { marginTop: 26, marginBottom: 12 },
-  chipRow: { flexDirection: "row", gap: 7 },
+  chipRow: { flexDirection: "row", gap: 7, paddingTop: 26 },
   chip: {
     flex: 1,
     paddingVertical: 15,
-    borderRadius: 13,
+    borderRadius: 20,
     alignItems: "center",
-    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.line,
+    borderColor: ink.chipBorder,
   },
-  chipOn: { backgroundColor: "rgba(47,184,122,0.10)", borderColor: colors.emeraldDeep },
-  chipText: { fontFamily: font.semibold, fontSize: 13, color: colors.muted },
-  chipTextOn: { color: colors.emeraldDeep },
-  coachWrap: { marginTop: 20 },
-  spacer: { flex: 1, minHeight: 18 },
+  chipOn: { backgroundColor: ink.emerald, borderColor: ink.emerald },
+  chipText: { fontFamily: font.bold, fontSize: 12.5, color: ink.chipText },
+  chipTextOn: { color: ink.onEmerald },
+  coach: {
+    marginTop: 20,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: "rgba(47,184,122,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(111,224,166,0.30)",
+  },
+  coachText: { fontFamily: font.medium, fontSize: 13.5, lineHeight: 19, color: ink.bright },
 });
 
 export default ShotDayScreen;

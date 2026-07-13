@@ -1,7 +1,304 @@
 # Leanient onboarding — design changelog
 
+## 2026-07-12 — Onboarding v2: the conversion flow (`design/onboarding-v2.html`)
+
+The hard-paywall funnel, AWAITING SIGN-OFF, 8 frames, linked in the hub.
+Supersedes onboarding.html's flow feel (data collected is unchanged; feel
+and order change). The psychological arc, PeptidePal-inspired typewriter
+conversation adapted to the coach voice:
+01 Hook: before asking anything, "You're not doing this alone" types
+itself (implementation: per-character soft haptic tick, RN Haptics), then
+1 in 8 + KFF citation + avatar row "+2,400 joined this week". Belonging
+before questions. 02 Conversation: questions type themselves, previous
+lines dim like dialogue; "No judgment here" under sensitive asks; answer
+chips. 03 Belonging beat: every answer met before the next ask (4.1M on
+semaglutide, IQVIA cite; their private symptoms named as normal and
+plannable). 04 Stakes + fix in one breath: the up-to-39% muscle stat with
+Lancet citation, reassurance in the same screen ("it's preventable...
+people who plan for it keep what's theirs"), urgency without decel fear.
+05 Crafting: their answers visibly become their plan (shot Saturdays,
+120g, strong days, defense days) + credibility line "built on 40+
+clinical sources, cited in-app". 06 Reveal, the lights come on: dark
+conversation transitions to the paper app, goal-path graph drawn to THEIR
+date, plan chips, coach promise. 07 Hard paywall (NO skip): value stack =
+the app they watched get built, pricing matches the SHIPPED
+PaywallScreen.tsx tiers exactly (annual $29.99/yr · "just $2.50/mo" ·
+SAVE 69% badge; monthly $7.99 · billed monthly; footnote "Billed $29.99
+yearly · cancel anytime"), peer testimonial (Martha · 58 · Zepbound).
+Mock pricing was initially invented at $59.99 and corrected after
+Nickson's review: always pull tiers from PaywallScreen.tsx /
+subscriptionMetrics.ts (ANNUAL const), source of truth is RevenueCat.
+Med chips on frame 02 corrected the same way: the full shipped catalog
+(medicationSeed.service.ts) is semaglutide (Ozempic, Wegovy), tirzepatide
+(Mounjaro, Zepbound), liraglutide (Saxenda, Victoza) + Other; the mock
+now shows all six brands + Compounded + Something else (8 chips).
+Compounded maps to the semaglutide/tirzepatide generic at protocol
+creation; "Something else" maps to the catalog's "other" slug.
+Full question set added (after gap analysis vs the shipped flow): the
+board is now the COMPLETE 17-frame funnel. Order: 01 hook → 02 journey
+stage (routes: "still considering" skips dose/shot-day) → 03 med →
+04 dose + start date (two chip groups) → 05 shot day (day picker, "your
+whole plan beats to it") → 06 belonging beat → 07 feeling/side-effects
+multi-select ("a question only people like us ask... this stays between
+us") → 08 the fear (dim line first meets their symptoms: "all normal,
+all plannable") → 09 the truth as a RESPONSE to their named fear →
+10 basics (sex/age/height/weight chips + the why) → 11 goal weight (big
+number + slider, "the keeping-your-muscle way") → 12 pace (three cards,
+steady pre-selected with their landing date; ambitious warns gently) →
+13 training ("Last one. Be honest." + equipment chips; not-yet framed as
+the perfect start) → 14 crafting → 15 reveal → 16 hard paywall →
+17 review ask. Dim-line handoffs chain the conversation ("Wegovy. Got
+it." → "1.0 mg, a few weeks in." → "Saturdays. Locked in."). Every
+shipped onboarding question is now represented; nothing was dropped.
+
+THE CONVERSATION RULES added (after Nickson's note that chip screens
+must still feel like the app is texting them). Documented in the board
+intro + frame 3b: 1. nothing pre-rendered (dim line types, then question
+with haptic ticks, then chips stagger in one by one); 2. answers are
+spoken (tap dissolves the other chips, the pick glides up as a SENT
+MESSAGE bubble); 3. the coach types back (three-dot bubble → the
+acknowledgment line); 4. single-select auto-advances after the
+acknowledgment beat, Continue only for multi-select and sliders;
+5. haptics grammar (tick per character, warm tap on select, thump on
+acknowledgment); 6. acknowledgments respond instantly, next questions
+take a thinking beat. Frame 3b mocks the mid-state: dimmed question,
+emerald sent-bubble "Wegovy" (iMessage corner), coach typing dots.
+This beat runs between EVERY question; it is the difference between
+texting and a form.
+
+Social-proof copy rule (after Nickson's review): never invent user
+counts. "+2,400 joined this week" removed from frames 01 and 08; the
+avatar bubbles stay but the caption is market truth: "15 million+ right
+now" (KFF: ~6% of US adults currently on a GLP-1, same source as the
+1-in-8 stat above it). Once real install numbers are meaningful, they
+can replace the market stat, sourced from analytics, never made up. 08 Post-purchase
+review ask at peak excitement, BEFORE the app opens: five stars, a recent
+review mirroring their fear, and the frame "help the next person, the one
+still searching Facebook groups at midnight", then Rate Leanient →
+SKStoreReviewController. Numbers/citations in the mock are placeholders;
+verify against docs/glp1-clinical-reference.md before shipping.
+
+## 2026-07-12 — Settings redesign board (`design/settings.html`)
+
+Coach-pivot settings, AWAITING SIGN-OFF, 3 frames, linked in the hub.
+Reframe: admin list → control room. Frame 01, the hub: identity header
+with journey chips (streak sprout, Day 50 · Wegovy, ↓14 lb, avatar edit
+badge), then five groups. YOUR PLAN makes every onboarding choice editable
+(Medication + schedule, Goal 185 by Jan 17, Daily targets, Photo day).
+YOUR COACH is new: Coach style (Gentle), Check-in day, Reminders
+(cycle-aware), Doctor report (NEW chip). PREFERENCES: Units, Apple Health,
+Widgets (streak/plan on home screen). PRIVACY & DATA: privacy, Export my
+data, Face analysis (Off). ACCOUNT: account, subscription, sign out.
+Row anatomy = shipped SettingGroup (icon tile, label+sub, value, chevron).
+COMMUNITY group added after feedback (right after YOUR COACH, before
+PREFERENCES): glabel "COMMUNITY · JOIN OUR CHANNELS" with two rows,
+Discord ("Daily wins, questions, the team" · Join) and WhatsApp
+("Announcements and tips" · Join), each with the brand mark on a
+brand-tinted icon tile (indigo #EEF0FE / green #E7F8EC), the only
+non-palette colors in the app, reserved for external brands. Rationale:
+the market lives in communities (the original Reddit research), so the
+app hands users one of its own instead of losing them to Facebook groups.
+
+PERMISSIONS group added after feedback (between PRIVACY & DATA and
+ACCOUNT): Notifications ("Reminders and your Sunday verdict" · Allowed),
+Camera ("Meal scan, barcodes, progress photos" · Allowed), Photo library
+("Saving your progress photos" · Ask). Status chips read Allowed
+(emerald) / Ask (muted); each row explains WHY the permission is needed,
+and tapping deep-links to iOS Settings. If a permission that a feature
+needs is off, the feature's own screen should surface the same row inline
+(e.g. reminders screen shows the Notifications row when denied).
+Frame 02, Doctor report: six weeks of logs as one prescriber-ready page
+(weight 226→212, pace in safe band, muscle 84 trending up, 6/6 doses with
+site rotation, protein 34/42 days, 11 sessions, side-effect pattern
+"nausea ×3 mild day 1-2"), Share PDF button; disclaimer footer
+("self-tracked summary"). Frame 03, Your coach: voice picker as two
+preview cards (Gentle vs Straight, same plan either way, sample line in
+each) + cycle-aware reminder toggles (shot morning, guard-day evening,
+Sunday check-in, photo day) + quiet hours row.
+
+## 2026-07-12 — Where achievements live (placement model)
+
+Answer to "where do users see achievements without cluttering the main
+screens": the standing footprint is ONLY the app-bar streak chip (tap →
+Your streak screen, frame 10). Everything else is either a moment (frame
+09 day-won sheet, badge unlocks riding it or the Sunday verdict reveal:
+zero standing pixels) or reuse of surfaces that already existed (plan
+footer week dots, 5-OF-LAST-7 chip, morning pill). The medal gallery
+belongs to Progress: the existing milestones row gained a "MILESTONES ·
+4 MEDALS / All medals ›" header linking to the full grid (progress.html
+frame 02). No new sections were added to any main screen.
+
+## 2026-07-12 — Streak + achievements (frames 09-10, Duolingo made kind)
+
+The streak system, adapted for the coach voice and an older audience.
+Mechanics: winning the day (plan complete) grows a day streak; a weekly
+"steady pass" auto-covers one missed day ("Streaks bend, they don't
+break"), and shot days are won lightly by design, so the streak never
+punishes the medical journey. Ubiquity: a sprout streak chip
+(rgba-emerald pill, sprout icon + count) sits in EVERY app bar (added to
+the shared appbar() so all Home frames carry it, plus the Progress
+header); tapping opens the achievements screen. Frame 09, the day-won
+sheet: sprout medal, "Day won.", 12 days steady, week dots, next-badge
+strip (Two steady weeks · 2 more days), coach line naming the hard part
+("Day 5 was the hard one, and you took it. Rhythm, not perfection.").
+Frame 10, Your streak: streak hero + "longest yet" / "1 pass left" chips,
+dignified medal grid tied to real journey feats (First shot logged,
+10 lb down, 4 weeks steady, Muscle kept · first verdict) with locked
+medals showing exact progress bars (Two steady weeks 12/14, Photo month
+3/4), and the steady-pass explainer row. No confetti, no mascot pressure:
+recognition from the coach, not gamification noise.
+
+## 2026-07-12 — Photo day: where progress photos get taken
+
+Decision (home-coach.html frames 02/03): progress photos are CAPTURED on
+Home, on one fixed day per cycle ("photo day" = shot day, the weekly
+ritual), as an optional dashed card BELOW the plan footer: "PHOTO DAY ·
+OPTIONAL / Week 7 photo / same mirror, same light / 20 seconds" with last
+week's thumbnail for continuity and a chevron into the camera. It never
+counts against the plan's N-of-N, and on the other six days it does not
+appear at all. Cycle-anchoring keeps photos comparable (same day-of-cycle,
+weekly spacing) and the Progress screen's photo timeline clean. Frame 03's
+"Week 6 photo" plan card is replaced by a "Morning weigh-in" micro (day 2
+reads truest); photos no longer appear inside the checklist. Implementation
+note: capture flow should overlay a ghost of last week's photo for
+alignment (progress-photo infra already exists).
+
+## 2026-07-12 — Progress redesign board (`design/progress.html`)
+
+Coach-pivot Progress screen, AWAITING SIGN-OFF, 3 frames, linked in the hub.
+Charts restyled for the React Native graph kit direction (Skia smooth
+monotone curves, gradient area fills, scrub cursor when implemented; exact
+package to confirm with Nickson, likely react-native-graph). Frame 01: the
+two graphs. Weight = the smoothed WEEKLY trend line with raw daily points
+demoted to faint dots ("The line is your weekly trend. The faint dots are
+daily noise, ignore them."). Goal path = actual line vs the dashed plan line
+derived from onboarding goal weight + pace (projectedPath.ts already
+computes this): TODAY marker, amber goal flag, "your pace · Jan 5" vs
+"plan · Jan 17", headline chip "12 days ahead", never a judgment. Frame 02:
+what your logging built: 30-day consistency heat (26 of 30) with meal/
+session/check-in count chips, muscle retention trend (78→84), milestone
+cards (First 10 lb, the check-in NSV, best protein week), photo timeline.
+Frame 03 (day 4): the more-you-log mechanic: two weigh-ins already draw a
+direction toward a ghosted "where you're headed" line, and locked reads
+(Goal path, Muscle trend) name exactly which log unlocks them, with
+progress dots. Reassurance rules applied throughout: no red, downward
+weight drawn as calm emerald, behind-plan states would use amber + a next
+step (never shown as failure).
+
+## 2026-07-12 — Coach everywhere: voice guide + ask-anything chat
+
+`design/coach-voice.html` (linked from the hub): the six voice rules for
+EVERY string in the app (1 reassure first, 2 their data beats general
+truths, 3 committed/the coach stays, 4 steady even when news is bad,
+5 every dead end still coaches, 6 every question has a home) + before/after
+rewrites of real surfaces (empty home, save error, day-5 push, bad-week
+verdict, stall, check-in, paywall, loading, missed shot) + the NEVER list
+(fear, shame, exclamation marks, emojis, system voice...). Scope when
+implemented: all RN strings + coachContent.service.ts templates +
+notifications. Clinical boundaries stay per COACH_CHAT_SYSTEM_PROMPT.
+
+Frame 08 on home-coach.html (ask-anything chat, exact CoachChatScreen
+anatomy): coach opens with today's context ("Day 5 tonight, Nick. Hunger
+may knock. Ask me anything, I've got you"), answer models the voice
+(normalize, then their data, then one emerald-bold action), and the
+suggestion chips are REAL community phrasings under "PEOPLE ON YOUR MED
+ASK": scale jump overnight, nothing sounds good, miss a shot, "Ozempic
+face". Positioning: the app answers what people currently beg Facebook
+groups for. Chips rotate with cycle day.
+
 Running log of changes made in the HTML prototype (`design/onboarding.html`)
 so they can be re-applied to the Paper file when its quota resets.
+
+## 2026-07-12 — Design hub (`design/index.html`)
+
+Single entry point for every board, served at the folder root so
+`localhost:4321/` lists everything: Coach Home v2 (AWAITING SIGN-OFF),
+store screenshots v2 + watch (AWAITING FEEDBACK), execution redesign
+(IMPLEMENTED), onboarding (REFERENCE), app.html design lab (STALE · DO NOT
+PORT). New boards must be added here with a status chip.
+
+## 2026-07-12 — Coach Home v2: fewer words, tap-cards (`design/home-coach.html`)
+
+REBUILT after feedback (older audience: less reading, more visuals). The plan
+drops the expandable PlanTimeline for flat tap-cards, one per action: 44px
+icon tile, 3-4 word extrabold title, chips instead of sub-sentences, and one
+visual on the right (mini progress ring for protein/water, play button for
+sessions, chevron otherwise). Focus card gets an emerald border; done cards
+compress to a sage strip with line-through. Plan footer is a progress bar +
+"1 OF 4" + week dots, no payoff sentence. Morning read shrinks to greeting +
+one stat pill (no paragraph). Cycle hero loses both paragraphs: pill + 4-word
+headline + ribbon + one-line pattern. Week hero replaces the wordy verdict
+card with the RetentionHero gauge (84/100) + one-word status + delta chip +
+three lever bars; NEXT WEEK directive is seven words. Week map caption cut to
+one line; NSV sub to three words. Coach card reduced to a one-line ask strip.
+v1 (timeline + prose) is superseded; same four frames, AWAITING SIGN-OFF.
+
+Frame 05 added (card-tap behavior): tapping the protein card opens a one-tap
+log sheet (QuickLogSheet chrome): the user's three meals as big rows with a
+plus button (tap = logged, sheet closes), Scan a meal as the primary action,
+"Type it instead" as the escape hatch. Interaction taxonomy for all plan
+cards, "the tap never asks a question the card didn't already show":
+(a) instant tick with undo for micro-actions (walk; water increments on the
+card), (b) one-tap-choice sheet for logs (protein, shot), (c) full-screen
+player for workouts. No inline expansion anywhere.
+
+Frame 06 added (instant-tick state): the walk card just ticked. Card
+compresses to the done strip ("just now" chip), plan footer advances to
+2 OF 4 / 50% bar, and an ink glass toast floats above the tab bar:
+emerald check dot + "Walk done. Two left today." + an Undo pill
+(emerald-hi on ink). No sheet, no navigation for zero-decision actions.
+
+Frame 07 added (below the fold): the scrolled Today order is sticky plan
+chip (glass strip: TODAY'S PLAN + progress bar + 2 OF 4) → rings → the
+coach's one-line ask strip ("Hunger tonight is normal") → QuickActionRow
+shortcuts → the For-today shelf → the glass dose row → tab bar. The shelf
+is the library-vs-history decision: 1-2 library reads picked by cycle day
+(illustrated cards, read-time chips, "matches today"), full library on its
+own screen via "Library ›". History was rejected for Home: the plan's done
+strips + rings already show today, deep history belongs to Progress. The
+standalone LOGGED TODAY list is retired.
+
+Shot-day emphasis (Nickson: shot days are what users watch for). The cycle
+ribbon's shot-day node now carries a small syringe badge (amber on cream,
+16px, top-right corner) in every frame, so the shot is always locatable in
+the mini calendar. Shot day's plan grew from 3 to 4 cards: the day still
+includes eating, water, AND movement — Log your shot (primary), Water 2L,
+Easy protein 90g (flexed target), Mobility 15 min ("gentle" / "still
+counts"). Footer 0 OF 4. The reset-day framing stays: shot = day won, the
+rest is bonus.
+
+Coach's read upgraded (Nickson: keep the shipped CoachInsightCard look, make
+the read better). The full card (COACH'S READ / FROM YOUR COACH header,
+headline, body, Ask your coach) replaces the slimmed ask strip in frames 02
+and 07. Copy recipe for the generated read: headline = a personal claim
+pulled from THEIR data ("You've beaten day 5 before", "Six shots in, never
+missed"), body = one reassurance ("tonight's hunger is the meds fading, and
+it's normal") + one concrete action (emerald-bold: "protein by 2pm"), 25
+words max, never generic. When implemented, this read should come from the
+coachContent pipeline with cycle-day + pattern + streak context, replacing
+the static buildDailyInsight templates.
+
+## 2026-07-11 — Coach Home redesign board (`design/home-coach.html`)
+
+Board for the coach pivot (reassurance-first, "the coach reads your day before
+you do"), AWAITING SIGN-OFF (no app code yet). Built on the shipped RN
+StyleSheets, same 1:1 porting rule as execution.html. Four frames:
+01 Defense day (shot +5): morning read opens with yesterday's win, cycle hero
+card with the 7-node med-level ribbon + YOUR PATTERN line ("day 5 is where
+protein slipped"), plan card gets a day personality (DEFENSE DAY), the EAT
+panel suggests the user's OWN logged meals ("from your own playbook"), amber
+after-dinner-walk guard-rail step. 02 Reset day (shot day): shot as ritual,
+site rotation remembered, water step, protein target flexes to 90g, "won
+lightly" payoff. 03 Green light day (shot +2): strongest-window framing, big
+protein + best lift slot per their logs, week-6 photo as the fresh third step.
+04 This week: recap leads with what held, NEXT WEEK names the two guard days,
+new week-on-cycle map (SHOT/EASY/MID/GUARD phases per weekday), NSV card
+quoting the check-in win ("The 2019 jeans buttoned"), rings + glass dose row.
+New components (still in the shipped design language): morning read header,
+cycle ribbon (curve + nodes), YOUR PATTERN row, week map, NSV card. Everything
+else is the existing VerdictCard/TodayPlanCard/PlanTimeline/MetricRing/
+CoachInsightCard/TabBar anatomy. Copy follows the writing rules (no em dashes,
+no fear framing, reassurance-first).
 
 ## 2026-07-05 — App Store screenshot set v2 (`design/store-screenshots.html`)
 

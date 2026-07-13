@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Progress Redesign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ================= tokens: 1:1 with src/theme/tokens.ts ================= */
+      :root {
+        --paper: #f3f2ed;
+        --card: #fcfcfa;
+        --ink: #17191b;
+        --ink-soft: #3a3d3a;
+        --muted: #6e6f6a;
+        --faint: #9a9b95;
+        --faintest: #cbcbc4;
+        --line: #e4e3dd;
+        --sage-fill: #ecece6;
+        --glass: rgba(255, 255, 255, 0.55);
+        --glass-line: rgba(255, 255, 255, 0.75);
+        --emerald-hi: #6fe0a6;
+        --emerald: #2fb87a;
+        --emerald-deep: #1f9e63;
+        --amber: #e3a65e;
+        --amber-deep: #c8843a;
+        --font: "Geist", system-ui, sans-serif;
+        --w-regular: 400;
+        --w-medium: 500;
+        --w-semibold: 600;
+        --w-bold: 700;
+        --w-extrabold: 800;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        font-family: var(--font);
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        background-repeat: no-repeat;
+        color: #e7eede;
+        padding: 40px 28px 80px;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.045;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .topbar {
+        max-width: 1320px;
+        margin: 0 auto 44px;
+        display: flex;
+        align-items: flex-end;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .brand .m {
+        width: 30px;
+        height: 36px;
+        display: flex;
+        filter: drop-shadow(0 4px 10px rgba(47, 184, 122, 0.4));
+      }
+      .brand h1 {
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #f4f8ef;
+      }
+      .brand h1 span {
+        color: var(--emerald);
+      }
+      .topbar p {
+        color: #8ea08a;
+        font-size: 13.5px;
+        line-height: 1.5;
+        max-width: 720px;
+        margin-top: 6px;
+      }
+      .gallery {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 56px 44px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .dev {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .dev .tag {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        color: #8ea08a;
+        font-size: 13px;
+        font-weight: 500;
+        max-width: 390px;
+        text-align: center;
+      }
+      .dev .tag b {
+        color: #e7eede;
+        font-weight: 600;
+      }
+      .dev .tag .n {
+        font-size: 11px;
+        font-weight: 700;
+        color: #11160f;
+        background: var(--emerald);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .device {
+        width: 390px;
+        flex: none;
+        position: relative;
+        background: #0c100b;
+        border-radius: 54px;
+        padding: 9px;
+        box-shadow:
+          0 2px 0 1px #2a352440 inset,
+          0 50px 90px -40px rgba(0, 0, 0, 0.85),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .screen {
+        width: 100%;
+        border-radius: 46px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        color: var(--ink);
+        background:
+          radial-gradient(80% 40% at 100% 0%, rgba(47, 184, 122, 0.06), transparent 60%),
+          var(--paper);
+      }
+      .sb {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 26px 6px;
+        flex: none;
+      }
+      .sb .t {
+        font-size: 16px;
+        font-weight: var(--w-semibold);
+      }
+
+      /* header: coach greeting, few words */
+      .phead {
+        padding: 6px 22px 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .phead .pg {
+        font-weight: var(--w-extrabold);
+        font-size: 24px;
+        letter-spacing: -0.026em;
+        color: var(--ink);
+      }
+      .ypill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(47, 184, 122, 0.12);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: -0.01em;
+        color: var(--emerald-deep);
+        flex: none;
+      }
+      .psub {
+        padding: 0 22px 6px;
+        font-weight: var(--w-medium);
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* graph cards */
+      .gcard {
+        margin: 10px 20px 0;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+        position: relative;
+        overflow: hidden;
+      }
+      .ghead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .eyebrow {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+      }
+      .eyebrow b {
+        color: var(--emerald-deep);
+      }
+      .gval {
+        font-weight: var(--w-extrabold);
+        font-size: 15px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .gval span {
+        color: var(--emerald-deep);
+      }
+      .chips {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--sage-fill);
+        border-radius: 8px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: var(--w-bold);
+        color: var(--muted);
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+      }
+      .chip.em {
+        background: rgba(47, 184, 122, 0.12);
+        color: var(--emerald-deep);
+      }
+      .chip.am {
+        background: rgba(227, 166, 94, 0.16);
+        color: var(--amber-deep);
+      }
+      .axis {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 10px;
+        font-weight: var(--w-semibold);
+        letter-spacing: 0.03em;
+        color: var(--faint);
+      }
+      .gnote {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 11px;
+        border-top: 1px solid var(--line);
+        padding-top: 11px;
+        font-weight: var(--w-semibold);
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      .gnote .gic {
+        width: 24px;
+        height: 24px;
+        border-radius: 12px;
+        background: rgba(47, 184, 122, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+
+      /* consistency heat */
+      .heat {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 10px;
+      }
+      .heat i {
+        width: 16px;
+        height: 16px;
+        border-radius: 5px;
+        background: var(--sage-fill);
+        display: block;
+      }
+      .heat i.l1 {
+        background: rgba(47, 184, 122, 0.3);
+      }
+      .heat i.l2 {
+        background: var(--emerald);
+      }
+      .heat i.today {
+        background: #fff;
+        border: 2px solid var(--emerald);
+      }
+
+      /* milestones */
+      .mrow {
+        display: flex;
+        gap: 10px;
+        margin: 12px 20px 0;
+      }
+      .mcard {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 14px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .mcard .mic {
+        width: 30px;
+        height: 30px;
+        border-radius: 15px;
+        background: var(--amber);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 9px;
+      }
+      .mcard .mic.green {
+        background: var(--emerald-deep);
+      }
+      .mcard .mt {
+        font-weight: var(--w-extrabold);
+        font-size: 14px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        line-height: 18px;
+      }
+      .mcard .md {
+        font-weight: var(--w-medium);
+        font-size: 11.5px;
+        color: var(--faint);
+        margin-top: 3px;
+      }
+
+      /* photos */
+      .photos {
+        display: flex;
+        gap: 10px;
+        margin: 12px 20px 0;
+      }
+      .ph {
+        flex: 1;
+        aspect-ratio: 3/4;
+        border-radius: 16px;
+        background: linear-gradient(160deg, #dfe4da, #c9d1c2);
+        position: relative;
+        overflow: hidden;
+      }
+      .ph.p2 {
+        background: linear-gradient(160deg, #dae2d6, #bfcab8);
+      }
+      .ph.p3 {
+        background: linear-gradient(160deg, #d5dfd2, #b6c3ae);
+      }
+      .ph .pl {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        background: rgba(23, 25, 27, 0.75);
+        color: #f4f8ef;
+        font-size: 10px;
+        font-weight: var(--w-bold);
+        letter-spacing: 0.04em;
+        border-radius: 8px;
+        padding: 3px 7px;
+      }
+      .ph.add {
+        background: var(--card);
+        border: 1.5px dashed var(--faintest);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: var(--w-semibold);
+        color: var(--muted);
+      }
+
+      /* locked read: the more you log, the more you see */
+      .locked {
+        margin: 10px 20px 0;
+        background: var(--sage-fill);
+        border: 1.5px dashed var(--faintest);
+        border-radius: 20px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .locked .lic {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .locked .lt {
+        font-weight: var(--w-extrabold);
+        font-size: 14.5px;
+        letter-spacing: -0.015em;
+        color: var(--ink-soft);
+      }
+      .locked .ls {
+        font-weight: var(--w-medium);
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .locked .ldots {
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+      }
+      .locked .ldots i {
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: #fff;
+        border: 1.5px solid var(--faintest);
+      }
+      .locked .ldots i.f {
+        background: var(--emerald);
+        border-color: var(--emerald);
+      }
+
+      /* ask strip */
+      .coachline {
+        margin: 12px 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 13px 14px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.06);
+      }
+      .coachline .cdot {
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        background: var(--emerald-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .coachline .ct {
+        flex: 1;
+        font-weight: var(--w-bold);
+        font-size: 13.5px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+      .coachline .cc {
+        font-weight: var(--w-semibold);
+        font-size: 17px;
+        color: var(--emerald-deep);
+      }
+
+      /* ============ tab bar — exact TabBar, Progress active ============ */
+      .tabbar {
+        margin-top: 18px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        padding: 12px 18px 30px;
+        background: rgba(252, 252, 250, 0.85);
+        backdrop-filter: blur(18px);
+        border-top: 1px solid var(--line);
+      }
+      .tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        color: var(--faint);
+      }
+      .tab.on {
+        color: var(--emerald-deep);
+      }
+      .tab .tl {
+        font-size: 10.5px;
+        font-weight: var(--w-semibold);
+      }
+      .tabplus {
+        flex: none;
+        width: 58px;
+        height: 58px;
+        border-radius: 29px;
+        margin-top: -26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #4ecf8b, #1f9e63);
+        box-shadow: 0 14px 26px rgba(31, 158, 99, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <div class="brand">
+          <div class="m"></div>
+          <h1>Leanient<span>.</span></h1>
+        </div>
+        <p>
+          Progress redesign for the coach pivot. Graphs restyled for the React Native graph kit
+          (Skia smooth curves, gradient fills, scrub cursor): the weight chart shows the smoothed
+          trend, not the daily noise, and the second chart is the goal path — their actual line
+          against the plan line to the goal date they set in onboarding, with "ahead of plan" as a
+          chip, never a judgment. Logging is rewarded: consistency heat shows the work, and reads
+          that need more data say exactly what unlocks them.
+        </p>
+      </div>
+    </header>
+    <div class="gallery" id="g"></div>
+
+    <script>
+      const SB = (c) => `<div class="sb"><div class="t" style="color:${c || "#17191B"}">9:41</div>
+  <svg width="74" height="13" viewBox="0 0 74 13" fill="${c || "#17191B"}"><rect x="0" y="4" width="3" height="5" rx="1"/><rect x="5" y="2" width="3" height="7" rx="1"/><rect x="10" y="0" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="9" rx="1" opacity=".35"/><rect x="48" y="1" width="19" height="10" rx="2.5" fill="none" stroke="${c || "#17191B"}" stroke-width="1.1" opacity=".5"/><rect x="49.6" y="2.6" width="14" height="6.8" rx="1.4"/><rect x="68" y="4.2" width="1.6" height="3.6" rx="1" opacity=".5"/></svg></div>`;
+
+      const logo = `<svg width="30" height="36" viewBox="0 0 36 48" fill="none"><defs><linearGradient id="lm" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6FE0A6"/><stop offset="1" stop-color="#23A869"/></linearGradient></defs><rect x="11" y="2" width="14" height="29" rx="7" fill="url(#lm)"/><g stroke="#F4F7F0" stroke-width="2" stroke-linecap="round"><path d="M18.5 16h4"/><path d="M18.5 20.5h4"/><path d="M18.5 25h4"/></g><rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="url(#lm)"/><rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="url(#lm)"/></svg>`;
+
+      const I = {
+        home: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg>`,
+        train: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8"/></svg>`,
+        progress: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 14l4-4 3 2 5-6"/></svg>`,
+        profile: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>`,
+        plus: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+        checkSm: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2FB87A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`,
+        trophy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5"/></svg>`,
+        flagW: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V5a2 2 0 0 1 2-2h11l-2.5 4L18 11H7"/></svg>`,
+        spark: `<svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z"/></svg>`,
+        wave: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-10 5-10 2.5 5 3 5"/></svg>`,
+        lock: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9A9B95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
+        cam: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E6F6A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>`,
+      };
+
+      const tabbar = `<div class="tabbar">
+  <div class="tab">${I.home}<div class="tl">Home</div></div>
+  <div class="tab">${I.train}<div class="tl">Train</div></div>
+  <div class="tabplus">${I.plus}</div>
+  <div class="tab on">${I.progress}<div class="tl">Progress</div></div>
+  <div class="tab">${I.profile}<div class="tl">Profile</div></div>
+</div>`;
+
+      /* ---- weight trend: Skia-style monotone curve + gradient fill.
+             The line is the WEEKLY trend; faint dots are the raw daily noise. ---- */
+      const weightGraph = `<svg width="100%" viewBox="0 0 322 118" style="display:block;margin-top:8px">
+  <defs>
+    <linearGradient id="wfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB87A" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#2FB87A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 22 C 50 26, 75 34, 105 42 S 170 58, 205 66 S 275 80, 312 84 L 312 112 L 10 112 Z" fill="url(#wfill)"/>
+  <path d="M10 22 C 50 26, 75 34, 105 42 S 170 58, 205 66 S 275 80, 312 84"
+    fill="none" stroke="#2FB87A" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#2FB87A" opacity="0.3">
+    <circle cx="38" cy="20" r="2.5"/><circle cx="66" cy="34" r="2.5"/><circle cx="92" cy="34" r="2.5"/>
+    <circle cx="128" cy="52" r="2.5"/><circle cx="156" cy="48" r="2.5"/><circle cx="188" cy="66" r="2.5"/>
+    <circle cx="232" cy="68" r="2.5"/><circle cx="262" cy="80" r="2.5"/><circle cx="290" cy="78" r="2.5"/>
+  </g>
+  <circle cx="10" cy="22" r="4.5" fill="#9A9B95" stroke="#fff" stroke-width="2"/>
+  <circle cx="312" cy="84" r="5.5" fill="#2FB87A" stroke="#fff" stroke-width="2.5"/>
+  <text x="18" y="14" font-family="Geist" font-weight="700" font-size="11" fill="#6E6F6A">226</text>
+  <text x="268" y="72" font-family="Geist" font-weight="800" font-size="12" fill="#1F9E63">212 now</text>
+</svg>`;
+
+      /* ---- goal path: their solid line vs the dashed plan line to the
+             onboarding goal (weight + pace → date). Ahead reads as a chip. ---- */
+      const goalGraph = `<svg width="100%" viewBox="0 0 322 128" style="display:block;margin-top:8px">
+  <defs>
+    <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB87A" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#2FB87A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 16 L 302 96" fill="none" stroke="#CBCBC4" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>
+  <path d="M10 16 C 45 24, 90 40, 138 56 L 138 118 L 10 118 Z" fill="url(#gfill)"/>
+  <path d="M10 16 C 45 24, 90 40, 138 56" fill="none" stroke="#2FB87A" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M138 56 C 190 74, 250 88, 288 96" fill="none" stroke="#2FB87A" stroke-width="2.2" stroke-dasharray="2 6" stroke-linecap="round" opacity="0.8"/>
+  <line x1="138" y1="50" x2="138" y2="112" stroke="#E4E3DD" stroke-width="1.5"/>
+  <circle cx="138" cy="56" r="5.5" fill="#2FB87A" stroke="#fff" stroke-width="2.5"/>
+  <text x="130" y="124" font-family="Geist" font-weight="700" font-size="10" fill="#1F9E63">TODAY</text>
+  <circle cx="302" cy="96" r="11" fill="#F7ECDB"/>
+  <circle cx="302" cy="96" r="11" fill="none" stroke="#E3A65E" stroke-width="1.5"/>
+  <path d="M299 101 v-10 h6 l-1.6 2.5 1.6 2.5 h-5" fill="none" stroke="#C8843A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="222" y="115" font-family="Geist" font-weight="700" font-size="10.5" fill="#6E6F6A">plan · Jan 17</text>
+  <text x="152" y="46" font-family="Geist" font-weight="800" font-size="11.5" fill="#1F9E63">your pace · Jan 5</text>
+</svg>`;
+
+      /* ---- retention trend: rising curve, same language ---- */
+      const retentionGraph = `<svg width="100%" viewBox="0 0 322 74" style="display:block;margin-top:8px">
+  <defs>
+    <linearGradient id="rfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB87A" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#2FB87A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 52 C 60 56, 90 48, 140 44 S 240 30, 312 22 L 312 70 L 10 70 Z" fill="url(#rfill)"/>
+  <path d="M10 52 C 60 56, 90 48, 140 44 S 240 30, 312 22" fill="none" stroke="#2FB87A" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="312" cy="22" r="5" fill="#2FB87A" stroke="#fff" stroke-width="2.5"/>
+  <text x="262" y="14" font-family="Geist" font-weight="800" font-size="12" fill="#1F9E63">84 now</text>
+  <text x="14" y="44" font-family="Geist" font-weight="700" font-size="11" fill="#9A9B95">78</text>
+</svg>`;
+
+      /* ---- early-days weight graph: two points, line just starting ---- */
+      const earlyGraph = `<svg width="100%" viewBox="0 0 322 118" style="display:block;margin-top:8px">
+  <defs>
+    <linearGradient id="efill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB87A" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#2FB87A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 34 C 40 36, 60 40, 84 44 L 84 112 L 10 112 Z" fill="url(#efill)"/>
+  <path d="M10 34 C 40 36, 60 40, 84 44" fill="none" stroke="#2FB87A" stroke-width="3" stroke-linecap="round"/>
+  <path d="M84 44 C 150 54, 240 74, 312 88" fill="none" stroke="#CBCBC4" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round"/>
+  <circle cx="10" cy="34" r="4.5" fill="#9A9B95" stroke="#fff" stroke-width="2"/>
+  <circle cx="84" cy="44" r="5.5" fill="#2FB87A" stroke="#fff" stroke-width="2.5"/>
+  <text x="18" y="26" font-family="Geist" font-weight="700" font-size="11" fill="#6E6F6A">226</text>
+  <text x="94" y="38" font-family="Geist" font-weight="800" font-size="12" fill="#1F9E63">224 now</text>
+  <text x="216" y="104" font-family="Geist" font-weight="600" font-size="10.5" fill="#9A9B95">where you're headed</text>
+</svg>`;
+
+      const heatDots = (() => {
+        const lv = [0,1,2,1,0,2,1, 2,2,1,0,2,2,1, 1,2,2,2,1,0,2, 2,1,2,2,2,1,2, 2,2];
+        return lv.map((l, i) => `<i class="${i === 29 ? "today" : l === 1 ? "l1" : l === 2 ? "l2" : ""}"></i>`).join("");
+      })();
+
+      /* ============ 01 · PROGRESS — the two graphs ============ */
+      const progressTop = `
+  ${SB()}
+  <div class="phead">
+    <div class="pg">Six weeks of showing up.</div>
+    <div class="ypill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z"/><path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z"/></svg>12</div>
+  </div>
+  <div class="psub">Everything here is built from what you logged.</div>
+
+  <div class="gcard">
+    <div class="ghead">
+      <div class="eyebrow">WEIGHT · <b>YOUR TREND</b></div>
+      <div class="gval"><span>↓ 14 lb</span></div>
+    </div>
+    ${weightGraph}
+    <div class="axis"><span>WEEK 1</span><span>WEEK 3</span><span>TODAY</span></div>
+    <div class="gnote"><div class="gic">${I.wave}</div>The line is your weekly trend. The faint dots are daily noise, ignore them.</div>
+  </div>
+
+  <div class="gcard">
+    <div class="ghead">
+      <div class="eyebrow">GOAL PATH · <b>185 LB</b></div>
+      <div class="gval"><span>12 days ahead</span></div>
+    </div>
+    ${goalGraph}
+    <div class="chips">
+      <div class="chip em">your pace · Jan 5</div>
+      <div class="chip">plan · Jan 17</div>
+      <div class="chip">set at onboarding</div>
+    </div>
+  </div>
+
+  <div class="coachline">
+    <div class="cdot">${I.spark}</div>
+    <div class="ct">Ahead of your own plan. Keep the rhythm.</div>
+    <div class="cc">›</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 02 · PROGRESS scrolled — what your logging built ============ */
+      const progressBuilt = `
+  ${SB()}
+  <div class="gcard" style="margin-top:6px">
+    <div class="ghead">
+      <div class="eyebrow">LAST 30 DAYS · <b>THE WORK</b></div>
+      <div class="gval"><span>26 of 30</span></div>
+    </div>
+    <div class="heat">${heatDots}</div>
+    <div class="chips">
+      <div class="chip em">38 meals</div>
+      <div class="chip em">11 sessions</div>
+      <div class="chip em">6 check-ins</div>
+      <div class="chip">every log sharpens your reads</div>
+    </div>
+  </div>
+
+  <div class="gcard">
+    <div class="ghead">
+      <div class="eyebrow">MUSCLE · <b>KEPT</b></div>
+      <div class="gval"><span>↑ 6</span> since week 1</div>
+    </div>
+    ${retentionGraph}
+    <div class="axis"><span>WEEK 1</span><span>WEEK 6</span></div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 22px 0">
+    <div class="eyebrow">MILESTONES · <b>4 MEDALS</b></div>
+    <div style="font-weight:600;font-size:12.5px;color:var(--emerald-deep)">All medals ›</div>
+  </div>
+  <div class="mrow" style="margin-top:8px">
+    <div class="mcard">
+      <div class="mic">${I.trophy}</div>
+      <div class="mt">First 10 lb</div>
+      <div class="md">Jun 28 · week 4</div>
+    </div>
+    <div class="mcard">
+      <div class="mic">${I.trophy}</div>
+      <div class="mt">"2019 jeans"</div>
+      <div class="md">Jul 5 · your check-in</div>
+    </div>
+    <div class="mcard">
+      <div class="mic green">${I.flagW}</div>
+      <div class="mt">Best week · 6 of 7</div>
+      <div class="md">protein days</div>
+    </div>
+  </div>
+
+  <div class="photos">
+    <div class="ph"><div class="pl">WK 1</div></div>
+    <div class="ph p2"><div class="pl">WK 4</div></div>
+    <div class="ph p3"><div class="pl">WK 6</div></div>
+    <div class="ph add">${I.cam}Add</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 03 · PROGRESS early days — logging unlocks the picture ============ */
+      const progressEarly = `
+  ${SB()}
+  <div class="phead">
+    <div class="pg">Day 4. The picture builds fast.</div>
+  </div>
+  <div class="psub">Two weigh-ins in. Every log sharpens the line.</div>
+
+  <div class="gcard">
+    <div class="ghead">
+      <div class="eyebrow">WEIGHT · <b>YOUR TREND</b></div>
+      <div class="gval"><span>↓ 2 lb</span></div>
+    </div>
+    ${earlyGraph}
+    <div class="axis"><span>DAY 1</span><span>TODAY</span><span>GOAL</span></div>
+    <div class="gnote"><div class="gic">${I.wave}</div>Two points already make a direction. It's the right one.</div>
+  </div>
+
+  <div class="locked">
+    <div class="lic">${I.lock}</div>
+    <div>
+      <div class="lt">Goal path</div>
+      <div class="ls">One more weigh-in unlocks your plan line.</div>
+    </div>
+    <div class="ldots"><i class="f"></i><i class="f"></i><i></i></div>
+  </div>
+
+  <div class="locked">
+    <div class="lic">${I.lock}</div>
+    <div>
+      <div class="lt">Muscle trend</div>
+      <div class="ls">Your first Sunday check-in starts this read.</div>
+    </div>
+    <div class="ldots"><i></i></div>
+  </div>
+
+  <div class="coachline">
+    <div class="cdot">${I.spark}</div>
+    <div class="ct">Four days in and already moving. I'm here all week.</div>
+    <div class="cc">›</div>
+  </div>
+
+  ${tabbar}
+`;
+
+      const SCREENS = [
+        {
+          n: "01",
+          tag: "Progress · the two graphs — weight as the smoothed weekly trend (daily noise demoted to faint dots), and the goal path: your line vs the dashed plan line to the goal you set at onboarding. Ahead is a chip, never a judgment.",
+          html: progressTop,
+        },
+        {
+          n: "02",
+          tag: "Progress scrolled — what your logging built: 30-day heat, muscle trend, milestone cards (including the check-in NSV), photo timeline.",
+          html: progressBuilt,
+        },
+        {
+          n: "03",
+          tag: "Progress, day 4 — the more you log, the more you see: two points already draw a direction, and locked reads name exactly which log unlocks them.",
+          html: progressEarly,
+        },
+      ];
+
+      const g = document.getElementById("g");
+      document.querySelector(".brand .m").innerHTML = logo;
+      SCREENS.forEach((s) => {
+        const dev = document.createElement("div");
+        dev.className = "dev";
+        dev.innerHTML = `<div class="device"><div class="screen">${s.html}</div></div>
+    <div class="tag"><span class="n">${s.n}</span><b>${s.tag}</b></div>`;
+        g.appendChild(dev);
+      });
+    </script>
+  </body>
+</html>

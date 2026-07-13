@@ -1,175 +1,90 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { ScreenGround } from "../../components/layout/ScreenGround";
-import { RadialGlow } from "../../components/layout/RadialGlow";
-import { LogoMark } from "../../components/brand/LogoMark";
-import { Button } from "../../components/ui/Button";
-import { useAuth } from "../../context/AuthContext";
-import { colors } from "../../theme/tokens";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ConvoScreen } from "../../components/onboarding/ConvoScreen";
+import { ink } from "../../theme/inkTokens";
 import { font } from "../../theme/fonts";
+import { onboardingProgress } from "../../onboarding/flowProgress";
 
 interface WelcomeScreenProps {
   onStart?: () => void;
 }
 
+const FACES = [
+  { initial: "M", tone: "#D9BFA6" },
+  { initial: "J", tone: "#B8CBB0" },
+  { initial: "R", tone: "#C9B8D6" },
+  { initial: "T", tone: "#A9C6C9" },
+  { initial: "S", tone: "#D6C6B0" },
+];
+
+/**
+ * The hook: before asking anything, the app gives. The line types itself,
+ * then the 1-in-8 stat lands with its citation and the faces on the same
+ * road. Belonging before questions.
+ */
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
-  const auth = useAuth();
-  const { height } = useWindowDimensions();
-  const floatV = useRef(new Animated.Value(0)).current;
-  const accountLabel = auth.user?.email ?? auth.user?.displayName ?? null;
-
-  // logo float (5s, -8px) — matches .welcome .leaf
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatV, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatV, { toValue: 0, duration: 2500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [floatV]);
-
-  const floatStyle = {
-    transform: [{ translateY: floatV.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }],
-  };
-
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenGround />
-
-      {/* welcome glow (emerald + honey, top-right, pulsing) */}
-      <RadialGlow
-        size={340}
-        position={{ top: height * 0.3, right: -110 }}
-        pulse
-        pulseDuration={6000}
-        stops={[
-          { offset: 0, color: colors.emerald, opacity: 0.26 },
-          { offset: 0.48, color: colors.honey, opacity: 0.14 },
-          { offset: 0.72, color: colors.honey, opacity: 0 },
-        ]}
-      />
-      {/* honey wash, bottom-left */}
-      <RadialGlow
-        size={260}
-        position={{ bottom: height * 0.08, left: -90 }}
-        stops={[
-          { offset: 0, color: colors.honey, opacity: 0.22 },
-          { offset: 0.68, color: colors.honey, opacity: 0 },
-        ]}
-      />
-
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.content}>
-          <View style={styles.top}>
-            <Text style={styles.wordmark}>Leanient</Text>
-            <Animated.View style={[styles.leaf, floatStyle]}>
-              <LogoMark size={30} />
-            </Animated.View>
-          </View>
-
-          <View style={styles.hero}>
-            <Text style={styles.headline}>Lose the fat.{"\n"}Keep yourself{"\n"}intact.</Text>
-            <Text style={styles.sub}>
-              Leanient is built for one thing — making sure the body you have when the weight comes
-              off still looks and feels like yours.
-            </Text>
-          </View>
-
-          <View style={styles.cta}>
-            <Button label="Let's start" onPress={onStart} />
-            <Text style={styles.cap}>Built for people on GLP-1 medications</Text>
-            {accountLabel ? (
-              <Text style={styles.account}>
-                Signed in as {accountLabel} ·{" "}
-                <Text
-                  style={styles.logout}
-                  accessibilityRole="button"
-                  onPress={() => void auth.logout()}
-                >
-                  Log out
-                </Text>
-              </Text>
-            ) : null}
-          </View>
+    <ConvoScreen
+      progress={onboardingProgress("welcome")}
+      context="Hi. Before anything else, one thing."
+      question="You're not doing this alone."
+      footer={
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="I'm ready"
+          onPress={onStart}
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+        >
+          <Text style={styles.ctaText}>I'm ready</Text>
+        </Pressable>
+      }
+    >
+      <View style={styles.stat}>
+        <Text style={styles.statNum}>
+          1 in 8<Text style={{ color: ink.emeraldHi }}>.</Text>
+        </Text>
+        <Text style={styles.statLine}>American adults has taken a GLP-1. Millions are on this exact road with you.</Text>
+        <Text style={styles.statCite}>KFF Health Tracking Poll</Text>
+        <View style={styles.faces}>
+          {FACES.map((face, i) => (
+            <View key={face.initial} style={[styles.face, { backgroundColor: face.tone, marginLeft: i === 0 ? 0 : -8 }]}>
+              <Text style={styles.faceText}>{face.initial}</Text>
+            </View>
+          ))}
+          <Text style={styles.facesMore}>15 million+ right now</Text>
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  safe: { flex: 1 },
-  content: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  top: {
-    flexDirection: "row",
+  stat: { paddingTop: 48 },
+  statNum: { fontFamily: font.extrabold, fontSize: 56, letterSpacing: -1.96, color: ink.bright },
+  statLine: { fontFamily: font.semibold, fontSize: 16.5, lineHeight: 23, color: ink.chipText, marginTop: 10, maxWidth: 300 },
+  statCite: { fontFamily: font.medium, fontSize: 12, color: ink.dim, marginTop: 10 },
+  faces: { flexDirection: "row", alignItems: "center", marginTop: 18 },
+  face: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: ink.ground,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
-  wordmark: {
-    fontFamily: font.semibold,
-    fontSize: 19,
-    letterSpacing: -0.38, // -0.02em * 19
-    color: colors.ink,
-  },
-  leaf: {
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.emeraldDeep,
-        shadowOffset: { width: 0, height: 6 },
-        shadowRadius: 8,
-        shadowOpacity: 0.3,
-      },
-      default: {},
-    }),
-  },
-  hero: {},
-  headline: {
-    fontFamily: font.extrabold,
-    fontSize: 46,
-    lineHeight: 48,
-    letterSpacing: -1.38, // -0.03em * 46
-    color: colors.ink,
-  },
-  sub: {
-    fontFamily: font.regular,
-    fontSize: 17,
-    lineHeight: 25,
-    letterSpacing: -0.17, // -0.01em * 17
-    color: colors.muted,
-    maxWidth: 300,
-    marginTop: 22,
-  },
+  faceText: { fontFamily: font.bold, fontSize: 12, color: ink.onEmerald },
+  facesMore: { fontFamily: font.semibold, fontSize: 12.5, color: ink.soft, marginLeft: 10 },
   cta: {
-    gap: 16,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.5,
+    borderColor: "rgba(238,244,234,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  cap: {
-    fontFamily: font.regular,
-    fontSize: 13,
-    color: colors.faint,
-    textAlign: "center",
-  },
-  account: {
-    fontFamily: font.regular,
-    fontSize: 12.5,
-    color: colors.faint,
-    textAlign: "center",
-  },
-  logout: {
-    fontFamily: font.semibold,
-    color: colors.emeraldDeep,
-  },
+  ctaPressed: { backgroundColor: ink.bubbleGround },
+  ctaText: { fontFamily: font.bold, fontSize: 16.5, letterSpacing: -0.17, color: ink.bright },
 });
 
 export default WelcomeScreen;

@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Coach Voice Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --emerald: #2fb87a;
+        --emerald-hi: #6fe0a6;
+        --emerald-deep: #1f9e63;
+        --amber: #e3a65e;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        font-family: "Geist", system-ui, sans-serif;
+        min-height: 100vh;
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        background-repeat: no-repeat;
+        color: #e7eede;
+        padding: 52px 32px 90px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .crumb {
+        font-size: 12.5px;
+        font-weight: 600;
+        margin-bottom: 18px;
+      }
+      .crumb a {
+        color: var(--emerald-hi);
+        text-decoration: none;
+      }
+      h1 {
+        font-size: 27px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #f4f8ef;
+      }
+      h1 span {
+        color: var(--emerald);
+      }
+      .sub {
+        color: #8ea08a;
+        font-size: 13.5px;
+        line-height: 1.55;
+        margin: 10px 0 8px;
+        max-width: 680px;
+      }
+      h2 {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: #8ea08a;
+        margin: 38px 0 14px;
+      }
+      .principle {
+        display: flex;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(231, 238, 222, 0.08);
+      }
+      .principle .n {
+        font-size: 12px;
+        font-weight: 800;
+        color: #11160f;
+        background: var(--emerald);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1px;
+      }
+      .principle b {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        color: #f4f8ef;
+        letter-spacing: -0.01em;
+      }
+      .principle p {
+        font-size: 13px;
+        line-height: 1.55;
+        color: #8ea08a;
+        margin-top: 4px;
+        max-width: 640px;
+      }
+      .principle p em {
+        font-style: normal;
+        color: #cfe0c4;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: 150px 1fr 1fr;
+        gap: 14px;
+        align-items: start;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(231, 238, 222, 0.08);
+      }
+      .pair .where {
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #8ea08a;
+        padding-top: 10px;
+      }
+      .say {
+        border-radius: 14px;
+        padding: 11px 14px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        font-weight: 500;
+      }
+      .say.before {
+        background: rgba(252, 252, 250, 0.04);
+        border: 1px solid rgba(231, 238, 222, 0.1);
+        color: #93a08d;
+        text-decoration: line-through;
+        text-decoration-color: rgba(227, 166, 94, 0.6);
+        text-decoration-thickness: 1.5px;
+      }
+      .say.after {
+        background: rgba(47, 184, 122, 0.1);
+        border: 1px solid rgba(47, 184, 122, 0.35);
+        color: #e9f3e2;
+      }
+      .say.after b {
+        color: var(--emerald-hi);
+        font-weight: 700;
+      }
+      .never {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .never span {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 7px 12px;
+        border-radius: 16px;
+        background: rgba(227, 166, 94, 0.12);
+        border: 1px solid rgba(227, 166, 94, 0.3);
+        color: #eec18a;
+      }
+      .foot {
+        margin-top: 42px;
+        font-size: 12px;
+        color: #6f8069;
+        line-height: 1.6;
+        max-width: 680px;
+      }
+      @media (max-width: 700px) {
+        .pair {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .pair .where {
+          padding-top: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">← Design Hub</a></div>
+      <h1>Coach Voice<span>.</span></h1>
+      <p class="sub">
+        The coach is the whole app's personality, every string, not just the chat. The promise
+        behind every line: you can get through this, and I know the way. People come from
+        communities where they beg strangers for reassurance; this app answers before they have to
+        ask twice.
+      </p>
+
+      <h2>THE SIX RULES</h2>
+      <div class="principle">
+        <div class="n">1</div>
+        <div>
+          <b>Reassure first, direct second.</b>
+          <p>
+            Name what they're feeling as normal before telling them what to do.
+            <em>"Tonight's hunger is the meds fading, and it's normal. Protein by 2pm."</em>
+            Never open with the instruction.
+          </p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="n">2</div>
+        <div>
+          <b>Their data beats general truths.</b>
+          <p>
+            "Protein preserves muscle" is a pamphlet. <em>"You've hit protein 5 of the last 7
+            days"</em> is a coach. If a sentence would be true for a stranger, rewrite it.
+          </p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="n">3</div>
+        <div>
+          <b>Committed: the coach stays.</b>
+          <p>
+            First person, future promises, kept. <em>"I'll fold it into Sunday." "I'm here all
+            week." "We plan for it now."</em> The user should never feel alone with a chart.
+          </p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="n">4</div>
+        <div>
+          <b>Steady, even when the news is bad.</b>
+          <p>
+            Losing weeks, stalls, missed shots: calm, matter-of-fact, forward-looking.
+            <em>"Stalls are part of the road. Yours has a pattern, let's look."</em> The coach has
+            seen this before and knows the way out.
+          </p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="n">5</div>
+        <div>
+          <b>Every dead end still coaches.</b>
+          <p>
+            Empty states, errors, loading, paywalls: no system voice anywhere.
+            <em>"That didn't save. One more try, I'm right here."</em> Blank screens are the coach's
+            job too.
+          </p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="n">6</div>
+        <div>
+          <b>Every question has a home.</b>
+          <p>
+            Anywhere doubt can appear, an ask affordance is one tap away, seeded with the real
+            questions people ask in communities. Clinical questions (dose, symptoms, interactions)
+            get a calm handoff to the prescriber, never a wall.
+          </p>
+        </div>
+      </div>
+
+      <h2>BEFORE → AFTER, ACROSS THE APP</h2>
+      <div class="pair">
+        <div class="where">EMPTY HOME</div>
+        <div class="say before">No data available.</div>
+        <div class="say after">Nothing logged yet. <b>One meal</b> gets us started.</div>
+      </div>
+      <div class="pair">
+        <div class="where">SAVE ERROR</div>
+        <div class="say before">Failed to save meal. Please try again.</div>
+        <div class="say after">That didn't save. One more try, <b>I'm right here</b>.</div>
+      </div>
+      <div class="pair">
+        <div class="where">PUSH · DAY 5 EVENING</div>
+        <div class="say before">Don't forget to log your protein!</div>
+        <div class="say after">Day 5 tonight. <b>Eat before it gets loud.</b></div>
+      </div>
+      <div class="pair">
+        <div class="where">VERDICT · BAD WEEK</div>
+        <div class="say before">You're losing muscle.</div>
+        <div class="say after">The muscle needs backup this week. <b>One move: three sessions.</b></div>
+      </div>
+      <div class="pair">
+        <div class="where">STALL</div>
+        <div class="say before">Weight loss has stalled.</div>
+        <div class="say after">Stalls are part of the road. <b>Yours has a pattern</b>, let's look.</div>
+      </div>
+      <div class="pair">
+        <div class="where">WEEKLY CHECK-IN</div>
+        <div class="say before">Complete your weekly check-in.</div>
+        <div class="say after">Sunday. Tell me how the week went, <b>I'll do the math</b>.</div>
+      </div>
+      <div class="pair">
+        <div class="where">PAYWALL</div>
+        <div class="say before">Subscribe to unlock premium features.</div>
+        <div class="say after">I can walk the whole road with you. <b>Here's what that looks like.</b></div>
+      </div>
+      <div class="pair">
+        <div class="where">LOADING</div>
+        <div class="say before">Loading…</div>
+        <div class="say after">Reading your week…</div>
+      </div>
+      <div class="pair">
+        <div class="where">MISSED SHOT</div>
+        <div class="say before">You missed your scheduled dose.</div>
+        <div class="say after">One missed shot changes little. <b>Log it when you take it</b>, and ask your prescriber about timing.</div>
+      </div>
+
+      <h2>NEVER</h2>
+      <div class="never">
+        <span>fear framing</span>
+        <span>shame</span>
+        <span>exclamation marks</span>
+        <span>emojis</span>
+        <span>"not X, but Y"</span>
+        <span>em dashes</span>
+        <span>medical advice</span>
+        <span>comparisons to other users</span>
+        <span>system voice ("error", "invalid", "failed")</span>
+      </div>
+
+      <p class="foot">
+        Scope: every user-facing string in the RN app and backend copy templates
+        (coachContent.service.ts prompts, verdict copy, notifications, empty/error states). The
+        chat's suggested questions are seeded from real community phrasings and rotate with cycle
+        day. Clinical boundary language stays exactly as defined in COACH_CHAT_SYSTEM_PROMPT.
+      </p>
+    </div>
+  </body>
+</html>

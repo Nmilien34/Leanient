@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leanient · Settings Redesign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f3f2ed;
+        --card: #fcfcfa;
+        --ink: #17191b;
+        --ink-soft: #3a3d3a;
+        --muted: #6e6f6a;
+        --faint: #9a9b95;
+        --faintest: #cbcbc4;
+        --line: #e4e3dd;
+        --sage-fill: #ecece6;
+        --glass: rgba(255, 255, 255, 0.55);
+        --glass-line: rgba(255, 255, 255, 0.75);
+        --emerald-hi: #6fe0a6;
+        --emerald: #2fb87a;
+        --emerald-deep: #1f9e63;
+        --amber: #e3a65e;
+        --amber-deep: #c8843a;
+        --font: "Geist", system-ui, sans-serif;
+        --w-regular: 400;
+        --w-medium: 500;
+        --w-semibold: 600;
+        --w-bold: 700;
+        --w-extrabold: 800;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        font-family: var(--font);
+        background:
+          radial-gradient(120% 80% at 20% 0%, #21301d, transparent 55%),
+          linear-gradient(160deg, #11160f, #1b2418);
+        background-repeat: no-repeat;
+        color: #e7eede;
+        padding: 40px 28px 80px;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.045;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .topbar {
+        max-width: 1320px;
+        margin: 0 auto 44px;
+        display: flex;
+        align-items: flex-end;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .brand .m {
+        width: 30px;
+        height: 36px;
+        display: flex;
+        filter: drop-shadow(0 4px 10px rgba(47, 184, 122, 0.4));
+      }
+      .brand h1 {
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #f4f8ef;
+      }
+      .brand h1 span {
+        color: var(--emerald);
+      }
+      .topbar p {
+        color: #8ea08a;
+        font-size: 13.5px;
+        line-height: 1.5;
+        max-width: 720px;
+        margin-top: 6px;
+      }
+      .gallery {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 56px 44px;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .dev {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .dev .tag {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        color: #8ea08a;
+        font-size: 13px;
+        font-weight: 500;
+        max-width: 390px;
+        text-align: center;
+      }
+      .dev .tag b {
+        color: #e7eede;
+        font-weight: 600;
+      }
+      .dev .tag .n {
+        font-size: 11px;
+        font-weight: 700;
+        color: #11160f;
+        background: var(--emerald);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .device {
+        width: 390px;
+        flex: none;
+        position: relative;
+        background: #0c100b;
+        border-radius: 54px;
+        padding: 9px;
+        box-shadow:
+          0 2px 0 1px #2a352440 inset,
+          0 50px 90px -40px rgba(0, 0, 0, 0.85),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .screen {
+        width: 100%;
+        border-radius: 46px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        color: var(--ink);
+        background:
+          radial-gradient(80% 40% at 100% 0%, rgba(47, 184, 122, 0.06), transparent 60%),
+          var(--paper);
+      }
+      .sb {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 26px 6px;
+        flex: none;
+      }
+      .sb .t {
+        font-size: 16px;
+        font-weight: var(--w-semibold);
+      }
+
+      /* identity header: the journey, not admin */
+      .idhead {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 22px 4px;
+      }
+      .bigavatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 31px;
+        background: linear-gradient(150deg, #d9dcd3, #b9beb2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: var(--w-extrabold);
+        font-size: 22px;
+        color: #5b6157;
+        position: relative;
+      }
+      .bigavatar .edit {
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: var(--emerald-deep);
+        border: 2px solid var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .idhead .iname {
+        font-weight: var(--w-extrabold);
+        font-size: 21px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .idchips {
+        display: flex;
+        gap: 6px;
+        margin-top: 7px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--sage-fill);
+        border-radius: 8px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: var(--w-bold);
+        color: var(--muted);
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+      }
+      .chip.em {
+        background: rgba(47, 184, 122, 0.12);
+        color: var(--emerald-deep);
+      }
+
+      /* setting groups: shipped SettingGroup anatomy */
+      .glabel {
+        font-weight: var(--w-bold);
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        color: var(--faint);
+        padding: 18px 22px 4px;
+      }
+      .group {
+        margin: 0 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.05);
+      }
+      .srow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        border-top: 1px solid var(--line);
+      }
+      .srow:first-child {
+        border-top: 0;
+      }
+      .srow .sic {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #e7f4ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+      }
+      .srow .sic.amber {
+        background: #f7ecdb;
+      }
+      .srow .sic.plain {
+        background: var(--sage-fill);
+      }
+      .srow .sic.disc {
+        background: #eef0fe;
+      }
+      .srow .sic.wa {
+        background: #e7f8ec;
+      }
+      .srow .slabel {
+        font-weight: var(--w-semibold);
+        font-size: 14.5px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        flex: 1;
+      }
+      .srow .slabel span {
+        display: block;
+        font-weight: var(--w-medium);
+        font-size: 11.5px;
+        color: var(--faint);
+        margin-top: 1px;
+      }
+      .srow .sval {
+        font-weight: var(--w-semibold);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .srow .sval.em {
+        color: var(--emerald-deep);
+        font-weight: var(--w-bold);
+      }
+      .srow .schev {
+        font-weight: var(--w-semibold);
+        font-size: 17px;
+        color: var(--faintest);
+      }
+      .srow.danger .slabel {
+        color: #b14328;
+      }
+      .newchip {
+        background: rgba(227, 166, 94, 0.16);
+        color: var(--amber-deep);
+        font-size: 9.5px;
+        font-weight: var(--w-extrabold);
+        letter-spacing: 0.06em;
+        border-radius: 7px;
+        padding: 3px 7px;
+      }
+      /* toggles */
+      .tgl {
+        width: 46px;
+        height: 27px;
+        border-radius: 14px;
+        background: var(--emerald);
+        position: relative;
+        flex: none;
+      }
+      .tgl i {
+        position: absolute;
+        top: 2.5px;
+        right: 2.5px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(24, 28, 24, 0.25);
+      }
+      .tgl.off {
+        background: #d8d9d2;
+      }
+      .tgl.off i {
+        right: auto;
+        left: 2.5px;
+      }
+
+      /* header for detail screens */
+      .dethead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 18px 8px;
+      }
+      .backbtn {
+        width: 34px;
+        height: 34px;
+        border-radius: 17px;
+        background: var(--sage-fill);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        color: var(--ink);
+        font-weight: var(--w-semibold);
+      }
+      .dethead .dt {
+        font-weight: var(--w-bold);
+        font-size: 16px;
+        color: var(--ink);
+      }
+      .detsub {
+        padding: 4px 22px 8px;
+        font-weight: var(--w-medium);
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--muted);
+      }
+
+      /* doctor report preview: a document card */
+      .doc {
+        margin: 8px 20px 0;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 14px 28px rgba(24, 28, 24, 0.1);
+      }
+      .doc .dochead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1.5px solid var(--ink);
+        padding-bottom: 10px;
+      }
+      .doc .dtitle {
+        font-weight: var(--w-extrabold);
+        font-size: 15px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .doc .drange {
+        font-weight: var(--w-medium);
+        font-size: 10.5px;
+        color: var(--muted);
+      }
+      .doc .dline {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .doc .dk {
+        font-weight: var(--w-medium);
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .doc .dv {
+        font-weight: var(--w-extrabold);
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .doc .dv span {
+        color: var(--emerald-deep);
+      }
+      .doc .dfoot {
+        font-weight: var(--w-medium);
+        font-size: 10px;
+        color: var(--faint);
+        padding-top: 10px;
+      }
+      .sharebtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 16px 20px 0;
+        height: 50px;
+        border-radius: 25px;
+        background: var(--emerald-deep);
+        color: #f4fbf7;
+        font-weight: var(--w-semibold);
+        font-size: 15.5px;
+        box-shadow: 0 12px 22px rgba(31, 158, 99, 0.35);
+      }
+      .sharesub {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: var(--w-medium);
+        font-size: 12px;
+        color: var(--faint);
+      }
+
+      /* coach style picker */
+      .stylecards {
+        display: flex;
+        gap: 10px;
+        margin: 8px 20px 0;
+      }
+      .stylecard {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 15px 14px;
+        box-shadow: 0 8px 18px rgba(24, 28, 24, 0.05);
+      }
+      .stylecard.on {
+        border: 2px solid var(--emerald);
+        box-shadow: 0 10px 22px rgba(47, 184, 122, 0.16);
+      }
+      .stylecard .sct {
+        font-weight: var(--w-extrabold);
+        font-size: 15.5px;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .stylecard .scq {
+        font-weight: var(--w-medium);
+        font-size: 12.5px;
+        line-height: 17.5px;
+        color: var(--muted);
+        margin-top: 8px;
+        background: var(--sage-fill);
+        border-radius: 12px;
+        padding: 9px 11px;
+      }
+      .oncheck {
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: var(--emerald);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* tab bar */
+      .tabbar {
+        margin-top: 18px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        padding: 12px 18px 30px;
+        background: rgba(252, 252, 250, 0.85);
+        backdrop-filter: blur(18px);
+        border-top: 1px solid var(--line);
+      }
+      .tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        color: var(--faint);
+      }
+      .tab.on {
+        color: var(--emerald-deep);
+      }
+      .tab .tl {
+        font-size: 10.5px;
+        font-weight: var(--w-semibold);
+      }
+      .tabplus {
+        flex: none;
+        width: 58px;
+        height: 58px;
+        border-radius: 29px;
+        margin-top: -26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #4ecf8b, #1f9e63);
+        box-shadow: 0 14px 26px rgba(31, 158, 99, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <div class="brand">
+          <div class="m"></div>
+          <h1>Leanient<span>.</span></h1>
+        </div>
+        <p>
+          Settings redesign for the coach pivot: from an admin list to a control room. The header
+          carries the journey (streak, day on med, loss), YOUR PLAN makes every onboarding choice
+          editable (medication, goal, targets, photo day), YOUR COACH is new (coach style,
+          check-in day, cycle-aware reminders, doctor report), and privacy gains real control
+          (export, face analysis). Row anatomy is the shipped SettingGroup 1:1.
+        </p>
+      </div>
+    </header>
+    <div class="gallery" id="g"></div>
+
+    <script>
+      const SB = (c) => `<div class="sb"><div class="t" style="color:${c || "#17191B"}">9:41</div>
+  <svg width="74" height="13" viewBox="0 0 74 13" fill="${c || "#17191B"}"><rect x="0" y="4" width="3" height="5" rx="1"/><rect x="5" y="2" width="3" height="7" rx="1"/><rect x="10" y="0" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="9" rx="1" opacity=".35"/><rect x="48" y="1" width="19" height="10" rx="2.5" fill="none" stroke="${c || "#17191B"}" stroke-width="1.1" opacity=".5"/><rect x="49.6" y="2.6" width="14" height="6.8" rx="1.4"/><rect x="68" y="4.2" width="1.6" height="3.6" rx="1" opacity=".5"/></svg></div>`;
+
+      const logo = `<svg width="30" height="36" viewBox="0 0 36 48" fill="none"><defs><linearGradient id="lm" x1="8" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6FE0A6"/><stop offset="1" stop-color="#23A869"/></linearGradient></defs><rect x="11" y="2" width="14" height="29" rx="7" fill="url(#lm)"/><g stroke="#F4F7F0" stroke-width="2" stroke-linecap="round"><path d="M18.5 16h4"/><path d="M18.5 20.5h4"/><path d="M18.5 25h4"/></g><rect x="13.8" y="30.5" width="8.4" height="3.4" rx="1.7" fill="url(#lm)"/><rect x="16.6" y="33.5" width="2.8" height="12.5" rx="1.4" fill="url(#lm)"/></svg>`;
+
+      const ic = (path, color) =>
+        `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="${color || "#1F9E63"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+      const I = {
+        home: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg>`,
+        train: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8"/></svg>`,
+        progress: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 14l4-4 3 2 5-6"/></svg>`,
+        profile: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>`,
+        plus: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+        cam2: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>`,
+        sprout: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F9E63" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z"/><path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z"/></svg>`,
+        syr: ic(`<path d="M4 20l9-9M14 4l6 6-7 1-1-7zM13 7l4 4"/>`),
+        flag: ic(`<path d="M5 21V5a2 2 0 0 1 2-2h11l-2.5 4L18 11H7"/>`),
+        fork: ic(`<path d="M4 3v6a2.5 2.5 0 0 0 5 0V3M6.5 3v14M14.5 3c-1.6 1.5-2 4-2 6h2v8"/>`),
+        cam: ic(`<path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/>`),
+        spark: ic(`<path d="M12 3l1.7 6.1L20 11l-6.3 1.9L12 19l-1.7-6.1L4 11l6.3-1.9z"/>`),
+        cal: ic(`<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>`),
+        bell: ic(`<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10.5 20a1.8 1.8 0 0 0 3 0"/>`, "#C8843A"),
+        docic: ic(`<path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5"/>`, "#C8843A"),
+        ruler: ic(`<path d="M3 17L17 3l4 4L7 21zM8 16l1.5 1.5M11 13l1.5 1.5M14 10l1.5 1.5"/>`, "#6E6F6A"),
+        heart: ic(`<path d="M12 20s-7-4.5-9-9c-1.3-3 1-7 4.5-7C10 4 12 7 12 7s2-3 4.5-3C20 4 22.3 8 21 11c-2 4.5-9 9-9 9z"/>`, "#6E6F6A"),
+        widget: ic(`<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>`, "#6E6F6A"),
+        shield: ic(`<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>`, "#6E6F6A"),
+        download: ic(`<path d="M12 4v10M8 10l4 4 4-4M5 19h14"/>`, "#6E6F6A"),
+        face: ic(`<circle cx="12" cy="12" r="8"/><path d="M9 10h.01M15 10h.01M9 15c1 .8 2 1.2 3 1.2s2-.4 3-1.2"/>`, "#6E6F6A"),
+        book: ic(`<path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 0-2 2zM19 17H6a2 2 0 0 0-2 2"/>`, "#6E6F6A"),
+        help: ic(`<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5A2.5 2.5 0 1 1 12 12.5v1.5M12 17h.01"/>`, "#6E6F6A"),
+        person: ic(`<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/>`, "#6E6F6A"),
+        card: ic(`<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>`, "#6E6F6A"),
+        out: ic(`<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>`, "#B14328"),
+        share: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F4FBF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>`,
+        checkWh: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg>`,
+        discord: `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#5865F2" d="M19.3 5.6A16.9 16.9 0 0 0 15.1 4.3l-.5 1a15.6 15.6 0 0 0-5.2 0l-.5-1c-1.5.3-2.9.7-4.2 1.4C2.3 9.2 1.7 12.7 2 16.1c1.6 1.2 3.2 1.9 4.7 2.4l1-1.6c-.5-.2-1-.5-1.5-.8l.4-.3c2.9 1.4 6 1.4 8.8 0l.4.3c-.5.3-1 .6-1.5.8l1 1.6c1.5-.5 3.1-1.2 4.7-2.4.4-3.9-.6-7.3-2.7-10.5zM9.7 14.1c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8zm4.6 0c-.9 0-1.6-.8-1.6-1.8s.7-1.8 1.6-1.8 1.6.8 1.6 1.8-.7 1.8-1.6 1.8z"/></svg>`,
+        whatsapp: `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#25D366" d="M12 2.5a9.3 9.3 0 0 0-8 14L2.6 21l4.7-1.2A9.3 9.3 0 1 0 12 2.5z"/><path fill="#fff" d="M9.2 7.4c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4C6.8 7.6 6.2 8.2 6.2 9.4s.9 2.4 1 2.6c.1.2 1.7 2.8 4.3 3.8 2.1.8 2.6.7 3 .6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5v-.5L9.2 7.4z"/></svg>`,
+      };
+
+      const tabbar = `<div class="tabbar">
+  <div class="tab">${I.home}<div class="tl">Home</div></div>
+  <div class="tab">${I.train}<div class="tl">Train</div></div>
+  <div class="tabplus">${I.plus}</div>
+  <div class="tab">${I.progress}<div class="tl">Progress</div></div>
+  <div class="tab on">${I.profile}<div class="tl">Profile</div></div>
+</div>`;
+
+      const row = (o) => `<div class="srow ${o.danger ? "danger" : ""}">
+  <div class="sic ${o.tone || ""}">${o.icon}</div>
+  <div class="slabel">${o.label}${o.sub ? `<span>${o.sub}</span>` : ""}</div>
+  ${o.newchip ? `<div class="newchip">NEW</div>` : ""}
+  ${o.value ? `<div class="sval ${o.em ? "em" : ""}">${o.value}</div>` : ""}
+  ${o.toggle != null ? `<div class="tgl ${o.toggle ? "" : "off"}"><i></i></div>` : `<div class="schev">›</div>`}
+</div>`;
+
+      /* ============ 01 · SETTINGS HUB — the control room ============ */
+      const hub = `
+  ${SB()}
+  <div class="idhead">
+    <div class="bigavatar">N<div class="edit">${I.cam2}</div></div>
+    <div>
+      <div class="iname">Nickson</div>
+      <div class="idchips">
+        <div class="chip em">${I.sprout} 12 days</div>
+        <div class="chip">Day 50 · Wegovy</div>
+        <div class="chip">↓ 14 lb</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glabel">YOUR PLAN</div>
+  <div class="group">
+    ${row({ icon: I.syr, label: "Medication", value: "Wegovy 1.0 mg · Sat", em: true })}
+    ${row({ icon: I.flag, label: "Goal", value: "185 lb by Jan 17" })}
+    ${row({ icon: I.fork, label: "Daily targets", value: "120g · 3 sessions" })}
+    ${row({ icon: I.cam, label: "Photo day", value: "Shot day" })}
+  </div>
+
+  <div class="glabel">YOUR COACH</div>
+  <div class="group">
+    ${row({ icon: I.spark, label: "Coach style", value: "Gentle", em: true })}
+    ${row({ icon: I.cal, label: "Check-in day", value: "Sunday" })}
+    ${row({ icon: I.bell, tone: "amber", label: "Reminders", value: "Cycle-aware" })}
+    ${row({ icon: I.docic, tone: "amber", label: "Doctor report", sub: "One page for your prescriber", newchip: true })}
+  </div>
+
+  <div class="glabel">COMMUNITY · JOIN OUR CHANNELS</div>
+  <div class="group">
+    ${row({ icon: I.discord, tone: "disc", label: "Discord", sub: "Daily wins, questions, the team", value: "Join", em: true })}
+    ${row({ icon: I.whatsapp, tone: "wa", label: "WhatsApp", sub: "Announcements and tips", value: "Join", em: true })}
+  </div>
+
+  <div class="glabel">PREFERENCES</div>
+  <div class="group">
+    ${row({ icon: I.ruler, tone: "plain", label: "Units", value: "lb · ft" })}
+    ${row({ icon: I.heart, tone: "plain", label: "Apple Health", value: "Connected" })}
+    ${row({ icon: I.widget, tone: "plain", label: "Widgets", sub: "Streak and plan on your home screen" })}
+  </div>
+
+  <div class="glabel">PRIVACY & DATA</div>
+  <div class="group">
+    ${row({ icon: I.shield, tone: "plain", label: "Privacy & data" })}
+    ${row({ icon: I.download, tone: "plain", label: "Export my data" })}
+    ${row({ icon: I.face, tone: "plain", label: "Face analysis", value: "Off" })}
+  </div>
+
+  <div class="glabel">PERMISSIONS</div>
+  <div class="group">
+    ${row({ icon: I.bell, label: "Notifications", sub: "Reminders and your Sunday verdict", value: "Allowed", em: true })}
+    ${row({ icon: I.cam, label: "Camera", sub: "Meal scan, barcodes, progress photos", value: "Allowed", em: true })}
+    ${row({ icon: I.widget, tone: "plain", label: "Photo library", sub: "Saving your progress photos", value: "Ask" })}
+  </div>
+
+  <div class="glabel">ACCOUNT</div>
+  <div class="group">
+    ${row({ icon: I.person, tone: "plain", label: "Account", value: "nickson@…" })}
+    ${row({ icon: I.card, tone: "plain", label: "Subscription", value: "Active", em: true })}
+    ${row({ icon: I.out, tone: "plain", label: "Sign out", danger: true })}
+  </div>
+
+  ${tabbar}
+`;
+
+      /* ============ 02 · DOCTOR REPORT — bring your logs to the appointment ============ */
+      const doctor = `
+  ${SB()}
+  <div class="dethead">
+    <div class="backbtn">‹</div>
+    <div class="dt">Doctor report</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="detsub">Six weeks on one page. Built from your logs, ready for your next appointment.</div>
+
+  <div class="doc">
+    <div class="dochead">
+      <div>
+        <div class="dtitle">Leanient Summary</div>
+        <div class="drange">Nickson · Wegovy (semaglutide) 1.0 mg weekly</div>
+      </div>
+      <div class="drange">Jun 1 – Jul 12</div>
+    </div>
+    <div class="dline"><div class="dk">Weight</div><div class="dv">226 → 212 lb <span>(↓ 14)</span></div></div>
+    <div class="dline"><div class="dk">Loss pace</div><div class="dv">1.3 lb / week <span>· in safe band</span></div></div>
+    <div class="dline"><div class="dk">Muscle retention score</div><div class="dv">84 / 100 <span>· trending up</span></div></div>
+    <div class="dline"><div class="dk">Doses logged</div><div class="dv">6 of 6 · left/right thigh rotation</div></div>
+    <div class="dline"><div class="dk">Protein adherence</div><div class="dv">34 of 42 days at target</div></div>
+    <div class="dline"><div class="dk">Resistance training</div><div class="dv">11 sessions</div></div>
+    <div class="dline"><div class="dk">Side effects logged</div><div class="dv">Nausea ×3, mild, day 1-2 pattern</div></div>
+    <div class="dfoot">Generated from user logs · For discussion with your prescriber, this is a self-tracked summary.</div>
+  </div>
+
+  <div class="sharebtn">${I.share} Share PDF</div>
+  <div class="sharesub">Email it, print it, or show your phone.</div>
+
+  ${tabbar}
+`;
+
+      /* ============ 03 · COACH STYLE + cycle-aware reminders ============ */
+      const coachPrefs = `
+  ${SB()}
+  <div class="dethead">
+    <div class="backbtn">‹</div>
+    <div class="dt">Your coach</div>
+    <div style="width:34px"></div>
+  </div>
+  <div class="detsub">How should I talk to you? Same plan, same math, your kind of voice.</div>
+
+  <div class="stylecards">
+    <div class="stylecard on">
+      <div class="sct">Gentle <div class="oncheck">${I.checkWh}</div></div>
+      <div class="scq">"Day 5 tonight. Hunger is normal, and you've beaten it before. Protein early."</div>
+    </div>
+    <div class="stylecard">
+      <div class="sct">Straight</div>
+      <div class="scq">"Day 5. Hunger window tonight. 79g before 2pm. Walk after dinner."</div>
+    </div>
+  </div>
+
+  <div class="glabel">REMINDERS · FOLLOW YOUR CYCLE</div>
+  <div class="group">
+    ${row({ icon: I.syr, label: "Shot morning", sub: "Saturday 9:00", toggle: true })}
+    ${row({ icon: I.bell, tone: "amber", label: "Guard-day evening", sub: "Day 5 and 6, before the window", toggle: true })}
+    ${row({ icon: I.cal, label: "Sunday check-in", sub: "Your verdict follows it", toggle: true })}
+    ${row({ icon: I.cam, label: "Photo day", sub: "Shot day, with your plan", toggle: false })}
+  </div>
+
+  <div class="glabel">QUIET HOURS</div>
+  <div class="group">
+    ${row({ icon: I.bell, tone: "plain", label: "No reminders", value: "9pm – 8am" })}
+  </div>
+
+  ${tabbar}
+`;
+
+      const SCREENS = [
+        {
+          n: "01",
+          tag: "Settings hub — a control room, journey-first: identity header with streak/day/loss chips, YOUR PLAN makes every onboarding choice editable, YOUR COACH is a new section (style, check-in day, cycle-aware reminders, doctor report), privacy gains export + face-analysis control.",
+          html: hub,
+        },
+        {
+          n: "02",
+          tag: "Doctor report — the settings feature that earns its place: six weeks of logs as one prescriber-ready page (weight, pace, muscle score, doses + site rotation, adherence, side-effect pattern). Share as PDF before the appointment.",
+          html: doctor,
+        },
+        {
+          n: "03",
+          tag: "Your coach — pick the voice (Gentle vs Straight, same plan either way) and reminders that follow the cycle, not the clock: shot morning, guard-day evenings, Sunday check-in. Quiet hours respected.",
+          html: coachPrefs,
+        },
+      ];
+
+      const g = document.getElementById("g");
+      document.querySelector(".brand .m").innerHTML = logo;
+      SCREENS.forEach((s) => {
+        const dev = document.createElement("div");
+        dev.className = "dev";
+        dev.innerHTML = `<div class="device"><div class="screen">${s.html}</div></div>
+    <div class="tag"><span class="n">${s.n}</span><b>${s.tag}</b></div>`;
+        g.appendChild(dev);
+      });
+    </script>
+  </body>
+</html>
