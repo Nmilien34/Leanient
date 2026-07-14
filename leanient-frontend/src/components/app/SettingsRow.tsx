@@ -4,6 +4,12 @@ import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
 
 export interface SettingRowConfig {
+  /** Second line under the label ("One page for your prescriber"). */
+  sub?: string;
+  /** Emerald value styling for live/positive states ("Allowed", "Gentle"). */
+  valueTone?: "em";
+  /** Small amber NEW chip before the value. */
+  badge?: string;
   key: string;
   icon: React.ReactNode;
   label: string;
@@ -15,7 +21,7 @@ export interface SettingRowConfig {
   destructive?: boolean;
 }
 
-function SettingRow({ icon, label, value, onPress, danger, destructive }: Omit<SettingRowConfig, "key">) {
+function SettingRow({ icon, label, sub, value, valueTone, badge, onPress, danger, destructive }: Omit<SettingRowConfig, "key">) {
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
@@ -25,8 +31,16 @@ function SettingRow({ icon, label, value, onPress, danger, destructive }: Omit<S
       style={({ pressed }) => [styles.row, pressed && onPress ? styles.pressed : null]}
     >
       <View style={[styles.icon, danger && styles.iconDanger, destructive && styles.iconDestructive]}>{icon}</View>
-      <Text style={[styles.label, danger && styles.labelDanger, destructive && styles.labelDestructive]}>{label}</Text>
-      {value ? <Text style={styles.value}>{value}</Text> : null}
+      <View style={styles.labelWrap}>
+        <Text style={[styles.label, danger && styles.labelDanger, destructive && styles.labelDestructive]}>{label}</Text>
+        {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      </View>
+      {badge ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      ) : null}
+      {value ? <Text style={[styles.value, valueTone === "em" && styles.valueEm]}>{value}</Text> : null}
       {onPress ? <Text style={[styles.chev, destructive && styles.chevDestructive]}>›</Text> : null}
     </Pressable>
   );
@@ -66,10 +80,15 @@ const styles = StyleSheet.create({
   icon: { width: 33, height: 33, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#EEF7F1" },
   iconDanger: { backgroundColor: "rgba(86,97,89,0.12)" },
   iconDestructive: { backgroundColor: "rgba(194,85,78,0.10)" },
-  label: { flex: 1, fontFamily: font.semibold, fontSize: 15, color: colors.ink },
+  labelWrap: { flex: 1 },
+  label: { fontFamily: font.semibold, fontSize: 15, color: colors.ink },
+  sub: { fontFamily: font.medium, fontSize: 11.5, lineHeight: 15, color: colors.faint, marginTop: 1 },
+  badge: { backgroundColor: "rgba(227,166,94,0.16)", borderRadius: 7, paddingVertical: 3, paddingHorizontal: 7 },
+  badgeText: { fontFamily: font.extrabold, fontSize: 9.5, letterSpacing: 0.57, color: colors.amberDeep },
   labelDanger: { color: colors.slate },
   labelDestructive: { color: "#C2554E" },
   value: { fontFamily: font.medium, fontSize: 13, color: colors.muted },
+  valueEm: { fontFamily: font.bold, color: colors.emeraldDeep },
   chev: { fontFamily: font.regular, fontSize: 20, color: colors.faintest },
   chevDestructive: { color: "rgba(194,85,78,0.5)" },
   divider: { height: 1, backgroundColor: colors.line, marginLeft: 15 },
