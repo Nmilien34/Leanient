@@ -34,7 +34,7 @@ export function DoctorReportScreen({ visible, onClose }: DoctorReportScreenProps
         doseLogs: data.doseHistory,
         snapshots: (data.progressOverview?.chart.snapshots ?? []).map((s) => ({
           weekOf: s.weekOf,
-          retention: s.retention,
+          retention: s.muscleRetentionScore,
         })),
         now: new Date(),
       }),
