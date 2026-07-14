@@ -17,7 +17,6 @@ type AppsFlyerSuccessCallback = (result?: unknown) => unknown;
 type AppsFlyerErrorCallback = (error?: unknown) => unknown;
 type AppsFlyerUIDListener = (uid: string) => void;
 type AppsFlyerUnsubscribe = () => void;
-type IosIdfvReader = () => Promise<string | null>;
 
 export interface AppsFlyerNativeClient {
   initSdk(
@@ -51,7 +50,6 @@ interface AppsFlyerServiceOptions {
   loadAppsFlyerClient?: () => Promise<AppsFlyerNativeClient>;
   requestTrackingPermissions?: () => Promise<TrackingPermissionResponse>;
   isTrackingTransparencyAvailable?: () => boolean;
-  getIosIdForVendor?: IosIdfvReader;
 }
 
 interface CompleteRegistrationInput {
@@ -70,11 +68,6 @@ async function requestNativeTrackingPermission(): Promise<TrackingPermissionResp
   }
 
   return trackingTransparency.requestTrackingPermissionsAsync();
-}
-
-async function getNativeIosIdForVendor(): Promise<string | null> {
-  const application = await import("expo-application");
-  return application.getIosIdForVendorAsync();
 }
 
 function isNativeTrackingTransparencyAvailable(): boolean {
@@ -102,7 +95,6 @@ export class AppsFlyerService {
   private readonly loadAppsFlyerClient: () => Promise<AppsFlyerNativeClient>;
   private readonly requestTrackingPermissions: () => Promise<TrackingPermissionResponse>;
   private readonly isTrackingTransparencyAvailable: () => boolean;
-  private readonly getIosIdForVendor: IosIdfvReader;
   private client?: AppsFlyerNativeClient;
   private initialized = false;
   private lastKnownUID?: string;
@@ -120,7 +112,6 @@ export class AppsFlyerService {
       options.requestTrackingPermissions ?? requestNativeTrackingPermission;
     this.isTrackingTransparencyAvailable =
       options.isTrackingTransparencyAvailable ?? isNativeTrackingTransparencyAvailable;
-    this.getIosIdForVendor = options.getIosIdForVendor ?? getNativeIosIdForVendor;
   }
 
   private hasConfig(): boolean {
@@ -203,25 +194,10 @@ export class AppsFlyerService {
     }
   }
 
-  private async logDeviceIdfvInDev(): Promise<void> {
-    if (!this.isDev || this.platform !== "ios") {
-      return;
-    }
-
-    try {
-      const idfv = await this.getIosIdForVendor();
-      console.log("DEVICE_IDFV:", idfv);
-    } catch (error) {
-      warnInDev("[AppsFlyer] Could not read iOS IDFV.", error);
-    }
-  }
-
   public async initialize(appUserId?: string): Promise<boolean> {
     if (!this.hasConfig()) {
       return false;
     }
-
-    await this.logDeviceIdfvInDev();
 
     const client = await this.getClient();
     this.registerInstallConversionDataListener(client);

@@ -29,10 +29,10 @@ function makeClient() {
 }
 
 describe("AppsFlyer service", () => {
-  it("initializes with ATT, CUID, manual start, and dev-only debug", async () => {
+  it("initializes with ATT, CUID, and manual start without temporary debug events", async () => {
+    vi.useFakeTimers();
     const { client } = makeClient();
     const requestTrackingPermissions = vi.fn().mockResolvedValue({ status: "granted" });
-    const getIosIdForVendor = vi.fn().mockResolvedValue("idfv-1");
     const consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const service = createAppsFlyerService({
       appId: "6778920696",
@@ -42,13 +42,15 @@ describe("AppsFlyer service", () => {
       appsFlyerClient: client,
       requestTrackingPermissions,
       isTrackingTransparencyAvailable: () => true,
-      getIosIdForVendor,
     });
 
     await expect(service.initialize("user_1")).resolves.toBe(true);
+    await Promise.resolve();
 
-    expect(getIosIdForVendor).toHaveBeenCalledTimes(1);
-    expect(consoleLog).toHaveBeenCalledWith("DEVICE_IDFV:", "idfv-1");
+    expect(client.logEvent).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(client.logEvent).not.toHaveBeenCalled();
+    expect(consoleLog).not.toHaveBeenCalled();
     expect(requestTrackingPermissions).toHaveBeenCalledTimes(1);
     expect(client.setCustomerUserId).toHaveBeenCalledWith("user_1", expect.any(Function));
     expect(client.initSdk).toHaveBeenCalledWith(
@@ -67,6 +69,7 @@ describe("AppsFlyer service", () => {
       client.startSdk.mock.invocationCallOrder[0],
     );
     consoleLog.mockRestore();
+    vi.useRealTimers();
   });
 
   it("is a safe no-op when AppsFlyer config is missing", async () => {
@@ -90,6 +93,7 @@ describe("AppsFlyer service", () => {
       appId: "6778920696",
       devKey: "dev-key",
       platform: "ios",
+      isDev: false,
       appsFlyerClient: client,
     });
 
@@ -109,6 +113,7 @@ describe("AppsFlyer service", () => {
       appId: "6778920696",
       devKey: "dev-key",
       platform: "ios",
+      isDev: false,
       appsFlyerClient: client,
     });
 
@@ -126,7 +131,6 @@ describe("AppsFlyer service", () => {
       isDev: false,
       appsFlyerClient: native.client,
       requestTrackingPermissions: vi.fn().mockResolvedValue({ status: "granted" }),
-      getIosIdForVendor: vi.fn().mockResolvedValue("idfv-1"),
     });
 
     service.onAppsFlyerUIDAvailable(listener);

@@ -44,21 +44,30 @@ export function deriveReminderGroups(args: { medication?: UserMedicationProtocol
   const shotDayName = args.medication ? args.medication.shotDays.map(cap).join(", ") : "shot day";
   const shotWeekdays = args.medication ? args.medication.shotDays.map((day) => expoWeekdayByLeanientDay[day]) : [];
 
+  // Cycle offsets in expo weekday space (1=Sun..7=Sat): the reminders follow
+  // the shot, not the calendar. Fallbacks cover users without a protocol.
+  const offsetDays = (offset: number, fallback: number[]): number[] =>
+    shotWeekdays.length ? shotWeekdays.map((d) => ((d - 1 + offset) % 7) + 1) : fallback;
+  const guardDays = [...new Set([...offsetDays(5, [6]), ...offsetDays(6, [7])])];
+  const strongDays = [...new Set([...offsetDays(2, [2]), ...offsetDays(3, [4])])];
+  const truestDay = offsetDays(2, [2]);
+
   return [
     {
-      title: "COACHING",
+      title: "REMINDERS · FOLLOW YOUR CYCLE",
       items: [
-        { id: "verdict", icon: "bell", label: "Weekly verdict", subtitle: "Sundays at 9:00 AM", defaultOn: true, schedule: { kind: "weekly", weekdays: [1], hour: 9, minute: 0 } },
-        { id: "protein", icon: "pill", label: "Protein nudges", subtitle: "Midday check-in", defaultOn: true, schedule: { kind: "daily", hour: 12, minute: 0 } },
-        { id: "shot_day", icon: "pill", label: "Shot day reminder", subtitle: `${shotDayName} morning`, defaultOn: true, schedule: { kind: "weekly", weekdays: shotWeekdays, hour: 9, minute: 0 } },
-        { id: "workout", icon: "heart", label: "Workout reminders", subtitle: "Mon, Wed, Fri evenings", defaultOn: true, schedule: { kind: "weekly", weekdays: [2, 4, 6], hour: 18, minute: 0 } },
+        { id: "shot_day", icon: "pill", label: "Shot morning", subtitle: `${shotDayName} at 9:00 AM`, defaultOn: true, schedule: { kind: "weekly", weekdays: shotWeekdays.length ? shotWeekdays : [7], hour: 9, minute: 0 } },
+        { id: "guard_evening", icon: "bell", label: "Guard-day evening", subtitle: "Days 5 and 6, before the window", defaultOn: true, schedule: { kind: "weekly", weekdays: guardDays, hour: 17, minute: 30 } },
+        { id: "verdict", icon: "bell", label: "Sunday check-in", subtitle: "Your verdict follows it", defaultOn: true, schedule: { kind: "weekly", weekdays: [1], hour: 9, minute: 0 } },
+        { id: "photo_day", icon: "photo", label: "Photo day", subtitle: "Shot day morning, with your plan", defaultOn: false, schedule: { kind: "weekly", weekdays: shotWeekdays.length ? shotWeekdays : [7], hour: 9, minute: 30 } },
       ],
     },
     {
-      title: "CHECK-INS",
+      title: "DAILY",
       items: [
-        { id: "weigh_in", icon: "ruler", label: "Weekly weigh-in", subtitle: "Sunday morning", defaultOn: true, schedule: { kind: "weekly", weekdays: [1], hour: 8, minute: 0 } },
-        { id: "progress_photo", icon: "photo", label: "Progress photo", subtitle: "Every 2 weeks", defaultOn: false, schedule: { kind: "timeInterval", seconds: 14 * 24 * 60 * 60, repeats: true } },
+        { id: "protein", icon: "pill", label: "Protein nudge", subtitle: "Midday, if the morning ran light", defaultOn: true, schedule: { kind: "daily", hour: 12, minute: 0 } },
+        { id: "workout", icon: "heart", label: "Session reminder", subtitle: "Your strongest days, day 2 and 3", defaultOn: true, schedule: { kind: "weekly", weekdays: strongDays, hour: 17, minute: 0 } },
+        { id: "weigh_in", icon: "ruler", label: "Weigh-in", subtitle: "Day 2 morning, the truest read", defaultOn: true, schedule: { kind: "weekly", weekdays: truestDay, hour: 8, minute: 0 } },
       ],
     },
     {
@@ -68,7 +77,6 @@ export function deriveReminderGroups(args: { medication?: UserMedicationProtocol
   ];
 }
 
-/** Flatten the groups to an id→default map for the screen's initial toggle state. */
 export function defaultReminderState(groups: ReminderGroup[]): Record<string, boolean> {
   const state: Record<string, boolean> = {};
   for (const g of groups) for (const i of g.items) state[i.id] = i.defaultOn;

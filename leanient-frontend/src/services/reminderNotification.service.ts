@@ -36,29 +36,37 @@ export interface ReminderNotificationAdapter {
 }
 
 const reminderCopy: Record<string, { title: string; body: string }> = {
+  guard_evening: {
+    title: "Tonight gets loud",
+    body: "The hunger window opens this evening. Protein first, then the walk.",
+  },
+  photo_day: {
+    title: "Photo day",
+    body: "Same mirror, same light. Twenty seconds your future self will thank you for.",
+  },
   verdict: {
     title: "Your Leanient verdict is ready",
     body: "Open Leanient for this week's muscle-retention read.",
   },
   protein: {
     title: "Protein check",
-    body: "If protein has been light today, anchor the next meal.",
+    body: "If the morning ran light, anchor lunch with protein.",
   },
   shot_day: {
-    title: "Shot day reminder",
-    body: "A calm reminder to take your medication on schedule.",
+    title: "Shot day",
+    body: "Land the shot, keep the day gentle. Your easiest window opens tomorrow.",
   },
   workout: {
-    title: "Strength reminder",
-    body: "A short session today helps protect muscle while weight comes down.",
+    title: "Your strongest window",
+    body: "Day 2 energy is yours. A short session banks it.",
   },
   weigh_in: {
-    title: "Weekly weigh-in",
-    body: "Log your weight so your weekly verdict stays useful.",
+    title: "Morning weigh-in",
+    body: "Day 2 reads truest. Thirty seconds on the scale.",
   },
   progress_photo: {
-    title: "Progress photo",
-    body: "Take a consistent progress photo when the lighting is steady.",
+    title: "Photo day",
+    body: "Same mirror, same light. Twenty seconds your future self will thank you for.",
   },
 };
 
