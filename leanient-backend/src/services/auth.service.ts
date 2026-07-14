@@ -6,7 +6,11 @@ import { issueSessionJwt } from "../auth/jwt";
 import { DEMO_ACCOUNT } from "../config/demoAccount";
 import { UserModel } from "../models/user.model";
 import { AppError, AuthError } from "../lib/errors";
-import { linkProviderIdentityToUser, serializeUser, upsertUserFromIdentity } from "./user.service";
+import {
+  linkProviderIdentityToUser,
+  serializeUser,
+  upsertUserFromIdentityWithResult,
+} from "./user.service";
 
 /**
  * App Store review demo login (guideline 2.1a). Verifies the fixed demo
@@ -27,6 +31,7 @@ export async function signInWithReviewAccount(email: string, password: string): 
   return {
     user: serializeUser(user),
     token: issueSessionJwt(user._id.toString()),
+    isNewUser: false,
   };
 }
 
@@ -44,18 +49,19 @@ function buildAppleDisplayName(fullName: AppleSignInRequest["fullName"]): string
 
 export async function signInWithGoogle(idToken: string): Promise<AuthResponse> {
   const identity = await verifyGoogleIdToken(idToken);
-  const user = await upsertUserFromIdentity(identity);
+  const { user, isNewUser } = await upsertUserFromIdentityWithResult(identity);
   const userId = user._id.toString();
 
   return {
     user: serializeUser(user),
     token: issueSessionJwt(userId),
+    isNewUser,
   };
 }
 
 export async function signInWithApple(request: AppleSignInRequest): Promise<AuthResponse> {
   const identity = await verifyAppleIdentityToken(request.identityToken);
-  const user = await upsertUserFromIdentity({
+  const { user, isNewUser } = await upsertUserFromIdentityWithResult({
     ...identity,
     name: buildAppleDisplayName(request.fullName),
   });
@@ -64,6 +70,7 @@ export async function signInWithApple(request: AppleSignInRequest): Promise<Auth
   return {
     user: serializeUser(user),
     token: issueSessionJwt(userId),
+    isNewUser,
   };
 }
 

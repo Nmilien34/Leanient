@@ -123,7 +123,14 @@ export function serializeUser(user: UserDocument): SharedUser {
   };
 }
 
-export async function upsertUserFromIdentity(identity: ProviderIdentity): Promise<UserDocument> {
+export interface UpsertUserFromIdentityResult {
+  user: UserDocument;
+  isNewUser: boolean;
+}
+
+export async function upsertUserFromIdentityWithResult(
+  identity: ProviderIdentity,
+): Promise<UpsertUserFromIdentityResult> {
   const existingByProvider = await UserModel.findOne({
     authProviders: {
       $elemMatch: {
@@ -136,7 +143,10 @@ export async function upsertUserFromIdentity(identity: ProviderIdentity): Promis
   if (existingByProvider) {
     applyIdentityToUser(existingByProvider, identity);
     await existingByProvider.save();
-    return existingByProvider;
+    return {
+      user: existingByProvider,
+      isNewUser: false,
+    };
   }
 
   const email = normalizeEmail(identity.email);
@@ -147,7 +157,10 @@ export async function upsertUserFromIdentity(identity: ProviderIdentity): Promis
   if (existingByEmail) {
     applyIdentityToUser(existingByEmail, identity);
     await existingByEmail.save();
-    return existingByEmail;
+    return {
+      user: existingByEmail,
+      isNewUser: false,
+    };
   }
 
   // TODO: Add an explicit email verification flow for users created from
@@ -167,7 +180,15 @@ export async function upsertUserFromIdentity(identity: ProviderIdentity): Promis
   });
 
   await user.save();
-  return user;
+  return {
+    user,
+    isNewUser: true,
+  };
+}
+
+export async function upsertUserFromIdentity(identity: ProviderIdentity): Promise<UserDocument> {
+  const result = await upsertUserFromIdentityWithResult(identity);
+  return result.user;
 }
 
 export async function linkProviderIdentityToUser(

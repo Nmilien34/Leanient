@@ -221,9 +221,13 @@ export function deriveTodayPlan(args: {
     };
   }
 
-  // EAT — today's protein against the daily target.
+  // EAT — today's protein against the daily target. Shot days flex the target
+  // down (~75%, rounded to 5g): the reset day is won lightly, a shake counts.
   const logged = dailyLog.meals.reduce((sum, m) => sum + m.grams, 0);
-  const target = profile.dailyProteinTarget;
+  const target =
+    daysSinceShot === 0
+      ? Math.max(5, Math.round((profile.dailyProteinTarget * 0.75) / 5) * 5)
+      : profile.dailyProteinTarget;
   const ratio = clamp01(target ? logged / target : 0);
   const remaining = Math.max(0, target - logged);
   let eatSubline: string;

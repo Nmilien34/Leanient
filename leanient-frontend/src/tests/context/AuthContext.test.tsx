@@ -6,6 +6,27 @@ import { AuthProvider, useAuth, type AuthContextValue } from "../../context/Auth
 import { AUTH_STORAGE_KEYS } from "../../services/storage.service";
 import { testStorage } from "../testStorage";
 
+const appsFlyerServiceMock = vi.hoisted(() => ({
+  initialize: vi.fn().mockResolvedValue(true),
+  getAppsFlyerUID: vi.fn().mockResolvedValue("af-user-1"),
+  setCustomerUserId: vi.fn().mockResolvedValue(undefined),
+  logCompleteRegistration: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../services/appsflyer.service", () => ({
+  default: appsFlyerServiceMock,
+}));
+
+const revenueCatServiceMock = vi.hoisted(() => ({
+  configure: vi.fn().mockResolvedValue(true),
+  syncAppsFlyerAttribution: vi.fn().mockResolvedValue(undefined),
+  syncSubscriptionStatus: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../services/revenueCat.service", () => ({
+  default: revenueCatServiceMock,
+}));
+
 const user: User = {
   id: "user_1",
   emailVerified: true,
@@ -60,11 +81,37 @@ async function renderAuthHarness(api: {
 describe("AuthContext", () => {
   beforeEach(() => {
     testStorage.clear();
+    appsFlyerServiceMock.initialize.mockClear();
+    appsFlyerServiceMock.getAppsFlyerUID.mockClear();
+    appsFlyerServiceMock.setCustomerUserId.mockClear();
+    appsFlyerServiceMock.logCompleteRegistration.mockClear();
+    revenueCatServiceMock.configure.mockClear();
+    revenueCatServiceMock.syncAppsFlyerAttribution.mockClear();
+    revenueCatServiceMock.syncSubscriptionStatus.mockClear();
+  });
+
+  it("configures RevenueCat for the anonymous app user when no session is restored", async () => {
+    const api = {
+      signInWithGoogle: vi.fn(),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
+      logout: vi.fn(),
+      getMe: vi.fn(),
+      patchMe: vi.fn(),
+    };
+
+    await renderAuthHarness(api);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(appsFlyerServiceMock.initialize).toHaveBeenCalledWith();
+    expect(revenueCatServiceMock.configure).toHaveBeenCalledWith(undefined);
   });
 
   it("stores user and token after Google sign-in", async () => {
     const api = {
-      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1" }),
+      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1", isNewUser: false }),
       signInWithApple: vi.fn(),
       linkAppleProvider: vi.fn(),
       logout: vi.fn(),
@@ -80,6 +127,67 @@ describe("AuthContext", () => {
     expect(harness.value().user?.id).toBe("user_1");
     expect(harness.value().token).toBe("token_1");
     expect(testStorage.snapshot()[AUTH_STORAGE_KEYS.token]).toBe("token_1");
+  });
+
+  it("logs AppsFlyer registration only when auth confirms a new user", async () => {
+    const api = {
+      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1", isNewUser: true }),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
+      logout: vi.fn(),
+      getMe: vi.fn(),
+      patchMe: vi.fn(),
+    };
+    const harness = await renderAuthHarness(api);
+
+    await act(async () => {
+      await harness.value().signInWithGoogle("google-id-token");
+    });
+
+    expect(appsFlyerServiceMock.initialize).toHaveBeenCalledWith("user_1");
+    expect(appsFlyerServiceMock.logCompleteRegistration).toHaveBeenCalledWith({
+      method: "google",
+    });
+  });
+
+  it("does not log AppsFlyer registration for returning users", async () => {
+    const api = {
+      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1", isNewUser: false }),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
+      logout: vi.fn(),
+      getMe: vi.fn(),
+      patchMe: vi.fn(),
+    };
+    const harness = await renderAuthHarness(api);
+
+    await act(async () => {
+      await harness.value().signInWithGoogle("google-id-token");
+    });
+
+    expect(appsFlyerServiceMock.initialize).toHaveBeenCalledWith("user_1");
+    expect(appsFlyerServiceMock.logCompleteRegistration).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when auth responses do not include the new-user flag", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const api = {
+      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1" }),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
+      logout: vi.fn(),
+      getMe: vi.fn(),
+      patchMe: vi.fn(),
+    };
+    const harness = await renderAuthHarness(api);
+
+    await act(async () => {
+      await harness.value().signInWithGoogle("google-id-token");
+    });
+
+    expect(appsFlyerServiceMock.logCompleteRegistration).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("isNewUser"));
+    warn.mockRestore();
   });
 
   it("clears local auth even when backend logout fails", async () => {

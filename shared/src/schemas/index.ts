@@ -120,6 +120,7 @@ export const appleSignInRequestSchema = z.object({
 export const authResponseSchema = z.object({
   user: userResponseSchema,
   token: z.string().min(1),
+  isNewUser: z.boolean().optional(),
 });
 
 export const patchMeRequestSchema = z

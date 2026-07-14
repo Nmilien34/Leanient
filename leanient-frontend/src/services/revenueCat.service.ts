@@ -7,6 +7,7 @@ import type {
 } from "react-native-purchases";
 import type { SubscriptionStatus, User } from "@leanient/shared";
 import { REVENUECAT_ANDROID_API_KEY, REVENUECAT_IOS_API_KEY } from "../config";
+import appsFlyerService from "./appsflyer.service";
 
 export type RevenueCatPlanId = "annual" | "monthly";
 
@@ -22,6 +23,8 @@ interface RevenueCatNativeClient {
   restorePurchases(): Promise<CustomerInfo>;
   getCustomerInfo(): Promise<CustomerInfo>;
   syncPurchases(): Promise<void>;
+  collectDeviceIdentifiers(): Promise<void>;
+  setAppsflyerID(appsflyerID: string | null): Promise<void>;
   PURCHASES_ERROR_CODE?: {
     PURCHASE_CANCELLED_ERROR?: string;
   };
@@ -33,6 +36,8 @@ interface RevenueCatServiceOptions {
   platform?: "ios" | "android" | "web" | string;
   purchasesClient?: RevenueCatNativeClient;
   loadPurchasesClient?: () => Promise<RevenueCatNativeClient>;
+  getAppsFlyerId?: (appUserId?: string) => Promise<string | undefined>;
+  onAppsFlyerIdAvailable?: (listener: (appsFlyerId: string) => void) => () => void;
 }
 
 async function loadNativePurchasesClient(): Promise<RevenueCatNativeClient> {
@@ -47,6 +52,11 @@ function isPurchaseCancelled(error: unknown, client?: RevenueCatNativeClient): b
     candidate.code === "1" ||
     candidate.code === client?.PURCHASES_ERROR_CODE?.PURCHASE_CANCELLED_ERROR
   );
+}
+
+function warnInDev(message: string, error?: unknown): void {
+  if (process.env.NODE_ENV === "production") return;
+  console.warn(message, error);
 }
 
 function getPackageForPlan(
@@ -105,6 +115,9 @@ export class RevenueCatService {
   private readonly androidApiKey?: string;
   private readonly platform: string;
   private readonly loadPurchasesClient: () => Promise<RevenueCatNativeClient>;
+  private readonly getAppsFlyerId?: (appUserId?: string) => Promise<string | undefined>;
+  private readonly onAppsFlyerIdAvailable?: (listener: (appsFlyerId: string) => void) => () => void;
+  private unsubscribeAppsFlyerIdAvailable?: () => void;
   private client?: RevenueCatNativeClient;
   private isConfigured = false;
   private configuredAppUserId?: string;
@@ -115,6 +128,9 @@ export class RevenueCatService {
     this.platform = options.platform ?? Platform.OS;
     this.client = options.purchasesClient;
     this.loadPurchasesClient = options.loadPurchasesClient ?? loadNativePurchasesClient;
+    this.getAppsFlyerId = options.getAppsFlyerId;
+    this.onAppsFlyerIdAvailable = options.onAppsFlyerIdAvailable;
+    this.subscribeToAppsFlyerIdAvailability();
   }
 
   private getApiKey(): string | undefined {
@@ -128,6 +144,18 @@ export class RevenueCatService {
       this.client = await this.loadPurchasesClient();
     }
     return this.client;
+  }
+
+  private subscribeToAppsFlyerIdAvailability(): void {
+    if (!this.onAppsFlyerIdAvailable || this.unsubscribeAppsFlyerIdAvailable) {
+      return;
+    }
+
+    this.unsubscribeAppsFlyerIdAvailable = this.onAppsFlyerIdAvailable((appsFlyerId) => {
+      void this.syncAppsFlyerAttribution(appsFlyerId).catch((error) => {
+        warnInDev("[RevenueCat] Could not sync AppsFlyer attribution after AppsFlyer ID became available.", error);
+      });
+    });
   }
 
   public async configure(appUserId?: string): Promise<boolean> {
@@ -151,6 +179,7 @@ export class RevenueCatService {
     }
 
     this.isConfigured = true;
+    await this.syncAppsFlyerAttributionFromCurrentSdk(appUserId);
     return true;
   }
 
@@ -176,6 +205,41 @@ export class RevenueCatService {
     return client.getCustomerInfo();
   }
 
+  public async syncAppsFlyerAttribution(appsFlyerId?: string | null): Promise<void> {
+    if (!this.isConfigured) {
+      return;
+    }
+
+    const client = await this.getClient();
+    await client.collectDeviceIdentifiers();
+    if (appsFlyerId) {
+      await client.setAppsflyerID(appsFlyerId);
+    }
+  }
+
+  private async syncAppsFlyerAttributionFromCurrentSdk(appUserId?: string): Promise<void> {
+    if (!this.getAppsFlyerId) {
+      return;
+    }
+
+    let appsFlyerId: string | undefined;
+    try {
+      appsFlyerId = await this.getAppsFlyerId(appUserId);
+    } catch (error) {
+      warnInDev("[RevenueCat] Could not read AppsFlyer ID before purchase.", error);
+    }
+
+    try {
+      await this.syncAppsFlyerAttribution(appsFlyerId);
+    } catch (error) {
+      warnInDev("[RevenueCat] Could not sync AppsFlyer attribution.", error);
+    }
+  }
+
+  private async syncAppsFlyerAttributionBeforePurchase(appUserId?: string): Promise<void> {
+    await this.syncAppsFlyerAttributionFromCurrentSdk(appUserId);
+  }
+
   public async purchasePlan({
     planId,
     appUserId,
@@ -184,6 +248,7 @@ export class RevenueCatService {
     appUserId?: string;
   }): Promise<RevenueCatPurchaseResult> {
     const client = await this.requireConfigured(appUserId);
+    await this.syncAppsFlyerAttributionBeforePurchase(appUserId);
     const selectedPackage = getPackageForPlan(await client.getOfferings(), planId);
 
     try {
@@ -211,9 +276,24 @@ export function createRevenueCatService(options: RevenueCatServiceOptions = {}):
   return new RevenueCatService(options);
 }
 
+async function getAppsFlyerIdForRevenueCat(appUserId?: string): Promise<string | undefined> {
+  const initialized = await appsFlyerService.initialize(appUserId).catch((error) => {
+    warnInDev("[RevenueCat] Could not initialize AppsFlyer before purchase.", error);
+    return false;
+  });
+  if (!initialized) return undefined;
+
+  return appsFlyerService.getAppsFlyerUID().catch((error) => {
+    warnInDev("[RevenueCat] Could not read AppsFlyer ID before purchase.", error);
+    return undefined;
+  });
+}
+
 const revenueCatService = createRevenueCatService({
   iosApiKey: REVENUECAT_IOS_API_KEY,
   androidApiKey: REVENUECAT_ANDROID_API_KEY,
+  getAppsFlyerId: getAppsFlyerIdForRevenueCat,
+  onAppsFlyerIdAvailable: (listener) => appsFlyerService.onAppsFlyerUIDAvailable(listener),
 });
 
 export default revenueCatService;

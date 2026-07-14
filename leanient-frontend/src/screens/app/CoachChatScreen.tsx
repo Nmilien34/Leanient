@@ -51,6 +51,10 @@ interface CoachChatScreenProps {
    * context, since the backend only knows about logged data.
    */
   suggestions?: string[];
+  /** The coach's first line, spoken from today's cycle position (frame 08). */
+  opener?: string;
+  /** Real community phrasings, rotated daily, under PEOPLE ON YOUR MED ASK. */
+  communityQuestions?: string[];
 }
 
 /**
@@ -58,8 +62,9 @@ interface CoachChatScreenProps {
  * capped text box handles follow-ups. The backend injects the user's data and
  * holds the medical-advice boundaries, so this screen stays a thin chat shell.
  */
-export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions }: CoachChatScreenProps) {
-  const [messages, setMessages] = useState<CoachChatMessage[]>([GREETING]);
+export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions, opener, communityQuestions }: CoachChatScreenProps) {
+  const greeting: CoachChatMessage = opener ? { role: "assistant", content: opener } : GREETING;
+  const [messages, setMessages] = useState<CoachChatMessage[]>([greeting]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -68,7 +73,7 @@ export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions }: Co
 
   useEffect(() => {
     if (!visible) {
-      setMessages([GREETING]);
+      setMessages([greeting]);
       setInput("");
       setPending(false);
       setErrored(false);
@@ -200,6 +205,23 @@ export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions }: Co
                     <Text style={styles.chipText}>{question}</Text>
                   </Pressable>
                 ))}
+                {communityQuestions?.length ? (
+                  <>
+                    <Text style={styles.communityLabel}>PEOPLE ON YOUR MED ASK</Text>
+                    {communityQuestions
+                      .filter((q) => !(suggestions ?? SUGGESTIONS).includes(q))
+                      .map((question) => (
+                        <Pressable
+                          key={question}
+                          accessibilityRole="button"
+                          onPress={() => send(question)}
+                          style={styles.chip}
+                        >
+                          <Text style={styles.chipText}>{question}</Text>
+                        </Pressable>
+                      ))}
+                  </>
+                ) : null}
               </View>
             ) : null}
           </ScrollView>
@@ -243,6 +265,14 @@ export function CoachChatScreen({ visible, onClose, onUpgrade, suggestions }: Co
 }
 
 const styles = StyleSheet.create({
+  communityLabel: {
+    fontFamily: font.semibold,
+    fontSize: 10,
+    letterSpacing: 0.7,
+    color: colors.faint,
+    marginTop: 14,
+    marginBottom: 2,
+  },
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.paper, zIndex: 80 },
   safe: { flex: 1 },
   flex: { flex: 1 },

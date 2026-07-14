@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
@@ -24,7 +25,9 @@ import { RetentionHero } from "../../components/app/RetentionHero";
 import { GettingStartedCard } from "../../components/app/GettingStartedCard";
 import { FirstJourneyCard } from "../../components/app/FirstJourneyCard";
 import { HomeStateBanner } from "../../components/app/HomeStateBanner";
-import { TodayPlanCard } from "../../components/app/TodayPlanCard";
+import { MorningRead } from "../../components/app/MorningRead";
+import { CycleHero } from "../../components/app/CycleHero";
+import { PlanFooter, PlanHeader, TaskCard } from "../../components/app/TaskCards";
 import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { CoachInsightCard } from "../../components/app/CoachInsightCard";
@@ -72,6 +75,33 @@ import { buildFirstJourney } from "./firstJourney";
 import { resolveHomeLayout, daysSinceLatest, type HomeSection } from "./homeLayout";
 import { deriveWeekPlan } from "./weekPlanMetrics";
 import { buildPlanChecklist, deriveTodayPlan, pickWorkout, type DayFocus } from "./todayPlanMetrics";
+import {
+  deriveCyclePersonality,
+  deriveLiftPattern,
+  derivePersonalPattern,
+  greetingForHour,
+  morningPill,
+  proteinLoggedYesterday,
+  weeksSteadyFromDoses,
+  PLAN_LABELS,
+} from "./cyclePersonality";
+import { buildWalkCard, buildWaterCard, buildWeighInCard, orderForReset, toTaskCards } from "./homeTaskCards";
+import { buildWeekMap } from "./weekMap";
+import { WeekMapCard } from "../../components/app/WeekMapCard";
+import { OneTapMealSheet } from "../../components/app/OneTapMealSheet";
+import { buildOneTapMeals, type OneTapMeal } from "./oneTapMeals";
+import { UndoToast } from "../../components/app/UndoToast";
+import { StickyPlanChip } from "../../components/app/StickyPlanChip";
+import { ForTodayShelf } from "../../components/app/ForTodayShelf";
+import { pickReadsForToday } from "./libraryContent";
+import { coachOpener, pickCommunityQuestions } from "./communityQuestions";
+import { computeStreak, loadStreakStore, nextBadge, recordDayWon, type StreakStore } from "./streak";
+import { DayWonSheet } from "../../components/app/DayWonSheet";
+import { StreakScreen } from "../../components/app/StreakScreen";
+import { buildMedals } from "./medals";
+import { loadMicroDone, setMicroDone } from "./microToday";
+import { suggestNextSite } from "./doseLogForm";
+import { loadWaterToday, saveWaterToday } from "./waterToday";
 import { buildRollingConsistency } from "./consistency";
 import { loadSessionStarts, unfinishedStartFor, type SessionStart } from "./sessionStarts";
 import { buildExecutionReport } from "./executionReport";
@@ -132,6 +162,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [todayPlanOpen, setTodayPlanOpen] = useState(false);
+  const [oneTapOpen, setOneTapOpen] = useState(false);
+  // Frame 07: sticky plan chip appears once the plan scrolls away.
+  const scrollRef = useRef<ScrollView>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [planEndY, setPlanEndY] = useState<number | null>(null);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [completed, setCompleted] = useState<CompletedWorkout | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -315,7 +350,10 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   // focus, which (with shot energy) picks the right session from the pool. Stable
   // within a day, shifting across days and as the score moves.
   const dayFocus: DayFocus | null = verdictBreakdown?.weakestLine ? (verdictBreakdown.weakest.key as DayFocus) : null;
-  const shotEnergy: ShotEnergy = medication ? computeShotCycle(medication, now).phase.energy : "good";
+  const shotCycle = useMemo(() => (medication ? computeShotCycle(medication, now) : null), [medication, now]);
+  const shotEnergy: ShotEnergy = shotCycle?.phase.energy ?? "good";
+  // The v2 hero speaks in day personalities derived from the cycle position.
+  const personality = useMemo(() => (shotCycle ? deriveCyclePersonality(shotCycle) : null), [shotCycle]);
   const daySeed = Math.floor(now.getTime() / 86_400_000);
   const planWorkout = useMemo(
     () => pickWorkout(recommendedWorkouts, { focus: dayFocus, energy: shotEnergy, daySeed }),
@@ -393,6 +431,214 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
           })
         : [],
     [todayPlan, todayLog.meals.length, lastMealName, today.protein.ratio, today.session.done, sessionStart, doseLoggedToday],
+  );
+
+  // Morning read: shot day names itself, and the pill leads with the steady
+  // streak on shot day, then yesterday's protein, then the journey chip.
+  const isShotDay = shotCycle?.daysSinceShot === 0;
+  const greeting = greetingForHour(now.getHours(), auth.user?.displayName, isShotDay);
+  const readPill = useMemo(() => {
+    const firstLog = weightLogs.length
+      ? weightLogs.reduce((a, b) => (a.measuredAt < b.measuredAt ? a : b))
+      : null;
+    const lbLost =
+      firstLog && metrics.weight.current != null ? firstLog.value - metrics.weight.current : null;
+    return morningPill({
+      yesterdayProtein: proteinLoggedYesterday(data.recentMeals, now),
+      dayOnMed: shotCycle?.dayOnMed ?? null,
+      medicationName: medication?.medicationName,
+      isShotDay,
+      weeksSteady: weeksSteadyFromDoses(doseLogs, now),
+      kind: personality?.kind,
+      lbLost,
+      retention: retentionHero?.retention ?? null,
+    });
+  }, [data.recentMeals, now, shotCycle, medication, isShotDay, doseLogs, personality, weightLogs, metrics.weight, retentionHero]);
+
+  // Shot-day water: local 0.5L tap counter, part of winning the reset day.
+  const [waterL, setWaterL] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    void loadWaterToday(now).then((liters) => {
+      if (alive) setWaterL(liters);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [now]);
+  // Defense-day walk tick (frame 06): local per-day, undo via the toast.
+  const [walkDoneAt, setWalkDoneAt] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadMicroDone(now).then((done) => {
+      if (alive) setWalkDoneAt(done.walk ?? null);
+    });
+    return () => {
+      alive = false;
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, [now]);
+  const showToast = (message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  };
+  const tickWalk = () => {
+    const at = new Date().toISOString();
+    setWalkDoneAt(at);
+    void setMicroDone(now, "walk", at);
+    const left = displayCards.filter((c) => !c.done && c.key !== "walk").length;
+    showToast(left === 0 ? "Walk done. Day won." : left === 1 ? "Walk done. One left today." : `Walk done. ${left} left today.`);
+  };
+  const undoWalk = () => {
+    setWalkDoneAt(null);
+    void setMicroDone(now, "walk", null);
+    setToast(null);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  };
+
+  // Frames 09-10: the streak. Won day = the whole plan checked off.
+  const [streakStore, setStreakStore] = useState<StreakStore>({ wonDates: [], longest: 0 });
+  const [dayWonOpen, setDayWonOpen] = useState(false);
+  const [streakOpen, setStreakOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void loadStreakStore().then((store) => {
+      if (alive) setStreakStore(store);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const streakRead = useMemo(() => computeStreak(streakStore, now), [streakStore, now]);
+  const medals = useMemo(
+    () =>
+      buildMedals({
+        doseLogs,
+        weightLogs,
+        snapshotWeeks: (data.progressOverview?.chart.snapshots ?? []).map((snap) => snap.weekOf),
+        photoDates: data.progressPhotos.map((photo) => photo.captureDate),
+        streak: streakRead,
+        now,
+      }),
+    [doseLogs, weightLogs, data.progressOverview?.chart.snapshots, data.progressPhotos, streakRead, now],
+  );
+
+  const addWater = () => {
+    const next = Math.min(3, waterL + 0.5);
+    setWaterL(next);
+    void saveWaterToday(now, next);
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  // The v2 flat tap-card plan, mapped from the shipped checklist.
+  const taskCards = useMemo(
+    () =>
+      todayPlan && personality
+        ? toTaskCards({
+            plan: todayPlan,
+            checklist: planChecklist,
+            personality: personality.kind,
+            hour: now.getHours(),
+            equipment: planWorkout?.equipment ?? null,
+            sessionStarted: Boolean(sessionStart),
+            lastMealTime: today.loggedMeals.length
+              ? today.loggedMeals[today.loggedMeals.length - 1].timeLabel
+              : null,
+            doseLabel:
+              medication?.doseAmount != null ? `${medication.doseAmount} ${medication.doseUnit}` : null,
+            nextSiteLabel: medication
+              ? siteLabel(suggestNextSite(sortRecentDoses(doseLogs)[0]?.injectionSite ?? null))
+              : null,
+          })
+        : [],
+    [todayPlan, personality, planChecklist, planWorkout, sessionStart, now, today.loggedMeals, medication, doseLogs],
+  );
+
+  // Day-personality extras: reset leads with the shot + water micro-card,
+  // green light appends the weigh-in (done state follows the real log).
+  const displayCards = useMemo(() => {
+    if (!personality || !taskCards.length) return taskCards;
+    const ordered = orderForReset(taskCards, personality.kind);
+    if (personality.kind === "reset") {
+      const withWater = [...ordered];
+      withWater.splice(1, 0, buildWaterCard(waterL));
+      return withWater;
+    }
+    if (personality.kind === "greenlight") {
+      const weighedToday = weightLogs.some(
+        (w) => new Date(w.measuredAt).toDateString() === now.toDateString(),
+      );
+      return [...ordered, buildWeighInCard(weighedToday)];
+    }
+    if (personality.kind === "defense") {
+      return [...ordered, buildWalkCard(walkDoneAt, now)];
+    }
+    return ordered;
+  }, [taskCards, personality, waterL, weightLogs, walkDoneAt, now]);
+
+  // The day-won moment: every card checked and today not yet recorded.
+  const todayWonKey = now.toDateString();
+  const allCardsDone = displayCards.length > 0 && displayCards.every((c) => c.done);
+  useEffect(() => {
+    if (!allCardsDone || streakStore.wonDates.includes(todayWonKey)) return;
+    void recordDayWon(streakStore, now).then((store) => {
+      setStreakStore(store);
+      setDayWonOpen(true);
+    });
+  }, [allCardsDone, streakStore, todayWonKey, now]);
+
+  // Frame-01 hero context: "Thu · Day 46 · Wegovy 1.0 mg". The shot position
+  // already lives in the pill and the ribbon, so the line carries the med.
+  const heroContext = useMemo(() => {
+    if (!shotCycle || !medication) return today.contextLabel;
+    const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][now.getDay()];
+    const dose = medication.doseAmount != null ? ` ${medication.doseAmount} ${medication.doseUnit}` : "";
+    return `${weekday} · Day ${shotCycle.dayOnMed} · ${medication.medicationName}${dose}`;
+  }, [shotCycle, medication, now, today.contextLabel]);
+
+  // YOUR PATTERN speaks from their history once today's cycle position has
+  // enough logged days behind it; the cycle truth covers the cold start.
+  const heroPersonality = useMemo(() => {
+    if (!personality || !shotCycle) return personality;
+    // Green-light days speak to training first (their best lift day), the
+    // rest read protein history; the cycle truth covers thin history.
+    const lift =
+      personality.kind === "greenlight"
+        ? deriveLiftPattern({
+            workouts: data.workoutHistory,
+            shotDays: medication?.shotDays ?? null,
+            todayDaysSinceShot: shotCycle.daysSinceShot,
+          })
+        : null;
+    return {
+      ...personality,
+      pattern:
+        lift ??
+        derivePersonalPattern({
+          meals: data.recentMeals,
+          dailyProteinTarget: profile.dailyProteinTarget,
+          shotDays: medication?.shotDays ?? null,
+          todayDaysSinceShot: shotCycle.daysSinceShot,
+          now,
+          fallback: personality.pattern,
+        }),
+    };
+  }, [personality, shotCycle, data.recentMeals, data.workoutHistory, profile.dailyProteinTarget, medication, now]);
+
+  // The week mapped onto the cycle for the This-week scope (frame 04).
+  const weekMapView = useMemo(
+    () =>
+      buildWeekMap({
+        proteinDots: consistency.proteinDots,
+        shotDays: medication?.shotDays ?? null,
+        now,
+      }),
+    [consistency.proteinDots, medication, now],
   );
 
   const contextLabel = useMemo(() => {
@@ -533,18 +779,77 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const verdictHeroCard = (
     <VerdictCard verdict={verdict} contextLabel={today.contextLabel} override={today.hero} compact />
   );
-  const planCard = todayPlan ? (
-    <TodayPlanCard
-      plan={todayPlan}
-      checklist={planChecklist}
-      proteinDots={consistency.proteinDots}
-      onEat={openMealScan}
-      onMove={() => startWorkout(planWorkout ?? undefined)}
-      onLogShot={openDoseLog}
-      onDetail={() => setTodayPlanOpen(true)}
-    />
-  ) : null;
-  const trio: Record<HomeSection, React.ReactNode> = { score: scoreCard, verdict: verdictHeroCard, plan: planCard };
+  // v2 hero: the cycle owns the Today headline whenever a protocol exists; the
+  // verdict card stays as the fallback (and still leads the This-week scope).
+  const cycleHeroCard =
+    heroPersonality && shotCycle && todayPlan ? (
+      <CycleHero
+        contextLabel={heroContext}
+        personality={heroPersonality}
+        daysSinceShot={shotCycle.daysSinceShot}
+        onPress={() => setTodayPlanOpen(true)}
+      />
+    ) : null;
+
+  // v2 plan: header + flat tap-cards + footer. Card taps route to the same
+  // actions the timeline used (scan / player / dose log).
+  // Frame 05: the protein card opens their own meals as one-tap logs.
+  const oneTapMeals = useMemo(
+    () =>
+      buildOneTapMeals({
+        recentMeals: data.recentMeals,
+        fallback: todayPlan?.eat.suggestions ?? [],
+        now,
+      }),
+    [data.recentMeals, todayPlan, now],
+  );
+  const logOneTapMeal = async (meal: OneTapMeal) => {
+    await data.api.createMealLog({
+      foodName: meal.name,
+      protein: meal.protein,
+      calories: meal.calories,
+      source: "manual",
+      recordedAt: new Date().toISOString(),
+    });
+    await data.refreshHomeData();
+  };
+
+  const taskCardAction = (kind: string, done: boolean) => {
+    if (kind === "water") return done ? undefined : addWater;
+    if (kind === "walk") return done ? undefined : tickWalk;
+    if (done) return undefined;
+    if (kind === "weighin") return openWeightLog;
+    if (kind === "protein") return () => setOneTapOpen(true);
+    if (kind === "session") return () => startWorkout(planWorkout ?? undefined);
+    return openDoseLog;
+  };
+  const planCard =
+    todayPlan && personality && displayCards.length ? (
+      <View>
+        <PlanHeader
+          personalityLabel={PLAN_LABELS[personality.kind]}
+          amber={personality.amber}
+          momentum={
+            personality.kind === "reset"
+              ? "SHOT = DAY WON"
+              : `${consistency.proteinDots.filter((d) => d === "hit").length} OF LAST 7`
+          }
+        />
+        {displayCards.map((view) => (
+          <TaskCard key={view.key} view={view} onPress={taskCardAction(view.kind, view.done)} />
+        ))}
+        <PlanFooter
+          done={displayCards.filter((c) => c.done).length}
+          total={displayCards.length}
+          dots={consistency.proteinDots}
+        />
+      </View>
+    ) : null;
+  const trio: Record<HomeSection, React.ReactNode> = {
+    score: scoreCard,
+    verdict: cycleHeroCard ?? verdictHeroCard,
+    plan: planCard,
+  };
   // Shared supporting metrics, rendered below the trio in either layout.
   const ringsCard = (
     <View style={styles.rings}>
@@ -584,7 +889,13 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
       <StatusBar style="dark" />
       <ScreenGround />
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+        >
           {/* app bar */}
           <View style={styles.appbar}>
             <Text style={styles.wm}>Leanient</Text>
@@ -597,19 +908,39 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                 </Pressable>
               ))}
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              hitSlop={8}
-              onPress={() => navigation.navigate("Profile" as never)}
-            >
-              <UserAvatar />
-            </Pressable>
+            <View style={styles.appbarRight}>
+              {streakRead.days > 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${streakRead.days} day streak. Open your streak`}
+                  onPress={() => setStreakOpen(true)}
+                  style={styles.stkChip}
+                >
+                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M12 21v-8" />
+                    <Path d="M12 13c0-4 3-6.5 8-6.5-.8 4.5-3.5 6.5-8 6.5z" />
+                    <Path d="M12 13c0-3-2-4.5-5.5-4.5.7 3.5 2.7 4.5 5.5 4.5z" />
+                  </Svg>
+                  <Text style={styles.stkText}>{streakRead.days}</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                hitSlop={8}
+                onPress={() => navigation.navigate("Profile" as never)}
+              >
+                <UserAvatar />
+              </Pressable>
+            </View>
           </View>
 
           {scope === "today" ? (
-            /* ---- Today scope: daily, shot-cycle re-skin (screen 15) ---- */
+            /* ---- Today scope: the v2 coach spine (morning read → cycle hero → plan) ---- */
             <>
+              <StaggeredReveal index={0}>
+                <MorningRead greeting={greeting} pill={readPill} />
+              </StaggeredReveal>
               {homeLayout ? (
                 (() => {
                   // Scored user — order the hero trio to the situation, metrics after the "why".
@@ -628,6 +959,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                         <StaggeredReveal key={key} index={idx++}>
                           {trio[key]}
                         </StaggeredReveal>,
+                      );
+                    }
+                    if (key === "plan") {
+                      items.push(
+                        <View key="plan-end" onLayout={(e) => setPlanEndY(e.nativeEvent.layout.y)} />,
                       );
                     }
                     // Execution spine: directive → consistency tiles → the plan.
@@ -657,6 +993,7 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                   <StaggeredReveal index={2}>{verdictHeroCard}</StaggeredReveal>
                   <StaggeredReveal index={3}>{ringsCard}</StaggeredReveal>
                   {planCard ? <StaggeredReveal index={4}>{planCard}</StaggeredReveal> : null}
+                  <View onLayout={(e) => setPlanEndY(e.nativeEvent.layout.y)} />
                 </>
               )}
 
@@ -673,6 +1010,37 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                   onLogSideEffect={openSideEffectLog}
                 />
               </StaggeredReveal>
+
+              {/* the For-today shelf: library reads picked by cycle day */}
+              {heroPersonality && shotCycle ? (
+                <StaggeredReveal index={5}>
+                  <ForTodayShelf
+                    reads={pickReadsForToday(heroPersonality.kind)}
+                    dayLabel={shotCycle.daysSinceShot === 0 ? "SHOT DAY" : `DAY ${shotCycle.daysSinceShot}`}
+                    amber={heroPersonality.amber}
+                  />
+                </StaggeredReveal>
+              ) : null}
+
+              {/* dose glass row, on Today per frame 07 */}
+              {today.nextShot.onProtocol ? (
+                <StaggeredReveal index={5}>
+                  <View style={styles.med}>
+                    <View>
+                      <Text style={styles.mk}>LAST DOSE</Text>
+                      <Text style={styles.mv}>{dose.lastLabel}</Text>
+                    </View>
+                    <View style={styles.mdiv} />
+                    <View>
+                      <Text style={styles.mk}>NEXT DOSE</Text>
+                      <Text style={styles.mv}>{dose.nextLabel}</Text>
+                    </View>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Log dose" onPress={openDoseLog} style={styles.mActions}>
+                      <Text style={styles.mlog}>Log dose ›</Text>
+                    </Pressable>
+                  </View>
+                </StaggeredReveal>
+              ) : null}
 
               {/* Everything below is demoted: supporting context, off the spine. */}
               {bodyComp ? (
@@ -705,58 +1073,37 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                 </Pressable>
               </StaggeredReveal>
 
-              <StaggeredReveal index={7}>
-                <View style={styles.snap}>
-                  <Text style={styles.eyebrow}>LOGGED TODAY</Text>
-                  <View style={styles.loggedList}>
-                    {today.loggedMeals.length ? (
-                      today.loggedMeals.map((m, i) => (
-                        <Pressable
-                          key={`${m.name}-${i}`}
-                          accessibilityRole="button"
-                          accessibilityLabel={`View ${m.name}`}
-                          onPress={() => setSelectedMealId(m.id)}
-                          style={styles.loggedRow}
-                        >
-                          <View style={styles.loggedIcon}>
-                            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                              <Path d="M6 3v7a3 3 0 0 0 6 0V3M9 10v11M17 3c-2 1-3 3-3 6s1 4 3 4v8" />
-                            </Svg>
-                          </View>
-                          <Text style={styles.loggedName}>{m.name}</Text>
-                          <Text style={styles.loggedVal}>
-                            {m.grams}g · {m.timeLabel}
-                          </Text>
-                          <Text style={styles.loggedChev}>›</Text>
-                        </Pressable>
-                      ))
-                    ) : (
-                      <Text style={styles.loggedEmpty}>Nothing logged yet today.</Text>
-                    )}
-                    {today.derivedLine ? <Text style={styles.derivedLine}>{today.derivedLine}</Text> : null}
-                  </View>
-                </View>
-              </StaggeredReveal>
             </>
           ) : (
             /* ---- This week scope ---- */
             <>
-              {/* One verdict block: the worded read + the week's execution report, fused. */}
-              <StaggeredReveal index={0}>
-                <View style={styles.verdictHero}>
-                  <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} bare />
-                  {verdict.status !== "no_data" && verdictBreakdown ? (
-                    <>
-                      <View style={styles.verdictHeroDivider} />
-                      <VerdictBreakdownCard view={verdictBreakdown} report={executionReport} onPress={() => setExplainerOpen(true)} bare />
-                      <View style={styles.nextWeek}>
-                        <Text style={styles.nextWeekLabel}>NEXT WEEK</Text>
-                        <Text style={styles.nextWeekText}>{executionReport.nextWeek}</Text>
-                      </View>
-                    </>
-                  ) : null}
-                </View>
-              </StaggeredReveal>
+              {/* v2 week hero: the gauge and lever bars ARE the recap; the
+                  fused verdict block covers gathering/no-score weeks. */}
+              {retentionHero ? (
+                <StaggeredReveal index={0}>
+                  <RetentionHero view={retentionHero} onPress={() => setExplainerOpen(true)} />
+                  <View style={[styles.nextWeek, styles.nextWeekStandalone]}>
+                    <Text style={styles.nextWeekLabel}>NEXT WEEK</Text>
+                    <Text style={styles.nextWeekText}>{executionReport.nextWeek}</Text>
+                  </View>
+                </StaggeredReveal>
+              ) : (
+                <StaggeredReveal index={0}>
+                  <View style={styles.verdictHero}>
+                    <VerdictCard verdict={verdict} contextLabel={contextLabel} onAction={handleVerdictAction} bare />
+                    {verdict.status !== "no_data" && verdictBreakdown ? (
+                      <>
+                        <View style={styles.verdictHeroDivider} />
+                        <VerdictBreakdownCard view={verdictBreakdown} report={executionReport} onPress={() => setExplainerOpen(true)} bare />
+                        <View style={styles.nextWeek}>
+                          <Text style={styles.nextWeekLabel}>NEXT WEEK</Text>
+                          <Text style={styles.nextWeekText}>{executionReport.nextWeek}</Text>
+                        </View>
+                      </>
+                    ) : null}
+                  </View>
+                </StaggeredReveal>
+              )}
 
               {/* cold-start: fill the barren no-data week with the mirror + checklist */}
               {gettingStarted ? (
@@ -791,9 +1138,16 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                     <TrendTile
                       series={weight.series}
                       deltaLabel={weekDeltaLabel}
-                      label="This week"
+                      label="Pace"
                     />
                   </View>
+                </StaggeredReveal>
+              ) : null}
+
+              {/* the week laid over the cycle: shot / easy / mid / guard */}
+              {weekMapView && verdict.status !== "no_data" ? (
+                <StaggeredReveal index={3}>
+                  <WeekMapCard view={weekMapView} onDetail={() => setPlanOpen(true)} />
                 </StaggeredReveal>
               ) : null}
 
@@ -900,7 +1254,44 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
             </>
           )}
         </ScrollView>
+
+        <StickyPlanChip
+          visible={scope === "today" && planEndY != null && scrollY > planEndY - 60}
+          done={displayCards.filter((c) => c.done).length}
+          total={displayCards.length}
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+        />
       </SafeAreaView>
+
+      <UndoToast message={toast} onUndo={undoWalk} />
+
+      <StreakScreen visible={streakOpen} streak={streakRead} medals={medals} onClose={() => setStreakOpen(false)} />
+
+      <DayWonSheet
+        visible={dayWonOpen}
+        streakDays={streakRead.days}
+        weekDots={Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(now);
+          d.setDate(d.getDate() - (6 - i));
+          const key = d.toDateString();
+          if (streakStore.wonDates.includes(key)) return "won" as const;
+          return key === todayWonKey ? ("open" as const) : ("miss" as const);
+        })}
+        badge={nextBadge(streakRead.days)}
+        isLongestYet={streakRead.days + (nextBadge(streakRead.days)?.remaining ?? 0) > streakRead.longest}
+        coachLine={
+          personality?.kind === "defense"
+            ? `Day ${shotCycle?.daysSinceShot ?? 5} was the hard one, and you took it. Rhythm, not perfection.`
+            : personality?.kind === "reset"
+              ? "Shot landed, day won. Your week is anchored."
+              : personality?.kind === "greenlight"
+                ? "Strong day, banked. This is how the muscle stays."
+                : personality?.kind === "settling"
+                  ? "A quiet day, still won. Those count double."
+                  : "Another brick in. Rhythm, not perfection."
+        }
+        onClose={() => setDayWonOpen(false)}
+      />
 
       <VerdictExplainer
         visible={explainerOpen}
@@ -921,6 +1312,12 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
           setSubscriptionOpen(true);
         }}
         suggestions={coachSuggestions}
+        opener={
+          personality && shotCycle
+            ? coachOpener(personality.kind, shotCycle.daysSinceShot, auth.user?.displayName)
+            : undefined
+        }
+        communityQuestions={personality ? pickCommunityQuestions(personality.kind, now) : undefined}
       />
       <SubscriptionScreen visible={subscriptionOpen} onClose={() => setSubscriptionOpen(false)} />
 
@@ -933,6 +1330,18 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
           setPlayerOpen(true);
         }}
       />
+      {todayPlan ? (
+        <OneTapMealSheet
+          visible={oneTapOpen}
+          title={displayCards.find((c) => c.kind === "protein" && !c.done)?.title ?? "Next protein meal"}
+          remaining={todayPlan.eat.remaining}
+          meals={oneTapMeals}
+          onLog={logOneTapMeal}
+          onScan={openMealScan}
+          onType={openMealLog}
+          onClose={() => setOneTapOpen(false)}
+        />
+      ) : null}
       {todayPlan ? (
         <TodayPlanSheet
           visible={todayPlanOpen}
@@ -1122,12 +1531,24 @@ const styles = StyleSheet.create({
   wtogOn: { backgroundColor: "#fff", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 3 }, shadowRadius: 8, shadowOpacity: 0.25, elevation: 2 },
   wtogText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.muted },
   wtogTextOn: { color: colors.ink },
+  appbarRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  stkChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(47,184,122,0.12)",
+    borderRadius: 11,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+  },
+  stkText: { fontFamily: font.extrabold, fontSize: 12.5, letterSpacing: -0.13, color: colors.emeraldDeep },
   // rings
   rings: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 16 },
   trendRow: { flexDirection: "row", gap: 12, marginHorizontal: 20, marginTop: 12, alignItems: "stretch" },
   verdictHero: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 22, overflow: "hidden", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 14 }, shadowRadius: 24, shadowOpacity: 0.09, elevation: 4 },
   verdictHeroDivider: { height: 1, backgroundColor: colors.line, marginHorizontal: 16 },
   nextWeek: { flexDirection: "row", gap: 11, alignItems: "center", marginHorizontal: 16, marginBottom: 16, backgroundColor: "rgba(47,184,122,0.07)", borderWidth: 1, borderColor: "rgba(47,184,122,0.22)", borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  nextWeekStandalone: { marginHorizontal: 20, marginTop: 12, marginBottom: 0 },
   nextWeekLabel: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.8, color: colors.emeraldDeep },
   nextWeekText: { flex: 1, fontFamily: font.semibold, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.1 },
   // why link

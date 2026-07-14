@@ -201,6 +201,7 @@ describe("auth routes", () => {
       ],
     });
     expect(response.body.data.token).toEqual(expect.any(String));
+    expect(response.body.data.isNewUser).toBe(true);
     expect(userModelMock.users).toHaveLength(1);
   });
 
@@ -222,6 +223,7 @@ describe("auth routes", () => {
       email: "nick@gmail.com",
       onboardingComplete: true,
     });
+    expect(response.body.data.isNewUser).toBe(false);
   });
 
   it("creates a separate user from an unverified Google token without linking by email", async () => {
@@ -253,6 +255,7 @@ describe("auth routes", () => {
         },
       ],
     });
+    expect(response.body.data.isNewUser).toBe(true);
     expect(existingUser.authProviders).toHaveLength(1);
     expect(userModelMock.users).toHaveLength(2);
   });
@@ -291,7 +294,26 @@ describe("auth routes", () => {
         },
       ],
     });
+    expect(response.body.data.isNewUser).toBe(true);
     expect(userModelMock.users).toHaveLength(1);
+  });
+
+  it("marks demo auth as an existing account", async () => {
+    userModelMock.createUserDocument({
+      email: "review@leanient.app",
+      emailVerified: true,
+      onboardingComplete: true,
+      authProviders: [makeLinkedProvider("apple", "review_apple")],
+    });
+
+    const response = await request(app).post("/auth/demo").send({
+      email: "review@leanient.app",
+      password: "LeanientReview2026!",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.user.email).toBe("review@leanient.app");
+    expect(response.body.data.isNewUser).toBe(false);
   });
 
   it("returns a graceful unavailable error when Apple sign-in is not configured", async () => {

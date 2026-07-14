@@ -1,0 +1,133 @@
+import { describe, expect, it, vi } from "vitest";
+import { createAppsFlyerService } from "../../services/appsflyer.service";
+
+function makeClient() {
+  let appsFlyerUID: string | undefined = "af-user-1";
+  let conversionDataListener: ((result: unknown) => void) | undefined;
+  return {
+    client: {
+      initSdk: vi.fn((_: unknown, success: (result: string) => void) => success("initialized")),
+      startSdk: vi.fn(),
+      setCustomerUserId: vi.fn((_: string, callback?: (result: string) => void) => callback?.("ok")),
+      logEvent: vi.fn(
+        (_eventName: string, _eventValues: Record<string, string>, success: (result: string) => void) =>
+          success("ok"),
+      ),
+      getAppsFlyerUID: vi.fn((callback: (error: unknown, uid?: string) => void) =>
+        callback(null, appsFlyerUID),
+      ),
+      onInstallConversionData: vi.fn((listener: (result: unknown) => void) => {
+        conversionDataListener = listener;
+        return vi.fn();
+      }),
+    },
+    emitConversionData: () => conversionDataListener?.({ type: "onInstallConversionDataLoaded" }),
+    setAppsFlyerUID: (nextAppsFlyerUID: string | undefined) => {
+      appsFlyerUID = nextAppsFlyerUID;
+    },
+  };
+}
+
+describe("AppsFlyer service", () => {
+  it("initializes with ATT, CUID, manual start, and dev-only debug", async () => {
+    const { client } = makeClient();
+    const requestTrackingPermissions = vi.fn().mockResolvedValue({ status: "granted" });
+    const service = createAppsFlyerService({
+      appId: "6778920696",
+      devKey: "dev-key",
+      platform: "ios",
+      isDev: true,
+      appsFlyerClient: client,
+      requestTrackingPermissions,
+      isTrackingTransparencyAvailable: () => true,
+    });
+
+    await expect(service.initialize("user_1")).resolves.toBe(true);
+
+    expect(requestTrackingPermissions).toHaveBeenCalledTimes(1);
+    expect(client.setCustomerUserId).toHaveBeenCalledWith("user_1", expect.any(Function));
+    expect(client.initSdk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appId: "6778920696",
+        devKey: "dev-key",
+        isDebug: true,
+        manualStart: true,
+        timeToWaitForATTUserAuthorization: 10,
+      }),
+      expect.any(Function),
+      expect.any(Function),
+    );
+    expect(client.startSdk).toHaveBeenCalledTimes(1);
+    expect(client.setCustomerUserId.mock.invocationCallOrder[0]).toBeLessThan(
+      client.startSdk.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("is a safe no-op when AppsFlyer config is missing", async () => {
+    const { client } = makeClient();
+    const service = createAppsFlyerService({
+      appId: "",
+      devKey: "",
+      platform: "ios",
+      appsFlyerClient: client,
+    });
+
+    await expect(service.initialize("user_1")).resolves.toBe(false);
+
+    expect(client.initSdk).not.toHaveBeenCalled();
+    expect(client.startSdk).not.toHaveBeenCalled();
+  });
+
+  it("logs the confirmed first-time registration event without revenue values", async () => {
+    const { client } = makeClient();
+    const service = createAppsFlyerService({
+      appId: "6778920696",
+      devKey: "dev-key",
+      platform: "ios",
+      appsFlyerClient: client,
+    });
+
+    await service.logCompleteRegistration({ method: "google" });
+
+    expect(client.logEvent).toHaveBeenCalledWith(
+      "af_complete_registration",
+      { af_registration_method: "google" },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
+  it("reads the AppsFlyer ID for RevenueCat attribution", async () => {
+    const { client } = makeClient();
+    const service = createAppsFlyerService({
+      appId: "6778920696",
+      devKey: "dev-key",
+      platform: "ios",
+      appsFlyerClient: client,
+    });
+
+    await expect(service.getAppsFlyerUID()).resolves.toBe("af-user-1");
+  });
+
+  it("notifies listeners when the AppsFlyer ID becomes available after conversion data loads", async () => {
+    const native = makeClient();
+    native.setAppsFlyerUID(undefined);
+    const listener = vi.fn();
+    const service = createAppsFlyerService({
+      appId: "6778920696",
+      devKey: "dev-key",
+      platform: "ios",
+      appsFlyerClient: native.client,
+      requestTrackingPermissions: vi.fn().mockResolvedValue({ status: "granted" }),
+    });
+
+    service.onAppsFlyerUIDAvailable(listener);
+    await service.initialize();
+    native.setAppsFlyerUID("af-user-1");
+    native.emitConversionData();
+    await Promise.resolve();
+
+    expect(native.client.onInstallConversionData).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith("af-user-1");
+  });
+});

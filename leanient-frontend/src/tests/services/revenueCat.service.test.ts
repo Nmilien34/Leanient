@@ -42,6 +42,8 @@ function makeClient() {
       restorePurchases: vi.fn().mockResolvedValue(customerInfo),
       getCustomerInfo: vi.fn().mockResolvedValue(customerInfo),
       syncPurchases: vi.fn().mockResolvedValue(undefined),
+      collectDeviceIdentifiers: vi.fn().mockResolvedValue(undefined),
+      setAppsflyerID: vi.fn().mockResolvedValue(undefined),
       PURCHASES_ERROR_CODE: {
         PURCHASE_CANCELLED_ERROR: "1",
       },
@@ -78,6 +80,82 @@ describe("RevenueCat service", () => {
     });
   });
 
+  it("associates AppsFlyer attribution when RevenueCat configures an anonymous app user", async () => {
+    const { client } = makeClient();
+    const getAppsFlyerId = vi.fn().mockResolvedValue("af-anonymous-1");
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+      getAppsFlyerId,
+    });
+
+    await service.configure();
+
+    expect(getAppsFlyerId).toHaveBeenCalledWith(undefined);
+    expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(1);
+    expect(client.setAppsflyerID).toHaveBeenCalledWith("af-anonymous-1");
+  });
+
+  it("reapplies AppsFlyer attribution after RevenueCat logs in a known app user", async () => {
+    const { client } = makeClient();
+    const getAppsFlyerId = vi
+      .fn()
+      .mockResolvedValueOnce("af-anonymous-1")
+      .mockResolvedValueOnce("af-user-1");
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+      getAppsFlyerId,
+    });
+
+    await service.configure();
+    await service.configure("user_1");
+
+    expect(client.logIn).toHaveBeenCalledWith("user_1");
+    expect(getAppsFlyerId).toHaveBeenLastCalledWith("user_1");
+    expect(client.setAppsflyerID).toHaveBeenLastCalledWith("af-user-1");
+  });
+
+  it("associates AppsFlyer attribution when the AppsFlyer ID becomes available after RevenueCat init", async () => {
+    let listener: ((appsFlyerId: string) => void) | undefined;
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+      getAppsFlyerId: vi.fn().mockResolvedValue(undefined),
+      onAppsFlyerIdAvailable: (nextListener) => {
+        listener = nextListener;
+        return () => undefined;
+      },
+    });
+
+    await service.configure("user_1");
+    listener?.("af-user-1");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(2);
+    expect(client.setAppsflyerID).toHaveBeenCalledWith("af-user-1");
+  });
+
+  it("sends AppsFlyer attribution identifiers to RevenueCat before purchases", async () => {
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    await service.configure("user_1");
+    await service.syncAppsFlyerAttribution("af-user-1");
+
+    expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(1);
+    expect(client.setAppsflyerID).toHaveBeenCalledWith("af-user-1");
+  });
+
   it("purchases the selected RevenueCat package from the current offering", async () => {
     const { client, annualPackage, customerInfo } = makeClient();
     const service = createRevenueCatService({
@@ -93,6 +171,49 @@ describe("RevenueCat service", () => {
       status: "purchased",
       customerInfo,
     });
+  });
+
+  it("syncs AppsFlyer attribution to RevenueCat before opening the purchase sheet", async () => {
+    const calls: string[] = [];
+    const { client, customerInfo } = makeClient();
+    const getAppsFlyerId = vi.fn().mockImplementation(async () => {
+      calls.push("read-appsflyer-id");
+      return "af-user-1";
+    });
+    client.collectDeviceIdentifiers.mockImplementation(async () => {
+      calls.push("collect-device-identifiers");
+    });
+    client.setAppsflyerID.mockImplementation(async () => {
+      calls.push("set-appsflyer-id");
+    });
+    client.purchasePackage.mockImplementation(async () => {
+      calls.push("purchase");
+      return {
+        productIdentifier: "leanient_annual",
+        customerInfo,
+      };
+    });
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+      getAppsFlyerId,
+    });
+
+    await service.purchasePlan({ planId: "annual", appUserId: "user_1" });
+
+    expect(getAppsFlyerId).toHaveBeenCalledWith("user_1");
+    expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(2);
+    expect(client.setAppsflyerID).toHaveBeenCalledWith("af-user-1");
+    expect(calls).toEqual([
+      "read-appsflyer-id",
+      "collect-device-identifiers",
+      "set-appsflyer-id",
+      "read-appsflyer-id",
+      "collect-device-identifiers",
+      "set-appsflyer-id",
+      "purchase",
+    ]);
   });
 
   it("returns a cancelled result when the user cancels the native purchase sheet", async () => {

@@ -155,6 +155,7 @@ import {
   linkProviderIdentityToUser,
   serializeUser,
   setFaceAnalysisConsent,
+  upsertUserFromIdentityWithResult,
   upsertUserFromIdentity,
 } from "../../services/user.service";
 
@@ -203,6 +204,28 @@ describe("user service", () => {
         providerUserId: "google_1",
       },
     ]);
+    expect(userModelMock.users).toHaveLength(1);
+  });
+
+  it("reports that a provider identity created a first-time user", async () => {
+    const result = await upsertUserFromIdentityWithResult(makeIdentity());
+
+    expect(result.isNewUser).toBe(true);
+    expect(result.user.email).toBe("nick@gmail.com");
+    expect(userModelMock.users).toHaveLength(1);
+  });
+
+  it("reports that a provider identity resolved an existing user", async () => {
+    const existingUser = userModelMock.createUserDocument({
+      email: "nick@gmail.com",
+      emailVerified: true,
+      authProviders: [makeLinkedProvider("google", "google_1")],
+    });
+
+    const result = await upsertUserFromIdentityWithResult(makeIdentity());
+
+    expect(result.isNewUser).toBe(false);
+    expect(result.user).toBe(existingUser);
     expect(userModelMock.users).toHaveLength(1);
   });
 

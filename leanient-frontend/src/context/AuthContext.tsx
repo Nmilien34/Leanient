@@ -16,6 +16,7 @@ import {
   setStoredAuth,
   setStoredUser,
 } from "../services/storage.service";
+import appsFlyerService from "../services/appsflyer.service";
 import revenueCatService from "../services/revenueCat.service";
 
 interface AuthApi {
@@ -42,6 +43,8 @@ type AuthAction =
   | { type: "SET_USER"; payload: User }
   | { type: "LOGOUT" };
 
+type AuthMethod = "apple" | "demo" | "google";
+
 export interface AuthContextValue extends AuthState {
   hydrateAuth(): Promise<void>;
   signInWithGoogle(idToken: string): Promise<User>;
@@ -67,6 +70,24 @@ const initialState: AuthState = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function warnMissingNewUserFlag(method: AuthMethod): void {
+  if (process.env.NODE_ENV === "production") return;
+  console.warn(
+    `[AppsFlyer] Auth response for ${method} is missing isNewUser; skipping af_complete_registration.`,
+  );
+}
+
+function syncRevenueCatForUser(userId?: string): void {
+  void revenueCatService
+    .configure(userId)
+    .then(async (configured) => {
+      if (!configured) return undefined;
+
+      return revenueCatService.syncSubscriptionStatus(userId);
+    })
+    .catch(() => undefined);
+}
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
@@ -125,12 +146,15 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
       const [user, token] = await Promise.all([getStoredUser(), getStoredAuthToken()]);
 
       if (!user || !token) {
+        void appsFlyerService.initialize().catch(() => undefined);
+        syncRevenueCatForUser();
         await clearAuthStorage();
         dispatch({ type: "LOGOUT" });
         return;
       }
 
       dispatch({ type: "SET_AUTH", payload: { user, token } });
+      void appsFlyerService.initialize(user.id).catch(() => undefined);
 
       // Validate the restored session in the background. A live token also
       // refreshes the cached user (onboarding flag, subscription status); a
@@ -142,40 +166,49 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
         .then((freshUser) => updateCachedUser(freshUser))
         .catch(() => undefined);
 
-      void revenueCatService
-        .configure(user.id)
-        .then(() => revenueCatService.syncSubscriptionStatus(user.id))
-        .catch(() => undefined);
+      syncRevenueCatForUser(user.id);
     } catch {
+      void appsFlyerService.initialize().catch(() => undefined);
+      syncRevenueCatForUser();
       await clearAuthStorage();
       dispatch({ type: "LOGOUT" });
     }
   }, [api, updateCachedUser]);
 
-  const finalizeAuth = useCallback(async (response: AuthResponse): Promise<User> => {
-    await setStoredAuth(response.user, response.token);
-    dispatch({ type: "SET_AUTH", payload: response });
-    void revenueCatService
-      .configure(response.user.id)
-      .then(() => revenueCatService.syncSubscriptionStatus(response.user.id))
-      .catch(() => undefined);
-    return response.user;
-  }, []);
+  const finalizeAuth = useCallback(
+    async (response: AuthResponse, method: AuthMethod): Promise<User> => {
+      await setStoredAuth(response.user, response.token);
+      dispatch({ type: "SET_AUTH", payload: response });
+
+      await appsFlyerService.initialize(response.user.id).catch(() => false);
+
+      if (response.isNewUser === true) {
+        await appsFlyerService.logCompleteRegistration({ method }).catch(() => undefined);
+      } else if (response.isNewUser !== false) {
+        warnMissingNewUserFlag(method);
+      }
+
+      syncRevenueCatForUser(response.user.id);
+      return response.user;
+    },
+    [],
+  );
 
   const signInWithGoogle = useCallback(
-    async (idToken: string): Promise<User> => finalizeAuth(await api.signInWithGoogle(idToken)),
+    async (idToken: string): Promise<User> =>
+      finalizeAuth(await api.signInWithGoogle(idToken), "google"),
     [api, finalizeAuth],
   );
 
   const signInWithApple = useCallback(
     async (identityToken: string, fullName?: AppleSignInRequest["fullName"]): Promise<User> =>
-      finalizeAuth(await api.signInWithApple({ identityToken, fullName })),
+      finalizeAuth(await api.signInWithApple({ identityToken, fullName }), "apple"),
     [api, finalizeAuth],
   );
 
   const signInWithDemo = useCallback(
     async (email: string, password: string): Promise<User> =>
-      finalizeAuth(await api.signInWithDemo(email, password)),
+      finalizeAuth(await api.signInWithDemo(email, password), "demo"),
     [api, finalizeAuth],
   );
 

@@ -124,6 +124,8 @@ export interface PaginatedResponse<T> {
 export interface AuthResponse {
   user: User;
   token: string;
+  /** Present on updated auth APIs. Missing means the client must fail closed. */
+  isNewUser?: boolean;
 }
 
 export interface WeightMeasurement {

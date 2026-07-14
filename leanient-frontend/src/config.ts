@@ -1,8 +1,8 @@
 export const APP_NAME = "Leanient";
 
-// Mirrors app.json `expo.version`. Swap for `expo-constants`
+// Mirrors app.config.js `expo.version`. Swap for `expo-constants`
 // (`Constants.expoConfig?.version`) once that package is added.
-export const APP_VERSION = "1.1";
+export const APP_VERSION = "1.3";
 
 export const SUPPORT_EMAIL = "support@leanient.app";
 export const REPORT_PROBLEM_EMAIL = "dev@boltzman.ai";
@@ -22,6 +22,10 @@ export const API_BASE_URL =
 export const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "";
 
 export const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "";
+
+export const APPSFLYER_DEV_KEY = process.env.EXPO_PUBLIC_APPSFLYER_DEV_KEY ?? "";
+
+export const APPSFLYER_APP_ID = process.env.EXPO_PUBLIC_APPSFLYER_APP_ID ?? "";
 
 // Google OAuth client IDs for native Google Sign-In (@react-native-google-signin).
 // Set these in the environment; an empty web client ID disables the Google

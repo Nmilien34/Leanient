@@ -9,6 +9,9 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
+  - AppsFlyerFramework (6.18.0):
+    - AppsFlyerFramework/Main (= 6.18.0)
+  - AppsFlyerFramework/Main (6.18.0)
   - EXApplication (7.0.8):
     - ExpoModulesCore
   - EXConstants (18.0.13):
@@ -1400,6 +1403,9 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+  - react-native-appsflyer (6.18.0):
+    - AppsFlyerFramework (= 6.18.0)
+    - React
   - react-native-safe-area-context (5.6.2):
     - hermes-engine
     - RCTRequired
@@ -2023,6 +2029,7 @@ DEPENDENCIES:
   - React-logger (from `../../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-appsflyer (from `../../node_modules/react-native-appsflyer`)
   - react-native-safe-area-context (from `../../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../../node_modules/react-native/ReactCommon/oscompat`)
@@ -2066,6 +2073,7 @@ SPEC REPOS:
   trunk:
     - AppAuth
     - AppCheckCore
+    - AppsFlyerFramework
     - GoogleSignIn
     - GoogleUtilities
     - GTMAppAuth
@@ -2185,6 +2193,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-appsflyer:
+    :path: "../../node_modules/react-native-appsflyer"
   react-native-safe-area-context:
     :path: "../../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2265,6 +2275,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
+  AppsFlyerFramework: c1e1e4cd3b98ffdca2fe32b17ae93909e409b6ab
   EXApplication: 1e98d4b1dccdf30627f92917f4b2c5a53c330e5f
   EXConstants: fce59a631a06c4151602843667f7cfe35f81e271
   EXImageLoader: 189e3476581efe3ad4d1d3fb4735b7179eb26f05
@@ -2325,6 +2336,7 @@ SPEC CHECKSUMS:
   React-logger: 50fdb9a8236da90c0b1072da5c32ee03aeb5bf28
   React-Mapbuffer: 9050ee10c19f4f7fca8963d0211b2854d624973e
   React-microtasksnativemodule: f775db9e991c6f3b8ccbc02bfcde22770f96e23b
+  react-native-appsflyer: 4e82e778b32d759713a2028412e75b80113cfb64
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
   React-oscompat: ce47230ed20185e91de62d8c6d139ae61763d09c
@@ -2366,6 +2378,6 @@ SPEC CHECKSUMS:
   Yoga: 5934998fbeaef7845dbf698f698518695ab4cd1a
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 
-PODFILE CHECKSUM: feeeba18059db4b1ca5208ddd1f96f07d954ae92
+PODFILE CHECKSUM: 1e856b414f586c78ea9b5d1afbf7f90b3dc71018
 
 COCOAPODS: 1.16.2
