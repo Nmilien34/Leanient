@@ -245,6 +245,40 @@ describe("RevenueCat service", () => {
     });
   });
 
+  it("refreshes customer info once when a purchase resolves before the entitlement is active", async () => {
+    const { client, monthlyPackage } = makeClient();
+    const activeCustomerInfo = makeCustomerInfo({
+      entitlements: {
+        active: {
+          leanient_pro: {
+            identifier: "leanient_pro",
+            isActive: true,
+            willRenew: true,
+            periodType: "NORMAL",
+            expirationDate: "2026-06-17T00:00:00.000Z",
+          },
+        },
+        all: {},
+      },
+    });
+    client.getCustomerInfo.mockResolvedValueOnce(activeCustomerInfo);
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    const result = await service.purchasePlan({ planId: "monthly", appUserId: "user_1" });
+
+    expect(client.purchasePackage).toHaveBeenCalledWith(monthlyPackage);
+    expect(client.syncPurchases).toHaveBeenCalledTimes(1);
+    expect(client.getCustomerInfo).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      status: "purchased",
+      customerInfo: activeCustomerInfo,
+    });
+  });
+
   it("syncs AppsFlyer attribution to RevenueCat before opening the purchase sheet", async () => {
     const calls: string[] = [];
     const { client, customerInfo } = makeClient();

@@ -5,7 +5,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Rect } from "react-native-svg";
 import { useAuth } from "../../context/AuthContext";
 import { mockUser } from "../../mocks/user";
-import revenueCatService, { applyRevenueCatCustomerInfoToUser } from "../../services/revenueCat.service";
+import revenueCatService, {
+  applyRevenueCatCustomerInfoToUser,
+  hasActiveEntitlement,
+} from "../../services/revenueCat.service";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { ModalSafeArea } from "../../components/layout/ModalSafeArea";
 import { SettingGroup } from "../../components/app/SettingsRow";
@@ -15,13 +18,45 @@ import { deriveSubscription } from "./subscriptionMetrics";
 /** RevenueCat config/offering errors are internal; never show their raw text to a user. */
 function friendlyActionError(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (/offering|package|configur|store|fetch/i.test(message)) {
+  if (/offering|package|configur|\bstore\b|fetch/i.test(message)) {
     return "Subscriptions aren't available right now. Please try again in a moment.";
   }
   return message || "Something went wrong. Please try again.";
 }
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
+
+export const APP_STORE_SUBSCRIPTIONS_URL = "https://apps.apple.com/account/subscriptions";
+
+type SubscriptionPlanId = "annual" | "monthly";
+
+const SUBSCRIPTION_PLANS: Array<{
+  id: SubscriptionPlanId;
+  title: string;
+  heroLabel: string;
+  price: string;
+  note: string;
+  heroNote: string;
+  badge?: string;
+}> = [
+  {
+    id: "annual",
+    title: "Annual",
+    heroLabel: "INTACT · ANNUAL",
+    price: "$29.99 / yr",
+    note: "$2.50 / mo",
+    heroNote: "Billed yearly · $2.50 / mo",
+    badge: "Best value",
+  },
+  {
+    id: "monthly",
+    title: "Monthly",
+    heroLabel: "INTACT · MONTHLY",
+    price: "$7.99 / mo",
+    note: "Billed monthly",
+    heroNote: "Billed monthly",
+  },
+];
 
 const ic = (children: React.ReactNode) => (
   <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={colors.emeraldDeep} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -62,6 +97,12 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
   const [busyAction, setBusyAction] = React.useState<"primary" | "restore" | "manage" | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = React.useState<SubscriptionPlanId>("annual");
+  const selectedPlanView = SUBSCRIPTION_PLANS.find((plan) => plan.id === selectedPlan) ?? SUBSCRIPTION_PLANS[0];
+  const legacyTrialAccess = user.subscriptionStatus === "trialing";
+  const canManageBilling = view.isSubscribed && !legacyTrialAccess;
+  const primaryActionLabel = legacyTrialAccess || !view.isSubscribed ? "Upgrade" : view.primaryActionLabel;
+  const heroStatusLine = canManageBilling ? view.statusLine : selectedPlanView.heroNote;
 
   const runSubscriptionAction = async (
     action: "primary" | "restore" | "manage",
@@ -108,10 +149,13 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
       }
 
       const result = await revenueCatService.purchasePlan({
-        planId: "annual",
+        planId: selectedPlan,
         appUserId: requireUserId(),
       });
       if (result.status === "cancelled") return;
+      if (!hasActiveEntitlement(result.customerInfo)) {
+        throw new Error("Purchase is still syncing. Try Restore in a moment to unlock Leanient.");
+      }
 
       await refreshCachedSubscription(result.customerInfo);
       setActionMessage("Subscription updated.");
@@ -143,10 +187,7 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
       }
 
       const customerInfo = await revenueCatService.syncSubscriptionStatus(requireUserId());
-      const managementUrl = customerInfo?.managementURL;
-      if (!managementUrl) {
-        throw new Error("Open your App Store subscriptions to manage billing.");
-      }
+      const managementUrl = customerInfo?.managementURL || APP_STORE_SUBSCRIPTIONS_URL;
 
       await Linking.openURL(managementUrl);
     });
@@ -171,9 +212,9 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             {/* plan hero */}
             <LinearGradient colors={["#1f6f4a", "#123b29"]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={styles.hero}>
-              <Text style={styles.heroPlan}>{view.planLabel}</Text>
-              <Text style={styles.heroPrice}>{view.priceLine}</Text>
-              <Text style={styles.heroStatus}>{view.statusLine}</Text>
+              <Text style={styles.heroPlan}>{selectedPlanView.heroLabel}</Text>
+              <Text style={styles.heroPrice}>{selectedPlanView.price}</Text>
+              <Text style={styles.heroStatus}>{heroStatusLine}</Text>
               <View style={styles.heroDivider} />
               {view.features.map((f) => (
                 <View key={f} style={styles.feat}>
@@ -183,7 +224,31 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
               ))}
             </LinearGradient>
 
-            {view.isSubscribed ? (
+            <Text style={styles.glabel}>PLANS</Text>
+            <View style={styles.planGrid}>
+              {SUBSCRIPTION_PLANS.map((plan) => {
+                const selected = selectedPlan === plan.id;
+                return (
+                  <Pressable
+                    key={plan.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={plan.title}
+                    onPress={() => setSelectedPlan(plan.id)}
+                    disabled={Boolean(busyAction)}
+                    style={[styles.planCard, selected && styles.planCardSelected]}
+                  >
+                    <View style={styles.planTop}>
+                      <Text style={[styles.planTitle, selected && styles.planTitleSelected]}>{plan.title}</Text>
+                      {plan.badge ? <Text style={styles.planBadge}>{plan.badge}</Text> : null}
+                    </View>
+                    <Text style={styles.planPrice}>{plan.price}</Text>
+                    <Text style={styles.planNote}>{plan.note}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {canManageBilling ? (
               <>
                 <Text style={styles.glabel}>BILLING</Text>
                 <SettingGroup
@@ -197,19 +262,19 @@ export function SubscriptionScreen({ visible, onClose, onManage, onRestore, onPr
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={view.primaryActionLabel}
+              accessibilityLabel={primaryActionLabel}
               onPress={handlePrimary}
               disabled={Boolean(busyAction)}
               style={[styles.btn2, busyAction && styles.btnDisabled]}
             >
               <Text style={styles.btn2Text}>
-                {busyAction === "primary" ? "Starting..." : view.primaryActionLabel}
+                {busyAction === "primary" ? "Starting..." : primaryActionLabel}
               </Text>
             </Pressable>
             {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
             {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
-            {view.showCancel ? (
+            {view.showCancel && !legacyTrialAccess ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Cancel subscription" onPress={onCancel} style={styles.cancel}>
                 <Text style={styles.cancelText}>Cancel subscription</Text>
               </Pressable>
@@ -239,6 +304,15 @@ const styles = StyleSheet.create({
   feat: { flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9 },
   featText: { fontFamily: font.medium, fontSize: 13.5, color: "rgba(244,251,246,0.92)" },
   glabel: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.77, color: colors.faint, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 2 },
+  planGrid: { flexDirection: "row", gap: 10, paddingHorizontal: 20, marginTop: 8 },
+  planCard: { flex: 1, minHeight: 98, borderRadius: 16, borderWidth: 1, borderColor: "rgba(39,70,52,0.12)", backgroundColor: "rgba(255,255,255,0.70)", padding: 13 },
+  planCardSelected: { borderColor: "rgba(47,184,122,0.55)", backgroundColor: "rgba(47,184,122,0.08)" },
+  planTop: { minHeight: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
+  planTitle: { fontFamily: font.bold, fontSize: 13, color: colors.ink },
+  planTitleSelected: { color: colors.emeraldDeep },
+  planBadge: { flexShrink: 0, overflow: "hidden", borderRadius: 999, backgroundColor: "rgba(47,184,122,0.12)", paddingHorizontal: 7, paddingVertical: 3, fontFamily: font.bold, fontSize: 9.5, color: colors.emeraldDeep },
+  planPrice: { marginTop: 10, fontFamily: font.extrabold, fontSize: 18, color: colors.ink },
+  planNote: { marginTop: 4, fontFamily: font.medium, fontSize: 12, color: colors.muted },
   btn2: { marginHorizontal: 20, marginTop: 18, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(47,184,122,0.10)", borderWidth: 1.5, borderColor: "rgba(47,184,122,0.35)" },
   btnDisabled: { opacity: 0.65 },
   btn2Text: { fontFamily: font.semibold, fontSize: 15, color: colors.emeraldDeep },

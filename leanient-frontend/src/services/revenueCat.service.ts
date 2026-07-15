@@ -281,6 +281,23 @@ export class RevenueCatService {
     await this.syncAppsFlyerAttributionFromCurrentSdk(appUserId);
   }
 
+  private async refreshCustomerInfoAfterInactivePurchase(
+    client: RevenueCatNativeClient,
+    customerInfo: CustomerInfo,
+  ): Promise<CustomerInfo> {
+    if (hasActiveEntitlement(customerInfo)) {
+      return customerInfo;
+    }
+
+    try {
+      await client.syncPurchases();
+      return await client.getCustomerInfo();
+    } catch (error) {
+      warnInDev("[RevenueCat] Purchase resolved without an active entitlement, and the follow-up sync failed.", error);
+      return customerInfo;
+    }
+  }
+
   public async purchasePlan({
     planId,
     appUserId,
@@ -294,9 +311,10 @@ export class RevenueCatService {
 
     try {
       const result = await client.purchasePackage(selectedPackage);
+      const customerInfo = await this.refreshCustomerInfoAfterInactivePurchase(client, result.customerInfo);
       return {
         status: "purchased",
-        customerInfo: result.customerInfo,
+        customerInfo,
       };
     } catch (error) {
       if (isPurchaseCancelled(error, client)) {
