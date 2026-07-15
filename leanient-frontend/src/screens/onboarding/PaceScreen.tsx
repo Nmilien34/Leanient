@@ -2,14 +2,11 @@ import React, { useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ConvoButton, ConvoScreen } from "../../components/onboarding/ConvoScreen";
-import { Slider } from "../../components/ui/Slider";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { PACE_OPTIONS } from "../../onboarding/options";
 import {
-  defaultPace,
-  formatLongDate,
   formatPace,
-  paceBucketIndex,
+  formatShortDate,
   paceForBucket,
   paceRange,
   projectTargetDate,
@@ -24,6 +21,12 @@ interface PaceScreenProps {
   onContinue?: () => void;
 }
 
+/**
+ * Frame 12 of the onboarding conversation: three pace cards, steady
+ * pre-selected as the muscle-safe sweet spot carrying THEIR landing date.
+ * Ambitious warns gently instead of forbidding. Only the `goalPace` bucket is
+ * stored; the weekly rates and the date are display-only projections.
+ */
 export function PaceScreen({ onBack, onContinue }: PaceScreenProps) {
   const { draft, setProfile } = useOnboarding();
 
@@ -33,27 +36,30 @@ export function PaceScreen({ onBack, onContinue }: PaceScreenProps) {
   const range = useMemo(() => paceRange(unit), [unit]);
   const now = useRef(new Date()).current;
 
-  const [pace, setPace] = useState(() => defaultPace(unit));
-
-  const bucket = paceBucketIndex(pace, range);
-  const persona = PACE_OPTIONS[bucket];
+  // Steady pre-selected: the muscle-safe default.
+  const [bucket, setBucket] = useState(1);
 
   const toLose = Math.max(0, currentWeight - goalWeight);
-  const targetDate = projectTargetDate(toLose, pace, now);
-  const helper =
-    toLose > 0
-      ? `Reaching ${goalWeight} ${unit} by ${formatLongDate(targetDate)}`
-      : "You're already at your goal weight";
 
-  const pickBucket = (i: number) => {
+  const rateLabel = (i: number) => `${formatPace(paceForBucket(i, range), range)} ${unit} / week`;
+  const subFor = (i: number) => {
+    const base = PACE_OPTIONS[i].sub;
+    if (i === 1 && toLose > 0) {
+      const landing = formatShortDate(projectTargetDate(toLose, paceForBucket(1, range), now));
+      return `${base} Lands you at ${goalWeight} by ${landing}.`;
+    }
+    return base;
+  };
+
+  const pick = (i: number) => {
     if (Platform.OS !== "web") {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setPace(paceForBucket(i, range));
+    setBucket(i);
   };
 
   const handleContinue = () => {
-    setProfile({ goalPace: persona.value });
+    setProfile({ goalPace: PACE_OPTIONS[bucket].value });
     onContinue?.();
   };
 
@@ -63,10 +69,9 @@ export function PaceScreen({ onBack, onContinue }: PaceScreenProps) {
       onBack={onBack}
       context={`${goalWeight} ${unit}. I like it.`}
       question="How fast do you want to get there?"
-      sub="Faster asks more of your muscle. Steady is the sweet spot."
       footer={<ConvoButton label="Continue" onPress={handleContinue} />}
     >
-      <View style={styles.personas}>
+      <View style={styles.cards}>
         {PACE_OPTIONS.map((p, i) => {
           const on = i === bucket;
           return (
@@ -74,62 +79,41 @@ export function PaceScreen({ onBack, onContinue }: PaceScreenProps) {
               key={p.value}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              accessibilityLabel={p.label}
-              onPress={() => pickBucket(i)}
-              style={[styles.persona, on && styles.personaOn]}
+              accessibilityLabel={`${p.label}, ${rateLabel(i)}`}
+              onPress={() => pick(i)}
+              style={[styles.card, on && styles.cardOn]}
             >
-              <Text style={[styles.personaChevrons, on && styles.personaChevronsOn]}>{p.chevrons}</Text>
-              <Text style={[styles.personaText, on && styles.personaTextOn]}>{p.label}</Text>
+              <View style={styles.cardTop}>
+                <Text style={[styles.cardTitle, on && styles.cardTitleOn]}>{p.label}</Text>
+                <Text style={[styles.cardRate, on && styles.cardRateOn]}>{rateLabel(i)}</Text>
+              </View>
+              <Text style={[styles.cardSub, on && styles.cardSubOn]}>{subFor(i)}</Text>
             </Pressable>
           );
         })}
-      </View>
-
-      <View style={styles.readout}>
-        <Text style={styles.paceNum}>
-          {formatPace(pace, range)} <Text style={styles.paceUnit}>{unit}/wk</Text>
-        </Text>
-        <Text style={styles.helper}>{helper}</Text>
-      </View>
-
-      <View style={styles.sliderBlock}>
-        <Slider min={range.min} max={range.max} step={range.step} value={pace} onChange={setPace} />
-        <View style={styles.marks}>
-          <Text style={styles.mark}>
-            {formatPace(range.min, range)} {unit}/wk
-          </Text>
-          <Text style={styles.mark}>
-            {formatPace(range.max, range)} {unit}/wk
-          </Text>
-        </View>
       </View>
     </ConvoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  personas: { flexDirection: "row", gap: 8, marginTop: 26 },
-  persona: {
-    flex: 1,
-    paddingVertical: 13,
+  cards: { gap: 10, marginTop: 26 },
+  card: {
     borderRadius: 18,
-    alignItems: "center",
-    gap: 3,
     borderWidth: 1.5,
     borderColor: ink.chipBorder,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 4,
   },
-  personaOn: { backgroundColor: ink.emerald, borderColor: ink.emerald },
-  personaChevrons: { fontFamily: font.bold, fontSize: 13, color: ink.faint },
-  personaChevronsOn: { color: ink.onEmerald },
-  personaText: { fontFamily: font.semibold, fontSize: 13.5, color: ink.chipText },
-  personaTextOn: { fontFamily: font.bold, color: ink.onEmerald },
-  readout: { marginTop: 26 },
-  paceNum: { fontFamily: font.extrabold, fontSize: 52, letterSpacing: -1.82, color: ink.bright },
-  paceUnit: { fontFamily: font.semibold, fontSize: 20, color: ink.soft },
-  helper: { fontFamily: font.semibold, fontSize: 13.5, lineHeight: 19, color: ink.emeraldHi, marginTop: 8 },
-  sliderBlock: { marginTop: 20 },
-  marks: { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
-  mark: { fontFamily: font.semibold, fontSize: 12, color: ink.faint },
+  cardOn: { backgroundColor: "rgba(47,184,122,0.14)", borderColor: ink.emerald },
+  cardTop: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+  cardTitle: { fontFamily: font.extrabold, fontSize: 16.5, letterSpacing: -0.25, color: ink.bright },
+  cardTitleOn: { color: ink.emeraldHi },
+  cardRate: { fontFamily: font.semibold, fontSize: 12.5, color: ink.faint },
+  cardRateOn: { color: ink.soft },
+  cardSub: { fontFamily: font.medium, fontSize: 13, lineHeight: 18, color: ink.soft },
+  cardSubOn: { color: ink.bright },
 });
 
 export default PaceScreen;

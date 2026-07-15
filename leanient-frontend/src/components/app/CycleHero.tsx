@@ -15,7 +15,11 @@ const YS = [32, 12, 8, 13, 21, 30, 38];
 const CURVE =
   "M21 32 C 40 18, 52 12, 68 12 S 100 8, 115 8 S 146 10, 162 13 S 194 17, 209 21 S 241 26, 256 30 S 288 35, 303 38";
 const CURVE_LENGTH = 300;
-const LABELS = ["SHOT", "+1", "+2", "+3", "+4", "+5", "+6"];
+// Fallback for off-schedule renders; real cells come from buildCycleRibbon.
+const FALLBACK_CELLS = ["SHOT", "+1", "+2", "+3", "+4", "+5", "+6"].map((label, i) => ({
+  label,
+  isShot: i === 0,
+}));
 
 function NodeCheck() {
   return (
@@ -41,6 +45,8 @@ interface CycleHeroProps {
   personality: CyclePersonality;
   /** 0 = shot day … 6. Marks TODAY on the ribbon. */
   daysSinceShot: number;
+  /** Schedule-true ribbon cells (buildCycleRibbon); every shot day is marked. */
+  cells?: Array<{ label: string; isShot: boolean }>;
   onPress?: () => void;
 }
 
@@ -49,7 +55,7 @@ interface CycleHeroProps {
  * headline, the 7-node ribbon under the med-level curve (drawn in on mount,
  * today's node breathing), and the YOUR PATTERN line.
  */
-export function CycleHero({ contextLabel, personality, daysSinceShot, onPress }: CycleHeroProps) {
+export function CycleHero({ contextLabel, personality, daysSinceShot, cells, onPress }: CycleHeroProps) {
   const today = Math.max(0, Math.min(6, daysSinceShot));
   const accent = personality.amber ? colors.amber : colors.emerald;
   const accentDeep = personality.amber ? colors.amberDeep : colors.emeraldDeep;
@@ -115,7 +121,7 @@ export function CycleHero({ contextLabel, personality, daysSinceShot, onPress }:
           <Circle cx={XS[today]} cy={YS[today]} r={5.5} fill={accent} stroke="#fff" strokeWidth={2.5} />
         </Svg>
         <View style={styles.nodes}>
-          {LABELS.map((label, i) => {
+          {(cells ?? FALLBACK_CELLS).map(({ label, isShot }, i) => {
             const isToday = i === today;
             const isPast = i < today;
             const node = (
@@ -128,11 +134,11 @@ export function CycleHero({ contextLabel, personality, daysSinceShot, onPress }:
               >
                 {isPast ? <NodeCheck /> : null}
                 {isToday ? <View style={[styles.nodeDot, { backgroundColor: accent }]} /> : null}
-                {i === 0 ? <SyringeBadge /> : null}
+                {isShot ? <SyringeBadge /> : null}
               </View>
             );
             return (
-              <View key={label} style={styles.node}>
+              <View key={`${label}-${i}`} style={styles.node}>
                 {isToday ? <Animated.View style={breatheStyle}>{node}</Animated.View> : node}
                 <Text style={[styles.nodeLabel, isToday && { color: accentDeep }]}>{isToday ? "TODAY" : label}</Text>
               </View>

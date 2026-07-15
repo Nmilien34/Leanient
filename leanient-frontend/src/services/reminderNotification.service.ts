@@ -232,6 +232,12 @@ export async function loadReminderState(groups: ReminderGroup[]): Promise<Record
   }
 }
 
+/** True once the user has saved reminder preferences — the gate for passive
+ * resyncs (never prompt for notification permission behind their back). */
+export async function hasSavedReminderState(): Promise<boolean> {
+  return (await AsyncStorage.getItem(REMINDER_STORAGE_KEY)) != null;
+}
+
 export async function saveReminderState(state: Record<string, boolean>): Promise<void> {
   await AsyncStorage.setItem(REMINDER_STORAGE_KEY, JSON.stringify(state));
 }

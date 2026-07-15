@@ -1,18 +1,16 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { ScreenGround } from "../../components/layout/ScreenGround";
 import { Button } from "../../components/ui/Button";
 import { SubscriptionLegal } from "../../components/app/SubscriptionLegal";
-import { YourPlanView } from "../../components/YourPlanView";
+import { ReviewAskScreen } from "./ReviewAskScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { extractApiError } from "../../services/apiError";
 import revenueCatService from "../../services/revenueCat.service";
-import { buildPlanPreview } from "../../onboarding/planPreview";
 import { startPaywallSubscription } from "../../onboarding/paywallPurchase";
 import type { YourPlanTargets } from "../../onboarding/yourPlan";
 import { colors } from "../../theme/tokens";
@@ -52,23 +50,38 @@ const TIERS: PlanTierDef[] = [
 
 function Star() {
   return (
-    <Svg width={15} height={15} viewBox="0 0 24 24" fill={colors.emerald}>
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill={colors.amber}>
       <Path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7L12 2z" />
     </Svg>
   );
 }
 
-function PlanRow({ label, value, hero, sub }: { label: string; value: string; hero?: boolean; sub?: string }) {
+/** The value stack (onboarding-v2 frame 16): the app they watched get built. */
+const VALUE_ROWS = [
+  { title: "A daily plan tuned to your shot cycle", sub: "green light days, defense days, reset days" },
+  { title: "Your weekly muscle verdict", sub: "are you keeping it, and the one move if you're not" },
+  { title: "A coach that answers anything", sub: "the questions you'd otherwise ask strangers online" },
+  { title: "Doctor report", sub: "your whole journey, one page for your prescriber" },
+] as const;
+
+function ValueCheck() {
   return (
-    <View style={[styles.row, hero && styles.rowHero]}>
-      <View style={styles.rowKey}>
-        {hero ? null : <View style={styles.pdot} />}
-        <View>
-          <Text style={[styles.k, hero && styles.kHero]}>{label}</Text>
-          {sub ? <Text style={styles.kSub}>{sub}</Text> : null}
-        </View>
+    <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 12.5l5 5 9-11" stroke={colors.emeraldDeep} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function ValueRow({ title, sub }: { title: string; sub: string }) {
+  return (
+    <View style={styles.vrow}>
+      <View style={styles.vic}>
+        <ValueCheck />
       </View>
-      <Text style={[styles.v, hero && styles.vHero]}>{value}</Text>
+      <View style={styles.flex}>
+        <Text style={styles.vt}>{title}</Text>
+        <Text style={styles.vs}>{sub}</Text>
+      </View>
     </View>
   );
 }
@@ -112,13 +125,11 @@ interface PaywallScreenProps {
 export function PaywallScreen({ onComplete }: PaywallScreenProps) {
   const auth = useAuth();
   const { draft, submit } = useOnboarding();
-  const now = useRef(new Date()).current;
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Set once submit() succeeds. Its presence flips the screen from the pitch UI to
   // the YourPlan celebration view, which holds the user until they tap Continue.
   const [submittedPlan, setSubmittedPlan] = useState<YourPlanTargets | null>(null);
-  const plan = useMemo(() => buildPlanPreview(draft, now), [draft, now]);
   const [selected, setSelected] = useState<PlanId>("annual");
 
   const tier = TIERS.find((t) => t.id === selected) ?? TIERS[0];
@@ -150,10 +161,11 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       });
   };
 
-  // Once onboarding has been persisted, hold the user on the celebration view that
-  // shows their computed plan. Continue (onComplete) is the only way forward.
+  // Once onboarding has been persisted, the review ask lands at peak excitement
+  // before the app opens (onboarding-v2 frame 17). Rate or "Not now" both
+  // continue into the app.
   if (submittedPlan) {
-    return <YourPlanView plan={submittedPlan} onContinue={() => onComplete?.()} />;
+    return <ReviewAskScreen onContinue={() => onComplete?.()} />;
   }
 
   return (
@@ -163,21 +175,17 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.titleBlock}>
-            <Text style={styles.eyebrow}>YOUR PLAN IS READY</Text>
-            <Text style={styles.h1}>Keep your muscle.{"\n"}Keep your face. Keep going.</Text>
+            <Text style={styles.h1}>
+              Lose the weight without losing <Text style={styles.h1Em}>yourself.</Text>
+            </Text>
+            <Text style={styles.h1Sub}>Your plan is built. Start it today.</Text>
           </View>
 
-          <LinearGradient colors={["#EDEEE9", "#E5E7E0"]} style={styles.plancard}>
-            <PlanRow label="Daily protein target" value={plan.dailyProteinLabel} />
-            <PlanRow label="Workouts per week" value={plan.workoutsLabel} />
-            <PlanRow label="Estimated goal date" value={plan.goalDateLabel} />
-            <PlanRow
-              hero
-              label="Projected muscle retained"
-              sub="vs typical GLP-1 loss"
-              value={plan.muscleRetainedLabel}
-            />
-          </LinearGradient>
+          <View style={styles.valueCard}>
+            {VALUE_ROWS.map((row) => (
+              <ValueRow key={row.title} title={row.title} sub={row.sub} />
+            ))}
+          </View>
 
           <View style={styles.plans}>
             {TIERS.map((t) => (
@@ -185,17 +193,20 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
             ))}
           </View>
 
-          <Button label="Subscribe" onPress={startSubscription} style={styles.cta} loading={submitting} disabled={submitting} />
+          <Button label="Start my plan" onPress={startSubscription} style={styles.cta} loading={submitting} disabled={submitting} />
           {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
           <Text style={styles.billingNote}>{tier.billingNote}</Text>
 
-          <View style={styles.proof}>
-            <View style={styles.stars}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Star key={i} />
-              ))}
+          <View style={styles.testi}>
+            <Text style={styles.testiQuote}>"Down 23 lb and I kept my strength. This app is why."</Text>
+            <View style={styles.testiRow}>
+              <View style={styles.stars}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star key={i} />
+                ))}
+              </View>
+              <Text style={styles.who}>Martha · 58 · on Zepbound</Text>
             </View>
-            <Text style={styles.who}>4.8 ★ · Used by 40,000+ people on GLP-1</Text>
           </View>
 
           <SubscriptionLegal style={styles.legal} />
@@ -210,12 +221,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
   titleBlock: { alignItems: "center", gap: 6 },
-  eyebrow: {
-    fontFamily: font.semibold,
-    fontSize: 12,
-    letterSpacing: 1.08,
-    color: colors.muted,
-  },
   h1: {
     fontFamily: font.extrabold,
     fontSize: 28,
@@ -224,46 +229,30 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: "center",
   },
-  // plan card
-  plancard: {
+  h1Em: { color: colors.emeraldDeep },
+  h1Sub: { fontFamily: font.medium, fontSize: 13.5, color: colors.muted, textAlign: "center", marginTop: 4 },
+  // value stack
+  valueCard: {
     marginTop: 18,
     borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: "#DCDDD5",
+    backgroundColor: colors.card,
   },
-  row: {
-    flexDirection: "row",
+  vrow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 10 },
+  vic: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(47,184,122,0.12)",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(24,28,24,0.08)",
+    justifyContent: "center",
   },
-  rowKey: { flexDirection: "row", alignItems: "center", gap: 10 },
-  pdot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.emerald,
-  },
-  k: { fontFamily: font.medium, fontSize: 14, color: colors.muted },
-  kSub: { fontFamily: font.regular, fontSize: 11, color: colors.muted, marginTop: 1 },
-  v: { fontFamily: font.semibold, fontSize: 17, letterSpacing: -0.17, color: colors.ink },
-  rowHero: {
-    backgroundColor: "rgba(47,184,122,0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(47,184,122,0.25)",
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-    marginTop: 8,
-    borderBottomWidth: 1,
-  },
-  kHero: { fontFamily: font.semibold, color: colors.ink },
-  vHero: { fontFamily: font.bold, fontSize: 21, color: "#1B9D62" },
+  flex: { flex: 1 },
+  vt: { fontFamily: font.bold, fontSize: 14, letterSpacing: -0.14, color: colors.ink },
+  vs: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted, marginTop: 1 },
   // pricing tiers
   plans: { flexDirection: "row", gap: 10, marginTop: 16 },
   plan: {
@@ -311,9 +300,21 @@ const styles = StyleSheet.create({
   },
   submitError: { fontFamily: font.medium, fontSize: 13, color: "#C2554E", textAlign: "center", marginTop: 10 },
   // proof
-  proof: { alignItems: "center", gap: 8, marginTop: 18 },
+  // peer testimonial (onboarding-v2 frame 16)
+  testi: {
+    marginTop: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#DCDDD5",
+    backgroundColor: colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  testiQuote: { fontFamily: font.semibold, fontSize: 13.5, lineHeight: 19, letterSpacing: -0.1, color: colors.ink },
+  testiRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   stars: { flexDirection: "row", gap: 3 },
-  who: { fontFamily: font.medium, fontSize: 12, letterSpacing: 0.24, color: colors.faint },
+  who: { fontFamily: font.medium, fontSize: 12, letterSpacing: 0.24, color: colors.muted },
   legal: { marginTop: 20, paddingHorizontal: 8 },
 });
 

@@ -78,6 +78,11 @@ function warnMissingNewUserFlag(method: AuthMethod): void {
   );
 }
 
+function warnCompleteRegistrationFailure(method: AuthMethod, error: unknown): void {
+  if (process.env.NODE_ENV === "production") return;
+  console.warn(`[AppsFlyer] Failed to log af_complete_registration for ${method}.`, error);
+}
+
 function syncRevenueCatForUser(userId?: string): void {
   void revenueCatService
     .configure(userId)
@@ -183,7 +188,9 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
       await appsFlyerService.initialize(response.user.id).catch(() => false);
 
       if (response.isNewUser === true) {
-        await appsFlyerService.logCompleteRegistration({ method }).catch(() => undefined);
+        await appsFlyerService
+          .logCompleteRegistration({ method })
+          .catch((error) => warnCompleteRegistrationFailure(method, error));
       } else if (response.isNewUser !== false) {
         warnMissingNewUserFlag(method);
       }

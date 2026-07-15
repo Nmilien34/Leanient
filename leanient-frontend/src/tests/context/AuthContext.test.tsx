@@ -150,6 +150,33 @@ describe("AuthContext", () => {
     });
   });
 
+  it("warns in dev when a confirmed registration event cannot be sent", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    appsFlyerServiceMock.logCompleteRegistration.mockRejectedValueOnce(new Error("appsflyer down"));
+    const api = {
+      signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1", isNewUser: true }),
+      signInWithApple: vi.fn(),
+      linkAppleProvider: vi.fn(),
+      logout: vi.fn(),
+      getMe: vi.fn(),
+      patchMe: vi.fn(),
+    };
+    const harness = await renderAuthHarness(api);
+
+    await act(async () => {
+      await harness.value().signInWithGoogle("google-id-token");
+    });
+
+    expect(appsFlyerServiceMock.logCompleteRegistration).toHaveBeenCalledWith({
+      method: "google",
+    });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("af_complete_registration"),
+      expect.any(Error),
+    );
+    warn.mockRestore();
+  });
+
   it("does not log AppsFlyer registration for returning users", async () => {
     const api = {
       signInWithGoogle: vi.fn().mockResolvedValue({ user, token: "token_1", isNewUser: false }),

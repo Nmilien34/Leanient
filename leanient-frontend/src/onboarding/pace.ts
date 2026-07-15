@@ -58,3 +58,8 @@ export function projectTargetDate(toLose: number, pacePerWeek: number, from: Dat
 export function formatLongDate(d: Date): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
+
+/** Format as "Jan 17" — the pace card's landing date (onboarding-v2 frame 12). */
+export function formatShortDate(d: Date): string {
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}

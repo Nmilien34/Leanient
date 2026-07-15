@@ -8,9 +8,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { RadialGlow } from "../../components/layout/RadialGlow";
 import { BackButton } from "../../components/ui/BackButton";
 import { useOnboarding } from "../../context/OnboardingContext";
-import { PACE_OPTIONS } from "../../onboarding/options";
-import { paceForBucket, paceRange, projectTargetDate, formatLongDate } from "../../onboarding/pace";
-import { DEFAULT_WEIGHT_LB } from "../../onboarding/units";
+import { buildPlanPreview } from "../../onboarding/planPreview";
+import { DAY_LABEL } from "../../onboarding/belonging";
 import { colors } from "../../theme/tokens";
 import { ink } from "../../theme/inkTokens";
 import { font } from "../../theme/fonts";
@@ -21,7 +20,7 @@ const R = 80;
 const C = 2 * Math.PI * R; // 502.65
 // Step completion points (matches the StepDef thresholds below) — each crossing
 // fires a haptic tick so the build is felt, piece by piece.
-const STEP_THRESHOLDS = [22, 46, 70, 96];
+const STEP_THRESHOLDS = [18, 38, 58, 78, 96];
 // Beat after the ring hits 100% before advancing.
 const HOLD_MS = 900;
 
@@ -52,6 +51,13 @@ function FlagIcon() {
   return (
     <Svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M6 21V4M6 4h11l-2 4 2 4H6" />
+    </Svg>
+  );
+}
+function PenIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M17 3l4 4L8 20l-5 1 1-5z" />
     </Svg>
   );
 }
@@ -96,6 +102,8 @@ interface StepDef {
   icon: React.ReactNode;
   threshold: number;
   label: string;
+  /** Muted personalized detail after the label, e.g. "shot Saturdays". */
+  sub?: string;
 }
 
 function StepRow({ step, state, index }: { step: StepDef; state: StepState; index: number }) {
@@ -120,7 +128,10 @@ function StepRow({ step, state, index }: { step: StepDef; state: StepState; inde
       <LinearGradient colors={step.gradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.chip}>
         {step.icon}
       </LinearGradient>
-      <Text style={[styles.stepText, state === "wait" && styles.stepTextWait]}>{step.label}</Text>
+      <Text style={[styles.stepText, state === "wait" && styles.stepTextWait]}>
+        {step.label}
+        {step.sub ? <Text style={styles.stepSub}> · {step.sub}</Text> : null}
+      </Text>
       <StepEnd state={state} />
     </Animated.View>
   );
@@ -136,28 +147,28 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
   const { draft } = useOnboarding();
   const now = useRef(new Date()).current;
 
-  // Dynamic goal date from the draft (same projection as the Pace screen). Only
-  // goalPace (the bucket) is persisted, so map it back to a representative rate.
-  const goalDate = useMemo(() => {
-    const unit = draft.initialWeight?.unit ?? draft.profile.goalWeightUnit ?? "lb";
-    const currentWeight = draft.initialWeight?.value ?? DEFAULT_WEIGHT_LB;
-    const goalWeight = draft.profile.goalWeight ?? currentWeight;
-    const goalPace = draft.profile.goalPace ?? "steady";
-    const bucket = Math.max(0, PACE_OPTIONS.findIndex((p) => p.value === goalPace));
-    const rate = paceForBucket(bucket, paceRange(unit));
-    const toLose = Math.max(0, currentWeight - goalWeight);
-    return formatLongDate(projectTargetDate(toLose, rate, now));
-  }, [draft, now]);
-
-  const steps: StepDef[] = useMemo(
-    () => [
-      { gradient: ["#6FE0A6", "#23A869"], icon: <DropIcon />, threshold: 22, label: "Setting your protein target from your weight and pace" },
-      { gradient: ["#3FCB86", "#1F9E63"], icon: <DumbbellIcon />, threshold: 46, label: "Picking your starter workouts for muscle retention" },
-      { gradient: ["#F0C079", "#D08E45"], icon: <CalendarIcon />, threshold: 70, label: "Calibrating around your shot-day pattern" },
-      { gradient: ["#8FE8B5", "#2FB87A"], icon: <FlagIcon />, threshold: 96, label: `Locking your goal date: ${goalDate}` },
-    ],
-    [goalDate],
-  );
+  // Their answers visibly become their plan (onboarding-v2 frame 14): every
+  // row carries the personalized value it locked in. The protein number comes
+  // from the same client-side preview the paywall shows.
+  const plan = useMemo(() => buildPlanPreview(draft, now), [draft, now]);
+  const steps: StepDef[] = useMemo(() => {
+    const medName = draft.medicationProtocol.medicationName;
+    const shotDays = (draft.medicationProtocol.shotDays ?? []).map((d) => DAY_LABEL[d]).filter(Boolean);
+    const proteinSub = `${plan.dailyProteinLabel.replace(" g", "g")} a day`;
+    return [
+      {
+        gradient: ["#F0C079", "#D08E45"],
+        icon: <CalendarIcon />,
+        threshold: 18,
+        label: medName ? `Mapped your ${medName} week` : "Mapped your week",
+        sub: shotDays.length ? `shot ${shotDays.join(" + ")}` : undefined,
+      },
+      { gradient: ["#6FE0A6", "#23A869"], icon: <DropIcon />, threshold: 38, label: "Protein target set", sub: proteinSub },
+      { gradient: ["#3FCB86", "#1F9E63"], icon: <DumbbellIcon />, threshold: 58, label: "Training placed on your strong days", sub: "day 2 + 3" },
+      { gradient: ["#8FE8B5", "#2FB87A"], icon: <FlagIcon />, threshold: 78, label: "Defense days planned", sub: "day 5 + 6" },
+      { gradient: ["#6FE0A6", "#1F9E63"], icon: <PenIcon />, threshold: 96, label: "Writing week one…" },
+    ];
+  }, [draft.medicationProtocol.medicationName, draft.medicationProtocol.shotDays, plan.dailyProteinLabel]);
 
   const progress = useRef(new Animated.Value(0)).current;
   const entrance = useRef(new Animated.Value(0)).current;
@@ -309,7 +320,7 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
             </Animated.View>
 
             <View style={styles.textGroup}>
-              <Text style={styles.h1}>Crafting your Leanient plan…</Text>
+              <Text style={styles.h1}>Building your plan.</Text>
               <Text style={styles.sub}>Tuned to your shot, your pace, and the muscle you want to keep.</Text>
             </View>
           </View>
@@ -319,6 +330,10 @@ export function CraftingPlanScreen({ onDone, onBack }: CraftingPlanScreenProps) 
               <StepRow key={s.threshold} step={s} index={i} state={stepStates[i]} />
             ))}
           </View>
+
+          <Text style={styles.credibility}>
+            Built on 40+ clinical sources. Every number in your plan is cited inside the app.
+          </Text>
         </View>
       </SafeAreaView>
     </View>
@@ -408,6 +423,16 @@ const styles = StyleSheet.create({
     color: ink.bright,
   },
   stepTextWait: { color: ink.soft },
+  stepSub: { fontFamily: font.medium, color: ink.soft },
+  credibility: {
+    fontFamily: font.medium,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: ink.dim,
+    textAlign: "center",
+    marginTop: 22,
+    paddingHorizontal: 12,
+  },
   endDone: {
     width: 26,
     height: 26,

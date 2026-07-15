@@ -85,6 +85,8 @@ export interface LeanientDataContextValue {
   weekMeals: MealLog[];
   /** Meal logs for the rolling last 7 days; feeds the consistency read. */
   recentMeals: MealLog[];
+  /** Meal logs for the rolling last 30 days; feeds the Progress heat. */
+  monthMeals: MealLog[];
   /** ~20 weeks of dose logs, for the dose-to-protein insight. */
   doseHistory: DoseLog[];
   workoutHistory: WorkoutLog[];
@@ -159,6 +161,7 @@ export function LeanientDataProvider({
   const [todaysMeals, setTodaysMeals] = useState<MealLog[]>([]);
   const [weekMeals, setWeekMeals] = useState<MealLog[]>([]);
   const [recentMeals, setRecentMeals] = useState<MealLog[]>([]);
+  const [monthMeals, setMonthMeals] = useState<MealLog[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutLog[]>([]);
   const [recentDoseLogs, setRecentDoseLogs] = useState<DoseLog[]>([]);
   const [doseHistory, setDoseHistory] = useState<DoseLog[]>([]);
@@ -242,8 +245,11 @@ export function LeanientDataProvider({
         const doseHistoryFrom = new Date(now.getTime() - 140 * 86_400_000).toISOString();
         // ~9 weeks of workout history, enough to trend training volume week over week.
         const workoutHistoryFrom = new Date(now.getTime() - 63 * 86_400_000).toISOString();
-        // Rolling last-7-days meals (today included), for the consistency read.
+        // Rolling last-30-days meals (today included): the 30-day window feeds
+        // the Progress consistency heat, and the last 7 days are derived from
+        // it for the consistency read — one fetch serves both.
         const recentMealsFrom = new Date(now.getTime() - 6 * 86_400_000).toISOString();
+        const monthMealsFrom = new Date(now.getTime() - 29 * 86_400_000).toISOString();
         const [
           nextProfile,
           nextProtocol,
@@ -270,7 +276,7 @@ export function LeanientDataProvider({
           retryOnce(() => api.getTodaysFocus()),
           retryOnce(() => api.getMealLogs({ recordedAt: today })),
           retryOnce(() => api.getMealLogs(weekRange(now))),
-          retryOnce(() => api.getMealLogs({ from: recentMealsFrom, to: today })),
+          retryOnce(() => api.getMealLogs({ from: monthMealsFrom, to: today })),
           retryOnce(() => api.getWorkoutLogs({ recordedAt: today })),
           retryOnce(() => api.getDoseLogs()),
           retryOnce(() => api.getDoseLogs({ from: doseHistoryFrom })),
@@ -312,7 +318,10 @@ export function LeanientDataProvider({
         if (nextFocus.status === "fulfilled") setTodaysFocus(nextFocus.value);
         if (nextMeals.status === "fulfilled") setTodaysMeals(nextMeals.value);
         if (nextWeekMeals.status === "fulfilled") setWeekMeals(nextWeekMeals.value);
-        if (nextRecentMeals.status === "fulfilled") setRecentMeals(nextRecentMeals.value);
+        if (nextRecentMeals.status === "fulfilled") {
+          setMonthMeals(nextRecentMeals.value);
+          setRecentMeals(nextRecentMeals.value.filter((meal) => meal.recordedAt >= recentMealsFrom));
+        }
         if (nextWorkouts.status === "fulfilled") setTodaysWorkouts(nextWorkouts.value);
         if (nextDoses.status === "fulfilled") setRecentDoseLogs(nextDoses.value);
         if (nextDoseHistory.status === "fulfilled") setDoseHistory(nextDoseHistory.value);
@@ -413,6 +422,7 @@ export function LeanientDataProvider({
       todaysMeals,
       weekMeals,
       recentMeals,
+      monthMeals,
       todaysWorkouts,
       recentDoseLogs,
       doseHistory,
@@ -462,6 +472,7 @@ export function LeanientDataProvider({
       todaysMeals,
       weekMeals,
       recentMeals,
+      monthMeals,
       todaysWorkouts,
       trainingToday,
       weightLogs,

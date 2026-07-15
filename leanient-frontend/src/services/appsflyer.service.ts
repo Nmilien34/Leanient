@@ -18,6 +18,8 @@ type AppsFlyerErrorCallback = (error?: unknown) => unknown;
 type AppsFlyerUIDListener = (uid: string) => void;
 type AppsFlyerUnsubscribe = () => void;
 
+const APPSFLYER_UID_RETRY_DELAYS_MS = [250, 1_000, 3_000];
+
 export interface AppsFlyerNativeClient {
   initSdk(
     options: AppsFlyerInitOptions,
@@ -98,8 +100,9 @@ export class AppsFlyerService {
   private client?: AppsFlyerNativeClient;
   private initialized = false;
   private lastKnownUID?: string;
-  private installConversionDataUnsubscribe?: AppsFlyerUnsubscribe;
   private readonly uidListeners = new Set<AppsFlyerUIDListener>();
+  private uidRetryTimer?: ReturnType<typeof setTimeout>;
+  private uidRetryAttempt = 0;
 
   public constructor(options: AppsFlyerServiceOptions = {}) {
     this.appId = options.appId;
@@ -135,21 +138,39 @@ export class AppsFlyerService {
     this.uidListeners.forEach((listener) => listener(uid));
   }
 
-  private async publishCurrentAppsFlyerUID(): Promise<void> {
-    await this.getAppsFlyerUID().catch((error) => {
+  private clearAppsFlyerUIDRetry(): void {
+    if (this.uidRetryTimer) {
+      clearTimeout(this.uidRetryTimer);
+      this.uidRetryTimer = undefined;
+    }
+    this.uidRetryAttempt = 0;
+  }
+
+  private scheduleAppsFlyerUIDRetry(): void {
+    if (this.lastKnownUID || this.uidRetryTimer) return;
+    const retryDelay = APPSFLYER_UID_RETRY_DELAYS_MS[this.uidRetryAttempt];
+    if (retryDelay === undefined) return;
+
+    this.uidRetryAttempt += 1;
+    this.uidRetryTimer = setTimeout(() => {
+      this.uidRetryTimer = undefined;
+      void this.publishCurrentAppsFlyerUID().then((uid) => {
+        if (!uid) {
+          this.scheduleAppsFlyerUIDRetry();
+        }
+      });
+    }, retryDelay);
+  }
+
+  private async publishCurrentAppsFlyerUID(): Promise<string | undefined> {
+    const uid = await this.getAppsFlyerUID().catch((error) => {
       warnInDev("[AppsFlyer] Could not read AppsFlyer ID.", error);
       return undefined;
     });
-  }
-
-  private registerInstallConversionDataListener(client: AppsFlyerNativeClient): void {
-    if (this.installConversionDataUnsubscribe || !client.onInstallConversionData) {
-      return;
+    if (uid) {
+      this.clearAppsFlyerUIDRetry();
     }
-
-    this.installConversionDataUnsubscribe = client.onInstallConversionData(() => {
-      void this.publishCurrentAppsFlyerUID();
-    });
+    return uid;
   }
 
   private async setCustomerUserIdOnClient(
@@ -200,12 +221,15 @@ export class AppsFlyerService {
     }
 
     const client = await this.getClient();
-    this.registerInstallConversionDataListener(client);
     if (this.initialized) {
       if (appUserId) {
         await this.setCustomerUserIdOnClient(client, appUserId);
       }
-      void this.publishCurrentAppsFlyerUID();
+      void this.publishCurrentAppsFlyerUID().then((uid) => {
+        if (!uid) {
+          this.scheduleAppsFlyerUIDRetry();
+        }
+      });
       return true;
     }
 
@@ -219,14 +243,17 @@ export class AppsFlyerService {
       devKey: this.devKey!,
       appId: this.appId,
       isDebug: this.isDev,
-      onInstallConversionDataListener: true,
+      onInstallConversionDataListener: false,
       onDeepLinkListener: false,
-      timeToWaitForATTUserAuthorization: this.platform === "ios" ? 10 : undefined,
       manualStart: true,
     });
     client.startSdk();
     this.initialized = true;
-    void this.publishCurrentAppsFlyerUID();
+    void this.publishCurrentAppsFlyerUID().then((uid) => {
+      if (!uid) {
+        this.scheduleAppsFlyerUIDRetry();
+      }
+    });
     return true;
   }
 
@@ -240,6 +267,9 @@ export class AppsFlyerService {
 
   public async logCompleteRegistration(input: CompleteRegistrationInput): Promise<void> {
     if (!this.hasConfig()) {
+      if (this.isDev) {
+        console.warn("[AppsFlyer] Missing app id or dev key; skipping af_complete_registration.");
+      }
       return;
     }
 

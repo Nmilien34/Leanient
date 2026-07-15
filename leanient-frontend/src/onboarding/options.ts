@@ -1,4 +1,5 @@
 import type {
+  EquipmentAccess,
   JourneyStage,
   LeanientFocusArea,
   GoalPace,
@@ -19,75 +20,66 @@ export interface Option<T> {
   sub?: string;
 }
 
-// Journey: the UI keeps 6 duration buckets; the contract only stores 3 stages,
-// so several labels intentionally collapse onto the same `journeyStage`.
-// (Finer granularity is a logged backend TODO.)
+// Journey: the v2 conversation's 5 stages (onboarding-v2 frame 02); the
+// contract only stores 3 stages, so labels collapse onto the same
+// `journeyStage`. (Finer granularity is a logged backend TODO.)
 export const JOURNEY_OPTIONS: Option<JourneyStage>[] = [
-  { label: "Just starting / about to start", value: "pre_start" },
-  { label: "1–3 months in", value: "active_loss" },
-  { label: "3–6 months in", value: "active_loss" },
-  { label: "6–12 months in", value: "active_loss" },
-  { label: "Over a year in", value: "maintenance" },
-  { label: "I'm tapering off / planning to stop", value: "maintenance" },
+  { label: "Still considering", value: "pre_start" },
+  { label: "Starting this month", value: "pre_start" },
+  { label: "My first weeks", value: "active_loss" },
+  { label: "Months in", value: "active_loss" },
+  { label: "A year or more", value: "maintenance" },
 ];
 
-// Fear: maps to `LeanientFocusArea`. Two labels have no exact enum value yet and
-// fold onto the closest one (`confidence`) — logged as a backend TODO to add
-// `weight_regain` / `guidance`.
+// Fear: the v2 worry list (onboarding-v2 frame 08), mapped to
+// `LeanientFocusArea`. Three labels have no exact enum value yet and fold onto
+// the closest one — logged as a backend TODO to add
+// `weight_regain` / `cost` / `needles`.
 export const FEAR_OPTIONS: Option<LeanientFocusArea>[] = [
-  { label: "Losing muscle along with the fat", value: "losing_muscle" },
-  { label: "“Ozempic face” / looking older or hollow", value: "ozempic_face" },
-  { label: "Gaining it all back when I stop", value: "confidence" }, // orphan → closest
-  { label: "Side effects making it hard to live normally", value: "side_effects" },
-  { label: "Not knowing if I'm doing this right", value: "confidence" }, // orphan → closest
+  { label: "Losing muscle with the fat", value: "losing_muscle" },
+  { label: "Loose skin", value: "ozempic_face" }, // closest: appearance change
+  { label: "Gaining it back", value: "confidence" }, // orphan → closest
+  { label: "Side effects", value: "side_effects" },
+  { label: "What it costs", value: "confidence" }, // orphan → closest
+  { label: "Needles", value: "side_effects" }, // orphan → closest
 ];
 
-// Training status: the 4 options map exactly onto the `TrainingStatus` enum.
-// This feeds the backend Mifflin-St Jeor calorie model (activity factor) plus the
-// inferred weekly workout target and equipment access.
+// Training status: the v2 conversation's 3 cards (onboarding-v2 frame 13).
+// "Not at all yet" is framed as the perfect starting point. The `returning`
+// enum value keeps existing but has no card; the backend still accepts it.
+// This feeds the backend Mifflin-St Jeor calorie model (activity factor) plus
+// the inferred weekly workout target.
 export const TRAINING_STATUS_OPTIONS: Option<TrainingStatus>[] = [
-  { label: "Not training", value: "not_training", sub: "I'm not lifting or working out regularly." },
-  { label: "Beginner", value: "beginner", sub: "I've started in the last few weeks." },
-  { label: "Consistent", value: "consistent", sub: "I train multiple times per week." },
-  { label: "Returning", value: "returning", sub: "I trained before, getting back into it." },
+  { label: "Not at all yet", value: "not_training", sub: "Perfect starting point. We begin at 15 minutes." },
+  { label: "Here and there", value: "beginner", sub: "We make it stick." },
+  { label: "Regularly", value: "consistent", sub: "We make it count." },
 ];
 
-// Pace personas. Display labels are the prototype's (Steady/Balanced/Fast); they
-// map by increasing speed onto the 3 `goalPace` enum values. `chevrons` drives the
-// icon count and `coach` is the pill copy shown when that pace is active.
+// Equipment at home (onboarding-v2 frame 13's second chip group) → the shared
+// `EquipmentAccess` enum. "Bands" folds onto bodyweight_only (closest tier:
+// minimal-equipment programming) — a `bands` enum value is a backend TODO.
+export const EQUIPMENT_OPTIONS: Option<EquipmentAccess>[] = [
+  { label: "Nothing yet", value: "none" },
+  { label: "Bands", value: "bodyweight_only" }, // orphan → closest
+  { label: "Dumbbells", value: "dumbbells" },
+  { label: "Full gym", value: "full_gym" },
+];
+
+// Pace cards (onboarding-v2 frame 12), in increasing speed so the array index
+// doubles as the pace bucket (see pace.ts / planPreview.ts findIndex math).
+// Steady is the pre-selected muscle-safe sweet spot; its sub gains the user's
+// computed landing date on the Pace screen. Ambitious warns gently instead of
+// forbidding.
 export interface PaceOption {
   label: string;
   value: GoalPace;
-  chevrons: number;
-  coach: string;
+  sub: string;
 }
 
 export const PACE_OPTIONS: PaceOption[] = [
-  {
-    label: "Steady",
-    value: "gentle",
-    chevrons: 1,
-    coach: "Best for muscle retention. Slower, but it holds up.",
-  },
-  {
-    label: "Balanced",
-    value: "steady",
-    chevrons: 2,
-    coach: "A solid middle ground — steady loss while protecting muscle.",
-  },
-  {
-    label: "Fast",
-    value: "aggressive",
-    chevrons: 3,
-    coach: "Quickest results, but muscle is harder to keep. Push protein and lifting.",
-  },
-];
-
-export const TRAINING_OPTIONS: Option<TrainingStatus>[] = [
-  { label: "Not training right now", value: "not_training" },
-  { label: "Just getting started", value: "beginner" },
-  { label: "Training consistently", value: "consistent" },
-  { label: "Getting back into it", value: "returning" },
+  { label: "Gentle", value: "gentle", sub: "Easiest on your muscle and your energy." },
+  { label: "Steady", value: "steady", sub: "The muscle-safe sweet spot." },
+  { label: "Ambitious", value: "aggressive", sub: "Faster loss asks more of your muscle. We guard it harder." },
 ];
 
 /**
@@ -105,12 +97,12 @@ export interface EnergyOption {
 }
 
 export const ENERGY_OPTIONS: EnergyOption[] = [
-  { label: "Pretty rough on shot days", key: "rough_shot_days" },
-  { label: "Constant low energy", key: "low_energy" },
-  { label: "Food sounds gross most of the time", key: "food_aversion" },
-  { label: "I can barely hit protein", key: "low_protein_intake" },
-  { label: "Honestly, I feel fine", key: null, exclusive: true },
-  { label: "I'm worried about side effects but don't have many yet", key: "side_effect_worry" },
+  { label: "Nausea", key: "nausea" },
+  { label: "Tired days", key: "tired_days" },
+  { label: "Quiet appetite", key: "quiet_appetite" },
+  { label: "Food noise is gone", key: "food_noise_gone" },
+  { label: "Constipation", key: "constipation" },
+  { label: "Honestly, great", key: null, exclusive: true },
 ];
 
 /**

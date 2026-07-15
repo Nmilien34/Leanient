@@ -34,6 +34,7 @@ export const PLAN_LABELS: Record<CycleDayKind, string> = {
 
 export function deriveCyclePersonality(cycle: ShotCycle): CyclePersonality {
   const d = cycle.daysSinceShot;
+  const untilNext = cycle.daysUntilNext;
   if (d === 0) {
     return {
       kind: "reset",
@@ -52,6 +53,16 @@ export function deriveCyclePersonality(cycle: ShotCycle): CyclePersonality {
       headline: "Easy does it.",
       headlineSub: "Water and small meals.",
       pattern: "Side effects peak in the first day or two, then fade fast.",
+    };
+  }
+  if (untilNext <= 2 && d >= 2) {
+    return {
+      kind: "defense",
+      pill: `${shotLabel(d)} · HUNGER TONIGHT`,
+      amber: true,
+      headline: "Defense day.",
+      headlineSub: "Protein early.",
+      pattern: "Med levels run lowest in the day or two before your shot, so appetite returns first at night. We plan for it.",
     };
   }
   if (d === 2 || d === 3) {
@@ -75,13 +86,40 @@ export function deriveCyclePersonality(cycle: ShotCycle): CyclePersonality {
     };
   }
   return {
-    kind: "defense",
-    pill: `${shotLabel(d)} · HUNGER TONIGHT`,
-    amber: true,
-    headline: "Defense day.",
-    headlineSub: "Protein early.",
-    pattern: "Med levels run lowest on days 5 and 6, so appetite returns first at night. We plan for it.",
+    kind: "steady",
+    pill: `${shotLabel(d)} · HOLDING STEADY`,
+    amber: false,
+    headline: "Steady day.",
+    headlineSub: "Keep the rhythm.",
+    pattern: "Mid cycle. Energy holds when protein does.",
   };
+}
+
+/**
+ * The hero ribbon, built from the user's REAL schedule: seven cells anchored
+ * at the most recent shot day, every shot day in the window marked (a
+ * Wed+Thu twice-a-week user sees two SHOT cells), today ringed at its true
+ * position. Changing the schedule re-derives all of it.
+ */
+export interface CycleRibbonCell {
+  label: string;
+  isShot: boolean;
+}
+
+export function buildCycleRibbon(args: {
+  daysSinceShot: number;
+  shotDays: string[] | null | undefined;
+  now: Date;
+}): CycleRibbonCell[] {
+  const shotIdx = (args.shotDays ?? []).map((d) => WEEKDAY_INDEX[d.toLowerCase()]).filter((i) => i != null);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(args.now);
+    date.setDate(date.getDate() - args.daysSinceShot + i);
+    const pos = shotIdx.length
+      ? Math.min(...shotIdx.map((shot) => (date.getDay() - shot + 7) % 7))
+      : i;
+    return { label: pos === 0 ? "SHOT" : `+${pos}`, isShot: pos === 0 };
+  });
 }
 
 /** Greeting for the morning read: shot day gets its own name, else by hour. */

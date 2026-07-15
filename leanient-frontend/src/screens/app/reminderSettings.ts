@@ -47,9 +47,14 @@ export function deriveReminderGroups(args: { medication?: UserMedicationProtocol
   // Cycle offsets in expo weekday space (1=Sun..7=Sat): the reminders follow
   // the shot, not the calendar. Fallbacks cover users without a protocol.
   const offsetDays = (offset: number, fallback: number[]): number[] =>
-    shotWeekdays.length ? shotWeekdays.map((d) => ((d - 1 + offset) % 7) + 1) : fallback;
-  const guardDays = [...new Set([...offsetDays(5, [6]), ...offsetDays(6, [7])])];
-  const strongDays = [...new Set([...offsetDays(2, [2]), ...offsetDays(3, [4])])];
+    shotWeekdays.length ? shotWeekdays.map((d) => ((((d - 1 + offset) % 7) + 7) % 7) + 1) : fallback;
+  // Guard evenings are the 1-2 days BEFORE each shot, so any frequency
+  // (twice-weekly, split doses) lands them correctly; shot days themselves
+  // are excluded (that evening belongs to the reset ritual).
+  const guardDays = [...new Set([...offsetDays(-1, [6]), ...offsetDays(-2, [5])])]
+    .filter((d) => !shotWeekdays.includes(d))
+    .sort((a, b) => a - b);
+  const strongDays = [...new Set([...offsetDays(2, [2]), ...offsetDays(3, [4])])].sort((a, b) => a - b);
   const truestDay = offsetDays(2, [2]);
 
   return [

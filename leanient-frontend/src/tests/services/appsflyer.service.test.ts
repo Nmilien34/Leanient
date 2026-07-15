@@ -29,7 +29,7 @@ function makeClient() {
 }
 
 describe("AppsFlyer service", () => {
-  it("initializes with ATT, CUID, and manual start without temporary debug events", async () => {
+  it("initializes with ATT, CUID, manual start, and no native conversion listener", async () => {
     vi.useFakeTimers();
     const { client } = makeClient();
     const requestTrackingPermissions = vi.fn().mockResolvedValue({ status: "granted" });
@@ -53,17 +53,19 @@ describe("AppsFlyer service", () => {
     expect(consoleLog).not.toHaveBeenCalled();
     expect(requestTrackingPermissions).toHaveBeenCalledTimes(1);
     expect(client.setCustomerUserId).toHaveBeenCalledWith("user_1", expect.any(Function));
-    expect(client.initSdk).toHaveBeenCalledWith(
+    const initOptions = client.initSdk.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(initOptions).toEqual(
       expect.objectContaining({
         appId: "6778920696",
         devKey: "dev-key",
         isDebug: true,
         manualStart: true,
-        timeToWaitForATTUserAuthorization: 10,
+        onInstallConversionDataListener: false,
       }),
-      expect.any(Function),
-      expect.any(Function),
     );
+    expect(initOptions).not.toHaveProperty("timeToWaitForATTUserAuthorization");
+    expect(client.initSdk).toHaveBeenCalledWith(initOptions, expect.any(Function), expect.any(Function));
+    expect(client.onInstallConversionData).not.toHaveBeenCalled();
     expect(client.startSdk).toHaveBeenCalledTimes(1);
     expect(client.setCustomerUserId.mock.invocationCallOrder[0]).toBeLessThan(
       client.startSdk.mock.invocationCallOrder[0],
@@ -89,6 +91,7 @@ describe("AppsFlyer service", () => {
 
   it("logs the confirmed first-time registration event without revenue values", async () => {
     const { client } = makeClient();
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const service = createAppsFlyerService({
       appId: "6778920696",
       devKey: "dev-key",
@@ -105,6 +108,26 @@ describe("AppsFlyer service", () => {
       expect.any(Function),
       expect.any(Function),
     );
+    expect(consoleInfo).not.toHaveBeenCalled();
+    consoleInfo.mockRestore();
+  });
+
+  it("warns in dev when registration cannot be logged because config is missing", async () => {
+    const { client } = makeClient();
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const service = createAppsFlyerService({
+      appId: "",
+      devKey: "",
+      platform: "ios",
+      isDev: true,
+      appsFlyerClient: client,
+    });
+
+    await service.logCompleteRegistration({ method: "google" });
+
+    expect(client.logEvent).not.toHaveBeenCalled();
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining("af_complete_registration"));
+    consoleWarn.mockRestore();
   });
 
   it("reads the AppsFlyer ID for RevenueCat attribution", async () => {
@@ -120,7 +143,8 @@ describe("AppsFlyer service", () => {
     await expect(service.getAppsFlyerUID()).resolves.toBe("af-user-1");
   });
 
-  it("notifies listeners when the AppsFlyer ID becomes available after conversion data loads", async () => {
+  it("notifies listeners when the AppsFlyer ID becomes available after startup retry", async () => {
+    vi.useFakeTimers();
     const native = makeClient();
     native.setAppsFlyerUID(undefined);
     const listener = vi.fn();
@@ -135,11 +159,15 @@ describe("AppsFlyer service", () => {
 
     service.onAppsFlyerUIDAvailable(listener);
     await service.initialize();
+    await Promise.resolve();
+    expect(listener).not.toHaveBeenCalled();
+    expect(native.client.onInstallConversionData).not.toHaveBeenCalled();
+
     native.setAppsFlyerUID("af-user-1");
-    native.emitConversionData();
+    await vi.advanceTimersByTimeAsync(250);
     await Promise.resolve();
 
-    expect(native.client.onInstallConversionData).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith("af-user-1");
+    vi.useRealTimers();
   });
 });

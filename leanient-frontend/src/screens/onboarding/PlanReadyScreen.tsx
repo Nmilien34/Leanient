@@ -8,6 +8,7 @@ import { ScreenGround } from "../../components/layout/ScreenGround";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { PACE_OPTIONS } from "../../onboarding/options";
 import { paceForBucket, paceRange, projectTargetDate, formatLongDate } from "../../onboarding/pace";
+import { buildPlanPreview } from "../../onboarding/planPreview";
 import { DEFAULT_WEIGHT_LB } from "../../onboarding/units";
 import { colors } from "../../theme/tokens";
 import { font } from "../../theme/fonts";
@@ -90,6 +91,8 @@ export function PlanReadyScreen({ onContinue }: PlanReadyScreenProps) {
     const shotDays = draft.medicationProtocol.shotDays ?? [];
     return { unit, currentWeight, goalWeight, goalDate, toLose, shotDayCount: shotDays.length };
   }, [draft, now]);
+  // Same client-side preview the crafting rows and paywall use.
+  const plan = useMemo(() => buildPlanPreview(draft, now), [draft, now]);
 
   const draw = useRef(new Animated.Value(0)).current;
   const flagPop = useRef(new Animated.Value(0)).current;
@@ -183,19 +186,31 @@ export function PlanReadyScreen({ onContinue }: PlanReadyScreenProps) {
           </Animated.View>
 
           <Animated.View style={[styles.chips, titleStyle]}>
-            {view.toLose > 0 ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>↓ {view.toLose} {view.unit} planned</Text>
-              </View>
-            ) : null}
-            {view.shotDayCount > 0 ? (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>shot day = reset day</Text>
-              </View>
-            ) : null}
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>coach checks in daily</Text>
+            <View style={[styles.chip, styles.chipEm]}>
+              <Text style={[styles.chipText, styles.chipTextEm]}>{plan.dailyProteinLabel.replace(" g", "g")} protein / day</Text>
             </View>
+            <View style={[styles.chip, styles.chipEm]}>
+              <Text style={[styles.chipText, styles.chipTextEm]}>{plan.workoutsLabel.replace(" session", " short session")}</Text>
+            </View>
+            {view.shotDayCount > 0 ? (
+              <>
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>shot day = reset day</Text>
+                </View>
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>days 5-6 defended</Text>
+                </View>
+              </>
+            ) : null}
+          </Animated.View>
+
+          <Animated.View style={[styles.promise, titleStyle]}>
+            <View style={styles.promiseDot}>
+              <Svg width={14} height={14} viewBox="0 0 24 24" fill="#fff">
+                <Path d="M12 2l1.7 6.1L20 10l-6.3 1.9L12 18l-1.7-6.1L4 10l6.3-1.9z" />
+              </Svg>
+            </View>
+            <Text style={styles.promiseText}>Your coach checks in every morning and answers anything, anytime.</Text>
           </Animated.View>
 
           <View style={styles.spacer} />
@@ -259,8 +274,24 @@ const styles = StyleSheet.create({
   },
   flagLabel: { fontFamily: font.extrabold, fontSize: 11.5, color: colors.emeraldDeep, marginTop: 5 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 16 },
-  chip: { backgroundColor: "rgba(47,184,122,0.12)", borderRadius: 9, paddingVertical: 6, paddingHorizontal: 10 },
-  chipText: { fontFamily: font.bold, fontSize: 12.5, color: colors.emeraldDeep },
+  chip: { backgroundColor: colors.sageFill, borderRadius: 9, paddingVertical: 6, paddingHorizontal: 10 },
+  chipEm: { backgroundColor: "rgba(47,184,122,0.12)" },
+  chipText: { fontFamily: font.bold, fontSize: 12.5, color: colors.muted },
+  chipTextEm: { color: colors.emeraldDeep },
+  promise: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+  },
+  promiseDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.emeraldDeep, alignItems: "center", justifyContent: "center" },
+  promiseText: { flex: 1, fontFamily: font.semibold, fontSize: 13.5, lineHeight: 18, color: colors.ink },
   spacer: { flex: 1, minHeight: 16 },
   cta: {
     height: 54,

@@ -34,11 +34,11 @@ const WEEKDAY_INDEX: Record<string, number> = {
 const WEEKDAYS_SHORT = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const CAP = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function phaseFor(pos: number): WeekPhase {
+function phaseFor(pos: number, untilNext: number): WeekPhase {
   if (pos === 0) return "SHOT";
-  if (pos <= 2) return "EASY";
-  if (pos <= 4) return "MID";
-  return "GUARD";
+  if (untilNext <= 2) return "GUARD";
+  if (pos <= 3) return "EASY";
+  return "MID";
 }
 
 export function buildWeekMap(args: {
@@ -57,7 +57,8 @@ export function buildWeekMap(args: {
     date.setDate(date.getDate() - (6 - i));
     const weekday = date.getDay();
     const pos = Math.min(...shotIdx.map((s) => (weekday - s + 7) % 7));
-    const phase = phaseFor(pos);
+    const untilNext = Math.min(...shotIdx.map((s) => ((s - weekday + 7) % 7) || 7));
+    const phase = phaseFor(pos, untilNext);
     if (phase === "GUARD") guardNames.push(CAP[weekday]);
     const isToday = i === 6;
     const state: WeekCellState = pos === 0 ? "shot" : mark === "hit" ? "hit" : isToday ? "open" : "miss";

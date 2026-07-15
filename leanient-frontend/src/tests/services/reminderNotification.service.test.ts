@@ -68,18 +68,20 @@ describe("reminder notification scheduling", () => {
       shot_day: true,
       workout: false,
       weigh_in: true,
-      progress_photo: true,
+      photo_day: true,
       quiet_hours: true,
     });
 
     expect(requests.map((request) => request.identifier)).toEqual([
-      "leanient.reminder.verdict.1",
       "leanient.reminder.shot_day.2",
       "leanient.reminder.shot_day.7",
-      "leanient.reminder.weigh_in.1",
-      "leanient.reminder.progress_photo",
+      "leanient.reminder.verdict.1",
+      "leanient.reminder.photo_day.2",
+      "leanient.reminder.photo_day.7",
+      "leanient.reminder.weigh_in.4",
+      "leanient.reminder.weigh_in.2",
     ]);
-    expect(requests[1]?.trigger).toEqual({ kind: "weekly", weekday: 2, hour: 9, minute: 0 });
+    expect(requests[0]?.trigger).toEqual({ kind: "weekly", weekday: 2, hour: 9, minute: 0 });
     expect(requests.some((request) => request.identifier.includes("quiet_hours"))).toBe(false);
   });
 
@@ -106,8 +108,8 @@ describe("reminder notification scheduling", () => {
     expect(canceled).toEqual(["leanient.reminder.verdict"]);
     expect(scheduled).toHaveLength(2);
     expect(scheduled.map((request) => (request as { identifier: string }).identifier)).toEqual([
-      "leanient.reminder.verdict.1",
       "leanient.reminder.shot_day.7",
+      "leanient.reminder.verdict.1",
     ]);
   });
 

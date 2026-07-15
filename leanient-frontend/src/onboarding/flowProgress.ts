@@ -10,6 +10,7 @@ export const ONBOARDING_FLOW_ORDER = [
   "glp",
   "medicationDetails",
   "shotDay",
+  "belonging",
   "energyReality",
   "fear",
   "truth",

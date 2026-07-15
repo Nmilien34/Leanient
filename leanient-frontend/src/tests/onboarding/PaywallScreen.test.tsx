@@ -129,12 +129,12 @@ vi.mock("../../components/app/SubscriptionLegal", () => ({
   SubscriptionLegal: () => React.createElement("Text", null, "Subscription legal"),
 }));
 
-vi.mock("../../components/YourPlanView", () => ({
-  YourPlanView: ({ onContinue }: { onContinue: () => void }) =>
+vi.mock("../../screens/onboarding/ReviewAskScreen", () => ({
+  ReviewAskScreen: ({ onContinue }: { onContinue: () => void }) =>
     React.createElement(
       "Pressable",
-      { accessibilityRole: "button", accessibilityLabel: "Continue to your dashboard", onPress: onContinue },
-      "Continue to your dashboard",
+      { accessibilityRole: "button", accessibilityLabel: "Rate Leanient", onPress: onContinue },
+      "Rate Leanient",
     ),
 }));
 
@@ -217,7 +217,7 @@ describe("PaywallScreen", () => {
     });
 
     const copy = allText(tree!.root).toLowerCase();
-    expect(button(tree!.root, "Subscribe")).toBeTruthy();
+    expect(button(tree!.root, "Start my plan")).toBeTruthy();
     expect(tree!.root.findAll((node) => node.props.accessibilityLabel === "Skip")).toHaveLength(0);
     expect(copy).not.toContain("free trial");
     expect(copy).not.toContain("7 days free");
@@ -235,7 +235,7 @@ describe("PaywallScreen", () => {
     });
 
     await act(async () => {
-      button(tree!.root, "Subscribe").props.onPress();
+      button(tree!.root, "Start my plan").props.onPress();
     });
 
     expect(mocks.purchasePlan).toHaveBeenCalledWith({ planId: "annual", appUserId: "user_1" });

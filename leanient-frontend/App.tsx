@@ -19,6 +19,7 @@ import { SignInScreen } from "./src/screens/SignInScreen";
 import { WelcomeScreen } from "./src/screens/onboarding/WelcomeScreen";
 import { GlpScreen } from "./src/screens/onboarding/GlpScreen";
 import { MedicationDetailsScreen } from "./src/screens/onboarding/MedicationDetailsScreen";
+import { BelongingScreen } from "./src/screens/onboarding/BelongingScreen";
 import { ShotDayScreen } from "./src/screens/onboarding/ShotDayScreen";
 import { JourneyScreen } from "./src/screens/onboarding/JourneyScreen";
 import { FearScreen } from "./src/screens/onboarding/FearScreen";
@@ -134,9 +135,11 @@ function AppContent() {
     case "medicationDetails":
       return <MedicationDetailsScreen onBack={() => setStep("glp")} onContinue={() => setStep("shotDay")} />;
     case "shotDay":
-      return <ShotDayScreen onBack={() => setStep("medicationDetails")} onContinue={() => setStep("energyReality")} />;
+      return <ShotDayScreen onBack={() => setStep("medicationDetails")} onContinue={() => setStep("belonging")} />;
+    case "belonging":
+      return <BelongingScreen onBack={() => setStep("shotDay")} onContinue={() => setStep("energyReality")} />;
     case "energyReality":
-      return <EnergyRealityScreen onBack={() => setStep("shotDay")} onContinue={() => setStep("fear")} />;
+      return <EnergyRealityScreen onBack={() => setStep("belonging")} onContinue={() => setStep("fear")} />;
     case "fear":
       return <FearScreen onBack={() => setStep("energyReality")} onAnswer={() => setStep("truth")} />;
     case "truth":

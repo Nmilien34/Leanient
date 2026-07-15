@@ -32,8 +32,6 @@ import { WeekPlanCard } from "../../components/app/WeekPlanCard";
 import { DoseProteinCard } from "../../components/app/DoseProteinCard";
 import { CoachInsightCard } from "../../components/app/CoachInsightCard";
 import { QuickActionRow } from "../../components/app/QuickActionRow";
-import { WeightTrajectoryCard } from "../../components/app/WeightTrajectoryCard";
-import { StrengthTrendCard } from "../../components/app/StrengthTrendCard";
 import { ProgressPhotosCard } from "../../components/app/ProgressPhotosCard";
 import { VerdictExplainer } from "../../components/app/VerdictExplainer";
 import { SourcesScreen } from "./SourcesScreen";
@@ -55,7 +53,6 @@ import { siteLabel } from "./doseLogForm";
 import { DoseHistoryScreen } from "./DoseHistoryScreen";
 import { DoseDetailScreen } from "./DoseDetailScreen";
 import { MealDetailScreen } from "./MealDetailScreen";
-import { TargetsScreen } from "./TargetsScreen";
 import { MedicationScreen } from "./MedicationScreen";
 import { CoachChatScreen } from "./CoachChatScreen";
 import { SubscriptionScreen } from "./SubscriptionScreen";
@@ -67,8 +64,6 @@ import { buildVerdictBreakdown } from "./verdictBreakdown";
 import { buildRetentionHero } from "./retentionHero";
 import { buildDailyInsight } from "./dailyInsight";
 import { buildWeeklyInsight } from "./weeklyInsight";
-import { buildWeightTrajectory } from "./weightTrajectory";
-import { buildStrengthTrend } from "./strengthTrend";
 import { buildDoseProteinInsight } from "./doseProteinInsight";
 import { buildGettingStarted, type GettingStartedKey } from "./gettingStarted";
 import { buildFirstJourney } from "./firstJourney";
@@ -79,6 +74,7 @@ import {
   deriveCyclePersonality,
   deriveLiftPattern,
   derivePersonalPattern,
+  buildCycleRibbon,
   greetingForHour,
   morningPill,
   proteinLoggedYesterday,
@@ -95,6 +91,12 @@ import { StickyPlanChip } from "../../components/app/StickyPlanChip";
 import { ForTodayShelf } from "../../components/app/ForTodayShelf";
 import { pickReadsForToday } from "./libraryContent";
 import { coachOpener, pickCommunityQuestions } from "./communityQuestions";
+import { deriveReminderGroups } from "./reminderSettings";
+import {
+  hasSavedReminderState,
+  loadReminderState,
+  syncReminderNotifications,
+} from "../../services/reminderNotification.service";
 import { computeStreak, loadStreakStore, nextBadge, recordDayWon, type StreakStore } from "./streak";
 import { DayWonSheet } from "../../components/app/DayWonSheet";
 import { StreakScreen } from "../../components/app/StreakScreen";
@@ -154,7 +156,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const [medScheduleOpen, setMedScheduleOpen] = useState(false);
   const [selectedDose, setSelectedDose] = useState<DoseLog | null>(null);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
-  const [targetsOpen, setTargetsOpen] = useState(false);
   const [whatChangedOpen, setWhatChangedOpen] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -513,6 +514,25 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
     };
   }, []);
   const streakRead = useMemo(() => computeStreak(streakStore, now), [streakStore, now]);
+
+  // Schedule sync: when the shot days change (MedicationScreen edit), the
+  // scheduled notifications re-derive from the new cadence. Gated on the user
+  // having configured reminders, so this never triggers a permission prompt.
+  const shotDaysKey = medication?.shotDays.join(",") ?? "";
+  useEffect(() => {
+    if (!medication) return;
+    let alive = true;
+    void hasSavedReminderState().then(async (saved) => {
+      if (!saved || !alive) return;
+      const groups = deriveReminderGroups({ medication });
+      const state = await loadReminderState(groups);
+      await syncReminderNotifications(groups, state);
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shotDaysKey]);
   const medals = useMemo(
     () =>
       buildMedals({
@@ -746,17 +766,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
   const askCoachAboutWeek = () =>
     openCoachWith(weeklyInsight ? [weeklyInsight.chatPrompt, ...verdictCoachSuggestions.slice(0, 1)] : verdictCoachSuggestions);
 
-  // Weight trend, framed by the muscle-safe pace band. On-protocol users see the
-  // next-shot tile in the rings, so this is their only weight read on Today.
-  const weightTrajectory = useMemo(
-    () => buildWeightTrajectory({ current: weight.current, unit: weight.unit, series: weight.series, weekDelta: weight.weekDelta }),
-    [weight.current, weight.unit, weight.series, weight.weekDelta],
-  );
-
-  // Strength work: the behavioral proof of the resistance lever, trended over
-  // ~6 weeks from the user's logged sessions (volume when load is logged).
-  const strengthTrend = useMemo(() => buildStrengthTrend(data.workoutHistory, now), [data.workoutHistory, now]);
-
   // Recent body progress photos, mirrored from Progress so visual change shows on
   // Home. Newest first; labelled by week on the protocol (matching Progress).
   const photoItems = useMemo(() => {
@@ -787,6 +796,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
         contextLabel={heroContext}
         personality={heroPersonality}
         daysSinceShot={shotCycle.daysSinceShot}
+        cells={buildCycleRibbon({
+          daysSinceShot: shotCycle.daysSinceShot,
+          shotDays: medication?.shotDays ?? null,
+          now,
+        })}
         onPress={() => setTodayPlanOpen(true)}
       />
     ) : null;
@@ -961,14 +975,11 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                         </StaggeredReveal>,
                       );
                     }
+                    // Frame 07: the rings open the below-the-fold stack, right
+                    // after the plan (rings → coach read → shortcuts → shelf).
                     if (key === "plan") {
                       items.push(
                         <View key="plan-end" onLayout={(e) => setPlanEndY(e.nativeEvent.layout.y)} />,
-                      );
-                    }
-                    // Execution spine: directive → consistency tiles → the plan.
-                    if (key === "verdict") {
-                      items.push(
                         <StaggeredReveal key="rings" index={idx++}>
                           {ringsCard}
                         </StaggeredReveal>,
@@ -991,9 +1002,9 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                     </StaggeredReveal>
                   ) : null}
                   <StaggeredReveal index={2}>{verdictHeroCard}</StaggeredReveal>
-                  <StaggeredReveal index={3}>{ringsCard}</StaggeredReveal>
-                  {planCard ? <StaggeredReveal index={4}>{planCard}</StaggeredReveal> : null}
+                  {planCard ? <StaggeredReveal index={3}>{planCard}</StaggeredReveal> : null}
                   <View onLayout={(e) => setPlanEndY(e.nativeEvent.layout.y)} />
+                  <StaggeredReveal index={4}>{ringsCard}</StaggeredReveal>
                 </>
               )}
 
@@ -1041,37 +1052,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
                   </View>
                 </StaggeredReveal>
               ) : null}
-
-              {/* Everything below is demoted: supporting context, off the spine. */}
-              {bodyComp ? (
-                <StaggeredReveal index={7}>
-                  <BodyCompositionCard view={bodyComp} onPress={() => setExplainerOpen(true)} />
-                </StaggeredReveal>
-              ) : null}
-
-              {weightTrajectory || strengthTrend ? (
-                <StaggeredReveal index={5}>
-                  <View style={styles.trendRow}>
-                    {weightTrajectory ? <WeightTrajectoryCard view={weightTrajectory} onPress={openQuickLog} /> : null}
-                    {strengthTrend ? <StrengthTrendCard view={strengthTrend} /> : null}
-                  </View>
-                </StaggeredReveal>
-              ) : null}
-
-              <StaggeredReveal index={6}>
-                <ProgressPhotosCard photos={photoItems} onAdd={openProgressPhoto} />
-              </StaggeredReveal>
-
-              <StaggeredReveal index={6}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Adjust today's targets"
-                  onPress={() => setTargetsOpen(true)}
-                  style={styles.whylinkWrap}
-                >
-                  <Text style={styles.whylink}>Adjust today's targets</Text>
-                </Pressable>
-              </StaggeredReveal>
 
             </>
           ) : (
@@ -1437,7 +1417,6 @@ function HomeView({ verdict, profile, weightLogs, medication, doseLogs, recommen
         meal={data.todaysMeals.find((m) => m.id === selectedMealId) ?? null}
         onClose={() => setSelectedMealId(null)}
       />
-      <TargetsScreen visible={targetsOpen} onClose={() => setTargetsOpen(false)} />
     </View>
   );
 }
@@ -1544,7 +1523,6 @@ const styles = StyleSheet.create({
   stkText: { fontFamily: font.extrabold, fontSize: 12.5, letterSpacing: -0.13, color: colors.emeraldDeep },
   // rings
   rings: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingTop: 16 },
-  trendRow: { flexDirection: "row", gap: 12, marginHorizontal: 20, marginTop: 12, alignItems: "stretch" },
   verdictHero: { marginHorizontal: 20, marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 22, overflow: "hidden", shadowColor: "rgba(24,28,24,1)", shadowOffset: { width: 0, height: 14 }, shadowRadius: 24, shadowOpacity: 0.09, elevation: 4 },
   verdictHeroDivider: { height: 1, backgroundColor: colors.line, marginHorizontal: 16 },
   nextWeek: { flexDirection: "row", gap: 11, alignItems: "center", marginHorizontal: 16, marginBottom: 16, backgroundColor: "rgba(47,184,122,0.07)", borderWidth: 1, borderColor: "rgba(47,184,122,0.22)", borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
@@ -1552,8 +1530,6 @@ const styles = StyleSheet.create({
   nextWeekLabel: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.8, color: colors.emeraldDeep },
   nextWeekText: { flex: 1, fontFamily: font.semibold, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.1 },
   // why link
-  whylinkWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 2 },
-  whylink: { fontFamily: font.semibold, fontSize: 13, color: colors.muted, textDecorationLine: "underline" },
   // focus
   eyebrow: { fontFamily: font.semibold, fontSize: 12, letterSpacing: 1.08, color: colors.muted },
   // dose
