@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   onComplete: vi.fn(),
   purchasePlan: vi.fn(),
   submit: vi.fn(),
+  logout: vi.fn(),
   updateCachedUser: vi.fn(),
 }));
 
@@ -140,6 +141,7 @@ vi.mock("../../screens/onboarding/ReviewAskScreen", () => ({
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({
+    logout: mocks.logout,
     updateCachedUser: mocks.updateCachedUser,
     user: { id: "user_1" },
   }),
@@ -206,6 +208,8 @@ describe("PaywallScreen", () => {
     mocks.onComplete.mockReset();
     mocks.purchasePlan.mockReset();
     mocks.submit.mockReset();
+    mocks.logout.mockReset();
+    mocks.logout.mockResolvedValue(undefined);
     mocks.updateCachedUser.mockReset();
   });
 
@@ -224,6 +228,22 @@ describe("PaywallScreen", () => {
     expect(copy).not.toContain("$0");
     expect(copy).not.toContain("not now");
     expect(copy).not.toContain("before you go");
+  });
+
+  it("lets users sign out from the paywall without completing onboarding", async () => {
+    let tree: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      tree = TestRenderer.create(<PaywallScreen onComplete={mocks.onComplete} />);
+    });
+
+    await act(async () => {
+      button(tree!.root, "Sign out").props.onPress();
+    });
+
+    expect(mocks.logout).toHaveBeenCalledTimes(1);
+    expect(mocks.submit).not.toHaveBeenCalled();
+    expect(mocks.onComplete).not.toHaveBeenCalled();
   });
 
   it("keeps users on the paywall when the native purchase sheet is cancelled", async () => {

@@ -134,6 +134,11 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
 
   const tier = TIERS.find((t) => t.id === selected) ?? TIERS[0];
 
+  const signOut = () => {
+    if (submitting) return;
+    void auth.logout().catch(() => {});
+  };
+
   const startSubscription = () => {
     if (submitting) return;
     setSubmitting(true);
@@ -210,6 +215,17 @@ export function PaywallScreen({ onComplete }: PaywallScreenProps) {
           </View>
 
           <SubscriptionLegal style={styles.legal} />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            disabled={submitting}
+            hitSlop={10}
+            onPress={signOut}
+            style={styles.signOutLink}
+          >
+            <Text style={styles.signOutText}>Sign out</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -316,6 +332,8 @@ const styles = StyleSheet.create({
   stars: { flexDirection: "row", gap: 3 },
   who: { fontFamily: font.medium, fontSize: 12, letterSpacing: 0.24, color: colors.muted },
   legal: { marginTop: 20, paddingHorizontal: 8 },
+  signOutLink: { alignSelf: "center", marginTop: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  signOutText: { fontFamily: font.medium, fontSize: 12, color: colors.muted, textAlign: "center" },
 });
 
 export default PaywallScreen;
