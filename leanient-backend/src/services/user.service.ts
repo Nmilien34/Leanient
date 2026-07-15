@@ -15,6 +15,20 @@ function hasProvider(user: UserDocument, provider: AuthProvider, providerUserId:
   );
 }
 
+function uniqueNonEmptyStrings(values: Array<string | undefined | null>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 function findProvider(
   user: UserDocument,
   provider: AuthProvider,
@@ -116,11 +130,86 @@ export function serializeUser(user: UserDocument): SharedUser {
     entitlementExpiresAt: user.entitlementExpiresAt?.toISOString(),
     subscriptionWillRenew: user.subscriptionWillRenew,
     revenueCatCustomerId: user.revenueCatCustomerId ?? undefined,
+    revenueCatAppUserIds:
+      user.revenueCatAppUserIds && user.revenueCatAppUserIds.length > 0
+        ? user.revenueCatAppUserIds
+        : undefined,
     revenueCatEntitlement: user.revenueCatEntitlement ?? undefined,
     faceAnalysisConsentAt: user.faceAnalysisConsentAt?.toISOString() ?? undefined,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
+}
+
+export function applyRevenueCatAppUserIdsToUser(
+  user: UserDocument,
+  ids: Array<string | undefined | null>,
+  primaryId?: string | null,
+): boolean {
+  const revenueCatIds = uniqueNonEmptyStrings(ids);
+  const primaryRevenueCatId = uniqueNonEmptyStrings([primaryId])[0];
+  let changed = false;
+
+  if (!user.revenueCatAppUserIds) {
+    user.revenueCatAppUserIds = [];
+    changed = true;
+  }
+
+  const existingIds = new Set(user.revenueCatAppUserIds);
+  for (const revenueCatId of revenueCatIds) {
+    if (existingIds.has(revenueCatId)) continue;
+    user.revenueCatAppUserIds.push(revenueCatId);
+    existingIds.add(revenueCatId);
+    changed = true;
+  }
+
+  if (primaryRevenueCatId && user.revenueCatCustomerId !== primaryRevenueCatId) {
+    user.revenueCatCustomerId = primaryRevenueCatId;
+    changed = true;
+  }
+
+  return changed;
+}
+
+export async function associateRevenueCatAppUserIds(
+  user: UserDocument,
+  ids: Array<string | undefined | null>,
+  primaryId?: string | null,
+): Promise<UserDocument> {
+  if (applyRevenueCatAppUserIdsToUser(user, ids, primaryId)) {
+    await user.save();
+  }
+
+  return user;
+}
+
+async function findUserByMongoIdCandidate(candidate: string): Promise<UserDocument | null> {
+  try {
+    return await UserModel.findById(candidate);
+  } catch {
+    return null;
+  }
+}
+
+export async function findUserByAnyRcId(
+  candidates: Array<string | undefined | null>,
+): Promise<UserDocument | null> {
+  const revenueCatIds = uniqueNonEmptyStrings(candidates);
+
+  for (const revenueCatId of revenueCatIds) {
+    const userById = await findUserByMongoIdCandidate(revenueCatId);
+    if (userById) return userById;
+
+    const userByRevenueCatId = await UserModel.findOne({
+      $or: [
+        { revenueCatCustomerId: revenueCatId },
+        { revenueCatAppUserIds: revenueCatId },
+      ],
+    });
+    if (userByRevenueCatId) return userByRevenueCatId;
+  }
+
+  return null;
 }
 
 export interface UpsertUserFromIdentityResult {

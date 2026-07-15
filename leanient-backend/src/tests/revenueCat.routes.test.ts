@@ -11,6 +11,7 @@ interface MockUserDocument {
   entitlementExpiresAt?: Date;
   subscriptionWillRenew: boolean;
   revenueCatCustomerId?: string;
+  revenueCatAppUserIds: string[];
   revenueCatEntitlement?: string;
   save: ReturnType<typeof vi.fn>;
 }
@@ -42,6 +43,7 @@ const modelMocks = vi.hoisted(() => {
       },
       subscriptionStatus: "free" as const,
       subscriptionWillRenew: false,
+      revenueCatAppUserIds: [],
       save: vi.fn(async () => user),
     };
     users.push(user);
@@ -51,6 +53,34 @@ const modelMocks = vi.hoisted(() => {
   const UserModel = {
     findById: vi.fn(async (userId: string) => {
       return users.find((user) => user._id.toString() === userId) ?? null;
+    }),
+    findOne: vi.fn(async (query: { $or?: Array<Record<string, unknown>> }) => {
+      const candidateIds = new Set<string>();
+
+      for (const clause of query.$or ?? []) {
+        const value = clause.revenueCatCustomerId ?? clause.revenueCatAppUserIds;
+        if (typeof value === "string") {
+          candidateIds.add(value);
+        } else if (
+          value &&
+          typeof value === "object" &&
+          "$in" in value &&
+          Array.isArray((value as { $in: unknown[] }).$in)
+        ) {
+          for (const id of (value as { $in: unknown[] }).$in) {
+            if (typeof id === "string") candidateIds.add(id);
+          }
+        }
+      }
+
+      return (
+        users.find((user) => {
+          return (
+            (user.revenueCatCustomerId && candidateIds.has(user.revenueCatCustomerId)) ||
+            user.revenueCatAppUserIds.some((id) => candidateIds.has(id))
+          );
+        }) ?? null
+      );
     }),
   };
 
@@ -86,6 +116,7 @@ const modelMocks = vi.hoisted(() => {
       users.splice(0, users.length);
       subscriptionEvents.splice(0, subscriptionEvents.length);
       UserModel.findById.mockClear();
+      UserModel.findOne.mockClear();
       SubscriptionEventModel.create.mockClear();
     },
   };
@@ -138,6 +169,28 @@ describe("RevenueCat webhook routes", () => {
     });
     expect(modelMocks.countEventsById("event_1")).toBe(1);
     expect(modelMocks.users[0]?.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("acknowledges webhooks for unknown RevenueCat users instead of returning 404", async () => {
+    const response = await request(app)
+      .post("/webhooks/revenuecat")
+      .set("Authorization", authorization)
+      .send({
+        event: {
+          id: "event_unknown",
+          type: "RENEWAL",
+          app_user_id: "anonymous_rc_user",
+          entitlement_id: "leanient_pro",
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      status: "active",
+      alreadyProcessed: false,
+      ignored: true,
+    });
+    expect(modelMocks.countEventsById("event_unknown")).toBe(1);
   });
 
   it("acknowledges duplicate RevenueCat webhooks without storing or updating twice", async () => {

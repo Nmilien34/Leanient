@@ -20,6 +20,7 @@ export interface UserDocument extends Document<Types.ObjectId> {
   entitlementExpiresAt?: Date;
   subscriptionWillRenew: boolean;
   revenueCatCustomerId?: string;
+  revenueCatAppUserIds?: string[];
   revenueCatEntitlement?: string;
   onboardingComplete: boolean;
   onboardingCompletedAt?: Date;
@@ -95,6 +96,11 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       index: true,
       sparse: true,
+    },
+    revenueCatAppUserIds: {
+      type: [String],
+      default: [],
+      index: true,
     },
     revenueCatEntitlement: {
       type: String,

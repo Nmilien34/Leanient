@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppsFlyerService } from "../../services/appsflyer.service";
 
 function makeClient() {
@@ -29,6 +29,10 @@ function makeClient() {
 }
 
 describe("AppsFlyer service", () => {
+  beforeEach(() => {
+    (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
+  });
+
   it("initializes with ATT, CUID, manual start, and no native conversion listener", async () => {
     vi.useFakeTimers();
     const { client } = makeClient();
@@ -50,7 +54,12 @@ describe("AppsFlyer service", () => {
     expect(client.logEvent).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(5_000);
     expect(client.logEvent).not.toHaveBeenCalled();
-    expect(consoleLog).not.toHaveBeenCalled();
+    expect(consoleLog).toHaveBeenCalledWith("[Attribution Debug][temporary] AppsFlyer initSdk completed.");
+    expect(consoleLog).toHaveBeenCalledWith("[Attribution Debug][temporary] AppsFlyer startSdk called.");
+    expect(consoleLog).toHaveBeenCalledWith(
+      "[Attribution Debug][temporary] AppsFlyer UID obtained:",
+      "af-user-1",
+    );
     expect(requestTrackingPermissions).toHaveBeenCalledTimes(1);
     expect(client.setCustomerUserId).toHaveBeenCalledWith("user_1", expect.any(Function));
     const initOptions = client.initSdk.mock.calls[0]?.[0] as Record<string, unknown>;

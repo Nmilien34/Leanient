@@ -12,7 +12,7 @@ const textInputDefaults = RNTextInput as unknown as { defaultProps?: { allowFont
 textInputDefaults.defaultProps = { ...textInputDefaults.defaultProps, allowFontScaling: false };
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { LeanientDataProvider, useLeanientData } from "./src/context/LeanientDataContext";
-import { OnboardingProvider } from "./src/context/OnboardingContext";
+import { OnboardingProvider, useOnboarding } from "./src/context/OnboardingContext";
 import { fontAssets } from "./src/theme/fonts";
 import { SplashScreen } from "./src/screens/onboarding/SplashScreen";
 import { SignInScreen } from "./src/screens/SignInScreen";
@@ -52,6 +52,7 @@ import type { OnboardingStep } from "./src/onboarding/flowProgress";
 function AppContent() {
   const auth = useAuth();
   const { profile, isRefreshing, refreshHomeData } = useLeanientData();
+  const { reset: resetOnboardingDraft } = useOnboarding();
   const [showSignIn, setShowSignIn] = useState(false);
   const [step, setStep] = useState<OnboardingStep>("welcome");
 
@@ -77,6 +78,15 @@ function AppContent() {
     fetchedForUserRef.current = userId;
     void refreshHomeData();
   }, [userId, userOnboarded, refreshHomeData]);
+
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      return;
+    }
+
+    setStep("welcome");
+    resetOnboardingDraft();
+  }, [auth.isAuthenticated, resetOnboardingDraft]);
 
   // Onboarding completion → refresh so the freshly-created profile loads, which
   // flips the router to the main app. (The user-id effect above already fired

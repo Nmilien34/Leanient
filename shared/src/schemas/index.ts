@@ -89,6 +89,7 @@ export const userResponseSchema = z.object({
   entitlementExpiresAt: z.string().datetime().optional(),
   subscriptionWillRenew: z.boolean(),
   revenueCatCustomerId: z.string().min(1).optional(),
+  revenueCatAppUserIds: z.array(z.string().min(1)).optional(),
   revenueCatEntitlement: z.string().min(1).optional(),
   faceAnalysisConsentAt: z.string().datetime().optional(),
   createdAt: z.string().datetime(),

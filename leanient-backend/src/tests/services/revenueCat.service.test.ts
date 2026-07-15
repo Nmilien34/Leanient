@@ -8,6 +8,7 @@ interface MockUserDocument {
   entitlementExpiresAt?: Date;
   subscriptionWillRenew: boolean;
   revenueCatCustomerId?: string;
+  revenueCatAppUserIds: string[];
   revenueCatEntitlement?: string;
   save: ReturnType<typeof vi.fn>;
 }
@@ -33,13 +34,18 @@ const modelMocks = vi.hoisted(() => {
     });
   }
 
-  function createUser(userId: string): MockUserDocument {
+  function createUser(
+    userId: string,
+    revenueCatIds: { primary?: string; aliases?: string[] } = {},
+  ): MockUserDocument {
     const user = {
       _id: {
         toString: () => userId,
       },
       subscriptionStatus: "free",
       subscriptionWillRenew: false,
+      revenueCatCustomerId: revenueCatIds.primary,
+      revenueCatAppUserIds: revenueCatIds.aliases ? [...revenueCatIds.aliases] : [],
       save: vi.fn(async () => user),
     };
     users.push(user);
@@ -49,6 +55,34 @@ const modelMocks = vi.hoisted(() => {
   const UserModel = {
     findById: vi.fn(async (userId: string) => {
       return users.find((user) => user._id.toString() === userId) ?? null;
+    }),
+    findOne: vi.fn(async (query: { $or?: Array<Record<string, unknown>> }) => {
+      const candidateIds = new Set<string>();
+
+      for (const clause of query.$or ?? []) {
+        const value = clause.revenueCatCustomerId ?? clause.revenueCatAppUserIds;
+        if (typeof value === "string") {
+          candidateIds.add(value);
+        } else if (
+          value &&
+          typeof value === "object" &&
+          "$in" in value &&
+          Array.isArray((value as { $in: unknown[] }).$in)
+        ) {
+          for (const id of (value as { $in: unknown[] }).$in) {
+            if (typeof id === "string") candidateIds.add(id);
+          }
+        }
+      }
+
+      return (
+        users.find((user) => {
+          return (
+            (user.revenueCatCustomerId && candidateIds.has(user.revenueCatCustomerId)) ||
+            user.revenueCatAppUserIds.some((id) => candidateIds.has(id))
+          );
+        }) ?? null
+      );
     }),
   };
 
@@ -93,6 +127,7 @@ const modelMocks = vi.hoisted(() => {
       users.splice(0, users.length);
       subscriptionEvents.splice(0, subscriptionEvents.length);
       UserModel.findById.mockClear();
+      UserModel.findOne.mockClear();
       SubscriptionEventModel.create.mockClear();
     },
   };
@@ -199,6 +234,99 @@ describe("RevenueCat service", () => {
     expect(modelMocks.countEventsById("event_1")).toBe(1);
     expect(user.subscriptionStatus).toBe("trialing");
     expect(user.revenueCatCustomerId).toBe("user_1");
+    expect(user.revenueCatAppUserIds).toEqual(["user_1"]);
+    expect(user.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("acknowledges unknown RevenueCat users without throwing so RevenueCat stops retrying", async () => {
+    const result = await handleRevenueCatWebhook({
+      event: {
+        id: "event_unknown",
+        type: "RENEWAL",
+        app_user_id: "anonymous_rc_user",
+        original_app_user_id: "original_anonymous_rc_user",
+        entitlement_id: "leanient_pro",
+      },
+    });
+
+    expect(result).toEqual({
+      status: "active",
+      userId: undefined,
+      alreadyProcessed: false,
+      ignored: true,
+    });
+    expect(modelMocks.countEventsById("event_unknown")).toBe(1);
+    expect(modelMocks.SubscriptionEventModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        revenueCatEventId: "event_unknown",
+        revenueCatCustomerId: "anonymous_rc_user",
+        eventType: "RENEWAL",
+      }),
+    );
+  });
+
+  it("falls back from app_user_id to original_app_user_id when resolving webhook users", async () => {
+    const user = modelMocks.createUser("user_1", { primary: "original_rc_user" });
+
+    const result = await handleRevenueCatWebhook({
+      event: {
+        id: "event_original",
+        type: "RENEWAL",
+        app_user_id: "anonymous_rc_user",
+        original_app_user_id: "original_rc_user",
+        entitlement_id: "leanient_pro",
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "active",
+      userId: "user_1",
+      alreadyProcessed: false,
+    });
+    expect(user.revenueCatAppUserIds).toEqual(["anonymous_rc_user", "original_rc_user"]);
+    expect(user.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to stored RevenueCat aliases when primary IDs miss", async () => {
+    const user = modelMocks.createUser("user_1", { aliases: ["aliased_rc_user"] });
+
+    const result = await handleRevenueCatWebhook({
+      event: {
+        id: "event_alias",
+        type: "RENEWAL",
+        app_user_id: "anonymous_rc_user",
+        original_app_user_id: "aliased_rc_user",
+        entitlement_id: "leanient_pro",
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "active",
+      userId: "user_1",
+      alreadyProcessed: false,
+    });
+    expect(user.revenueCatAppUserIds).toEqual(["aliased_rc_user", "anonymous_rc_user"]);
+  });
+
+  it("handles RevenueCat transfer events by moving aliases to the destination ID", async () => {
+    const user = modelMocks.createUser("user_1", { aliases: ["anonymous_rc_user"] });
+
+    const result = await handleRevenueCatWebhook({
+      event: {
+        id: "event_transfer",
+        type: "TRANSFER",
+        transferred_from: ["anonymous_rc_user"],
+        transferred_to: ["user_1"],
+      },
+    });
+
+    expect(result).toEqual({
+      status: "free",
+      userId: "user_1",
+      alreadyProcessed: false,
+    });
+    expect(user.revenueCatCustomerId).toBe("user_1");
+    expect(user.revenueCatAppUserIds).toEqual(["anonymous_rc_user", "user_1"]);
     expect(user.save).toHaveBeenCalledTimes(1);
   });
 

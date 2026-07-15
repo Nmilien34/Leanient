@@ -71,27 +71,42 @@ const initialState: AuthState = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function isDevRuntime(): boolean {
+  const devFlag = (globalThis as { __DEV__?: boolean }).__DEV__;
+  return typeof devFlag === "boolean" ? devFlag : process.env.NODE_ENV !== "production";
+}
+
 function warnMissingNewUserFlag(method: AuthMethod): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (!isDevRuntime()) return;
   console.warn(
     `[AppsFlyer] Auth response for ${method} is missing isNewUser; skipping af_complete_registration.`,
   );
 }
 
 function warnCompleteRegistrationFailure(method: AuthMethod, error: unknown): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (!isDevRuntime()) return;
   console.warn(`[AppsFlyer] Failed to log af_complete_registration for ${method}.`, error);
 }
 
-function syncRevenueCatForUser(userId?: string): void {
-  void revenueCatService
-    .configure(userId)
-    .then(async (configured) => {
-      if (!configured) return undefined;
+function attributionDebugLog(message: string, ...args: unknown[]): void {
+  if (!isDevRuntime()) return;
+  console.log(`[Attribution Debug][temporary] ${message}`, ...args);
+}
 
-      return revenueCatService.syncSubscriptionStatus(userId);
-    })
-    .catch(() => undefined);
+async function configureRevenueCatForUser(
+  userId?: string,
+  options: { syncSubscriptionStatus?: boolean } = {},
+): Promise<void> {
+  try {
+    const configured = await revenueCatService.configure(userId);
+    if (!configured || !userId || !options.syncSubscriptionStatus) {
+      return;
+    }
+
+    await revenueCatService.syncSubscriptionStatus(userId);
+  } catch {
+    // RevenueCat must not block auth/session recovery in local dev or outage cases.
+  }
 }
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -152,12 +167,13 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
 
       if (!user || !token) {
         void appsFlyerService.initialize().catch(() => undefined);
-        syncRevenueCatForUser();
+        void configureRevenueCatForUser();
         await clearAuthStorage();
         dispatch({ type: "LOGOUT" });
         return;
       }
 
+      await configureRevenueCatForUser(user.id, { syncSubscriptionStatus: true });
       dispatch({ type: "SET_AUTH", payload: { user, token } });
       void appsFlyerService.initialize(user.id).catch(() => undefined);
 
@@ -170,11 +186,9 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
         .getMe()
         .then((freshUser) => updateCachedUser(freshUser))
         .catch(() => undefined);
-
-      syncRevenueCatForUser(user.id);
     } catch {
       void appsFlyerService.initialize().catch(() => undefined);
-      syncRevenueCatForUser();
+      void configureRevenueCatForUser();
       await clearAuthStorage();
       dispatch({ type: "LOGOUT" });
     }
@@ -183,19 +197,25 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
   const finalizeAuth = useCallback(
     async (response: AuthResponse, method: AuthMethod): Promise<User> => {
       await setStoredAuth(response.user, response.token);
-      dispatch({ type: "SET_AUTH", payload: response });
 
       await appsFlyerService.initialize(response.user.id).catch(() => false);
 
       if (response.isNewUser === true) {
-        await appsFlyerService
-          .logCompleteRegistration({ method })
-          .catch((error) => warnCompleteRegistrationFailure(method, error));
+        attributionDebugLog(`Auth isNewUser flag for ${method}:`, true);
+        try {
+          await appsFlyerService.logCompleteRegistration({ method });
+          attributionDebugLog(`af_complete_registration sent for ${method}.`);
+        } catch (error) {
+          warnCompleteRegistrationFailure(method, error);
+        }
+      } else if (response.isNewUser === false) {
+        attributionDebugLog(`Auth isNewUser flag for ${method}:`, false);
       } else if (response.isNewUser !== false) {
         warnMissingNewUserFlag(method);
       }
 
-      syncRevenueCatForUser(response.user.id);
+      await configureRevenueCatForUser(response.user.id, { syncSubscriptionStatus: true });
+      dispatch({ type: "SET_AUTH", payload: response });
       return response.user;
     },
     [],
@@ -231,6 +251,7 @@ export function AuthProvider({ children, api = apiService }: AuthProviderProps) 
     } catch {
       // Local session clearing is authoritative for stateless JWT logout.
     } finally {
+      await revenueCatService.logOut().catch(() => undefined);
       await clearAuthStorage();
       dispatch({ type: "LOGOUT" });
     }

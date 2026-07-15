@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyRevenueCatCustomerInfoToUser,
   createRevenueCatService,
@@ -28,6 +28,7 @@ function makeClient() {
     client: {
       configure: vi.fn(),
       logIn: vi.fn().mockResolvedValue({ customerInfo, created: false }),
+      logOut: vi.fn().mockResolvedValue(customerInfo),
       getOfferings: vi.fn().mockResolvedValue({
         current: {
           annual: annualPackage,
@@ -52,6 +53,10 @@ function makeClient() {
 }
 
 describe("RevenueCat service", () => {
+  beforeEach(() => {
+    (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
+  });
+
   it("is a safe no-op when API keys are missing", async () => {
     const service = createRevenueCatService({
       iosApiKey: "",
@@ -80,7 +85,25 @@ describe("RevenueCat service", () => {
     });
   });
 
+  it("configures RevenueCat with a null app user id for anonymous startup", async () => {
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    await expect(service.configure()).resolves.toBe(true);
+
+    expect(client.configure).toHaveBeenCalledWith({
+      apiKey: "ios_key",
+      appUserID: null,
+    });
+    expect(client.logIn).not.toHaveBeenCalled();
+  });
+
   it("associates AppsFlyer attribution when RevenueCat configures an anonymous app user", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const { client } = makeClient();
     const getAppsFlyerId = vi.fn().mockResolvedValue("af-anonymous-1");
     const service = createRevenueCatService({
@@ -95,6 +118,12 @@ describe("RevenueCat service", () => {
     expect(getAppsFlyerId).toHaveBeenCalledWith(undefined);
     expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(1);
     expect(client.setAppsflyerID).toHaveBeenCalledWith("af-anonymous-1");
+    expect(log).toHaveBeenCalledWith("[Attribution Debug][temporary] RevenueCat collected device identifiers.");
+    expect(log).toHaveBeenCalledWith(
+      "[Attribution Debug][temporary] RevenueCat set $appsflyerId:",
+      "af-anonymous-1",
+    );
+    log.mockRestore();
   });
 
   it("reapplies AppsFlyer attribution after RevenueCat logs in a known app user", async () => {
@@ -154,6 +183,49 @@ describe("RevenueCat service", () => {
 
     expect(client.collectDeviceIdentifiers).toHaveBeenCalledTimes(1);
     expect(client.setAppsflyerID).toHaveBeenCalledWith("af-user-1");
+  });
+
+  it("does not sync purchases without an authenticated RevenueCat app user id", async () => {
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    await service.configure();
+    await expect(service.syncSubscriptionStatus()).resolves.toBeUndefined();
+
+    expect(client.syncPurchases).not.toHaveBeenCalled();
+    expect(client.getCustomerInfo).not.toHaveBeenCalled();
+  });
+
+  it("requires an authenticated RevenueCat app user id before restoring purchases", async () => {
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    await service.configure();
+
+    await expect(service.restorePurchases()).rejects.toThrow("authenticated user");
+    expect(client.restorePurchases).not.toHaveBeenCalled();
+  });
+
+  it("logs out the native RevenueCat identity", async () => {
+    const { client } = makeClient();
+    const service = createRevenueCatService({
+      iosApiKey: "ios_key",
+      platform: "ios",
+      purchasesClient: client,
+    });
+
+    await service.configure("user_1");
+    await service.logOut();
+
+    expect(client.logOut).toHaveBeenCalledTimes(1);
   });
 
   it("purchases the selected RevenueCat package from the current offering", async () => {

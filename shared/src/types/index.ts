@@ -86,6 +86,7 @@ export interface User {
   entitlementExpiresAt?: string;
   subscriptionWillRenew: boolean;
   revenueCatCustomerId?: string;
+  revenueCatAppUserIds?: string[];
   revenueCatEntitlement?: string;
   /** When the user opted into on-device facial-volume analysis. Absent = not consented. */
   faceAnalysisConsentAt?: string;

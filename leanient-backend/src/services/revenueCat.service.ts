@@ -1,14 +1,23 @@
 import type { SubscriptionStatus } from "@leanient/shared";
-import { AuthError, NotFoundError, ValidationError } from "../lib/errors";
+import { AuthError, ValidationError } from "../lib/errors";
 import { env } from "../config/env";
 import { logger } from "../lib/logger";
 import { SubscriptionEventModel } from "../models/subscriptionEvent.model";
-import { UserModel } from "../models/user.model";
+import type { UserDocument } from "../models/user.model";
+import {
+  applyRevenueCatAppUserIdsToUser,
+  findUserByAnyRcId,
+} from "./user.service";
 
 export interface RevenueCatEvent {
   id?: string;
   type: string;
   app_user_id?: string;
+  original_app_user_id?: string;
+  aliases?: string[];
+  transferred_from?: string[];
+  transferred_to?: string[];
+  transaction_id?: string;
   product_id?: string;
   entitlement_id?: string;
   period_type?: string;
@@ -85,26 +94,84 @@ function isRevenueCatEventDuplicateKeyError(error: unknown): boolean {
   return candidate.code === 11000 && Boolean(candidate.keyPattern?.revenueCatEventId);
 }
 
-export async function handleRevenueCatWebhook(payload: RevenueCatWebhookPayload) {
-  if (!payload.event) {
-    throw new ValidationError("RevenueCat webhook payload is missing event");
+function uniqueNonEmptyStrings(values: Array<string | undefined | null>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
   }
 
-  const event = payload.event;
-  const mapped = mapRevenueCatEventToSubscription(event);
-  const user = event.app_user_id ? await UserModel.findById(event.app_user_id) : null;
+  return result;
+}
 
-  if (!event.app_user_id || !user) {
-    throw new NotFoundError("RevenueCat webhook user not found");
+function revenueCatEventKey(event: RevenueCatEvent): string | undefined {
+  return event.id ?? (event.transaction_id ? `${event.transaction_id}:${event.type}` : undefined);
+}
+
+function revenueCatEventCustomerId(event: RevenueCatEvent): string | undefined {
+  return uniqueNonEmptyStrings([
+    event.app_user_id,
+    event.original_app_user_id,
+    ...(event.transferred_to ?? []),
+    ...(event.transferred_from ?? []),
+    ...(event.aliases ?? []),
+  ])[0];
+}
+
+function revenueCatLookupCandidates(event: RevenueCatEvent): string[] {
+  if (event.type === "TRANSFER") {
+    return uniqueNonEmptyStrings([
+      ...(event.transferred_to ?? []),
+      ...(event.transferred_from ?? []),
+      event.app_user_id,
+      event.original_app_user_id,
+      ...(event.aliases ?? []),
+    ]);
   }
 
+  return uniqueNonEmptyStrings([
+    event.app_user_id,
+    event.original_app_user_id,
+    ...(event.aliases ?? []),
+  ]);
+}
+
+function revenueCatIdsToAssociate(event: RevenueCatEvent): string[] {
+  return uniqueNonEmptyStrings([
+    event.app_user_id,
+    event.original_app_user_id,
+    ...(event.transferred_from ?? []),
+    ...(event.transferred_to ?? []),
+    ...(event.aliases ?? []),
+  ]);
+}
+
+function primaryRevenueCatId(event: RevenueCatEvent): string | undefined {
+  if (event.type === "TRANSFER") {
+    return uniqueNonEmptyStrings([
+      ...(event.transferred_to ?? []),
+      event.app_user_id,
+      event.original_app_user_id,
+    ])[0];
+  }
+
+  return uniqueNonEmptyStrings([event.app_user_id, event.original_app_user_id])[0];
+}
+
+async function recordRevenueCatEvent(
+  event: RevenueCatEvent,
+  mapped: MappedSubscription,
+  user?: UserDocument,
+): Promise<boolean> {
   try {
-    // The unique revenueCatEventId index is the idempotency gate. Insert the
-    // external event before mutating user state so duplicate deliveries do no work.
     await SubscriptionEventModel.create({
-      userId: user._id,
-      revenueCatEventId: event.id,
-      revenueCatCustomerId: event.app_user_id,
+      userId: user?._id,
+      revenueCatEventId: revenueCatEventKey(event),
+      revenueCatCustomerId: revenueCatEventCustomerId(event),
       eventType: event.type,
       productId: event.product_id,
       entitlementId: event.entitlement_id,
@@ -112,33 +179,82 @@ export async function handleRevenueCatWebhook(payload: RevenueCatWebhookPayload)
       rawEvent: event,
       receivedAt: new Date(),
     });
+    return false;
   } catch (error) {
     if (isRevenueCatEventDuplicateKeyError(error)) {
       logger.info(
         {
-          eventId: event.id,
-          userId: user._id.toString(),
+          eventId: revenueCatEventKey(event),
+          userId: user?._id.toString(),
         },
         "[revenuecat] duplicate webhook ignored",
       );
 
-      return {
-        status: mapped.status,
-        userId: user._id.toString(),
-        alreadyProcessed: true,
-      };
+      return true;
     }
 
     throw error;
   }
+}
 
-  user.subscriptionStatus = mapped.status;
-  user.entitlementExpiresAt = mapped.entitlementExpiresAt
-    ? new Date(mapped.entitlementExpiresAt)
-    : undefined;
-  user.subscriptionWillRenew = mapped.subscriptionWillRenew;
-  user.revenueCatCustomerId = event.app_user_id;
-  user.revenueCatEntitlement = event.entitlement_id;
+export async function handleRevenueCatWebhook(payload: RevenueCatWebhookPayload) {
+  if (!payload.event) {
+    throw new ValidationError("RevenueCat webhook payload is missing event");
+  }
+
+  const event = payload.event;
+  const candidates = revenueCatLookupCandidates(event);
+  const user = await findUserByAnyRcId(candidates);
+  const mapped =
+    event.type === "TRANSFER" && user
+      ? {
+          status: user.subscriptionStatus,
+          entitlementExpiresAt: user.entitlementExpiresAt?.toISOString(),
+          subscriptionWillRenew: user.subscriptionWillRenew,
+        }
+      : mapRevenueCatEventToSubscription(event);
+
+  if (!user) {
+    const alreadyProcessed = await recordRevenueCatEvent(event, mapped);
+    if (!alreadyProcessed) {
+      logger.warn(
+        {
+          eventId: revenueCatEventKey(event),
+          eventType: event.type,
+          candidateRevenueCatIds: candidates,
+        },
+        "[revenuecat] webhook user not found; acknowledged without retry",
+      );
+    }
+
+    return {
+      status: mapped.status,
+      userId: undefined,
+      alreadyProcessed,
+      ignored: true,
+    };
+  }
+
+  const alreadyProcessed = await recordRevenueCatEvent(event, mapped, user);
+  if (alreadyProcessed) {
+    return {
+      status: mapped.status,
+      userId: user._id.toString(),
+      alreadyProcessed: true,
+    };
+  }
+
+  applyRevenueCatAppUserIdsToUser(user, revenueCatIdsToAssociate(event), primaryRevenueCatId(event));
+
+  if (event.type !== "TRANSFER") {
+    user.subscriptionStatus = mapped.status;
+    user.entitlementExpiresAt = mapped.entitlementExpiresAt
+      ? new Date(mapped.entitlementExpiresAt)
+      : undefined;
+    user.subscriptionWillRenew = mapped.subscriptionWillRenew;
+    user.revenueCatEntitlement = event.entitlement_id;
+  }
+
   await user.save();
 
   return {

@@ -7,6 +7,7 @@ import { DEMO_ACCOUNT } from "../config/demoAccount";
 import { UserModel } from "../models/user.model";
 import { AppError, AuthError } from "../lib/errors";
 import {
+  associateRevenueCatAppUserIds,
   linkProviderIdentityToUser,
   serializeUser,
   upsertUserFromIdentityWithResult,
@@ -27,6 +28,8 @@ export async function signInWithReviewAccount(email: string, password: string): 
   if (!user) {
     throw new AppError({ code: "demo_not_seeded", message: "Demo account is not available.", statusCode: 503 });
   }
+
+  await associateRevenueCatAppUserIds(user, [user._id.toString()], user._id.toString());
 
   return {
     user: serializeUser(user),
@@ -51,6 +54,7 @@ export async function signInWithGoogle(idToken: string): Promise<AuthResponse> {
   const identity = await verifyGoogleIdToken(idToken);
   const { user, isNewUser } = await upsertUserFromIdentityWithResult(identity);
   const userId = user._id.toString();
+  await associateRevenueCatAppUserIds(user, [userId], userId);
 
   return {
     user: serializeUser(user),
@@ -66,6 +70,7 @@ export async function signInWithApple(request: AppleSignInRequest): Promise<Auth
     name: buildAppleDisplayName(request.fullName),
   });
   const userId = user._id.toString();
+  await associateRevenueCatAppUserIds(user, [userId], userId);
 
   return {
     user: serializeUser(user),

@@ -16,8 +16,16 @@ export type RevenueCatPurchaseResult =
   | { status: "cancelled" };
 
 interface RevenueCatNativeClient {
-  configure(config: { apiKey: string; appUserID?: string }): void;
+  configure(config: { apiKey: string; appUserID?: string | null }): void;
   logIn(appUserID: string): Promise<unknown>;
+  logOut(): Promise<CustomerInfo>;
+  setDebugLogsEnabled?(enabled: boolean): void;
+  setLogLevel?(logLevel: string): void;
+  LOG_LEVEL?: {
+    DEBUG?: string;
+    WARN?: string;
+    ERROR?: string;
+  };
   getOfferings(): Promise<PurchasesOfferings>;
   purchasePackage(aPackage: PurchasesPackage): Promise<MakePurchaseResult>;
   restorePurchases(): Promise<CustomerInfo>;
@@ -55,8 +63,34 @@ function isPurchaseCancelled(error: unknown, client?: RevenueCatNativeClient): b
 }
 
 function warnInDev(message: string, error?: unknown): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (!isDevRuntime()) return;
   console.warn(message, error);
+}
+
+function attributionDebugLog(message: string, ...args: unknown[]): void {
+  if (!isDevRuntime()) return;
+  console.log(`[Attribution Debug][temporary] ${message}`, ...args);
+}
+
+function isDevRuntime(): boolean {
+  const devFlag = (globalThis as { __DEV__?: boolean }).__DEV__;
+  return typeof devFlag === "boolean" ? devFlag : process.env.NODE_ENV !== "production";
+}
+
+function configureRevenueCatLogLevel(client: RevenueCatNativeClient): void {
+  const isDev = isDevRuntime();
+
+  if (client.setLogLevel && client.LOG_LEVEL) {
+    const logLevel = isDev
+      ? client.LOG_LEVEL.DEBUG
+      : client.LOG_LEVEL.WARN ?? client.LOG_LEVEL.ERROR;
+    if (logLevel) {
+      client.setLogLevel(logLevel);
+      return;
+    }
+  }
+
+  client.setDebugLogsEnabled?.(isDev);
 }
 
 function getPackageForPlan(
@@ -120,7 +154,7 @@ export class RevenueCatService {
   private unsubscribeAppsFlyerIdAvailable?: () => void;
   private client?: RevenueCatNativeClient;
   private isConfigured = false;
-  private configuredAppUserId?: string;
+  private configuredAppUserId?: string | null;
 
   public constructor(options: RevenueCatServiceOptions = {}) {
     this.iosApiKey = options.iosApiKey;
@@ -142,6 +176,7 @@ export class RevenueCatService {
   private async getClient(): Promise<RevenueCatNativeClient> {
     if (!this.client) {
       this.client = await this.loadPurchasesClient();
+      configureRevenueCatLogLevel(this.client);
     }
     return this.client;
   }
@@ -170,9 +205,9 @@ export class RevenueCatService {
     if (!this.isConfigured) {
       client.configure({
         apiKey,
-        appUserID: appUserId,
+        appUserID: appUserId ?? null,
       });
-      this.configuredAppUserId = appUserId;
+      this.configuredAppUserId = appUserId ?? null;
     } else if (appUserId && appUserId !== this.configuredAppUserId) {
       await client.logIn(appUserId);
       this.configuredAppUserId = appUserId;
@@ -197,6 +232,10 @@ export class RevenueCatService {
   }
 
   public async syncSubscriptionStatus(appUserId?: string): Promise<CustomerInfo | undefined> {
+    if (!appUserId) {
+      return undefined;
+    }
+
     const configured = await this.configure(appUserId);
     if (!configured) return undefined;
 
@@ -212,8 +251,10 @@ export class RevenueCatService {
 
     const client = await this.getClient();
     await client.collectDeviceIdentifiers();
+    attributionDebugLog("RevenueCat collected device identifiers.");
     if (appsFlyerId) {
       await client.setAppsflyerID(appsFlyerId);
+      attributionDebugLog("RevenueCat set $appsflyerId:", appsFlyerId);
     }
   }
 
@@ -267,8 +308,22 @@ export class RevenueCatService {
   }
 
   public async restorePurchases(appUserId?: string): Promise<CustomerInfo> {
+    if (!appUserId) {
+      throw new Error("RevenueCat restore requires an authenticated user.");
+    }
+
     const client = await this.requireConfigured(appUserId);
     return client.restorePurchases();
+  }
+
+  public async logOut(): Promise<void> {
+    if (!this.isConfigured) {
+      return;
+    }
+
+    const client = await this.getClient();
+    await client.logOut();
+    this.configuredAppUserId = null;
   }
 }
 

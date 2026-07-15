@@ -80,13 +80,23 @@ function isThenable(value: unknown): value is Promise<unknown> {
   return Boolean(value && typeof (value as Promise<unknown>).then === "function");
 }
 
+function isDevRuntime(): boolean {
+  const devFlag = (globalThis as { __DEV__?: boolean }).__DEV__;
+  return typeof devFlag === "boolean" ? devFlag : process.env.NODE_ENV !== "production";
+}
+
 function warnInDev(message: string, error?: unknown): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (!isDevRuntime()) return;
   if (error) {
     console.warn(message, error);
   } else {
     console.warn(message);
   }
+}
+
+function attributionDebugLog(message: string, ...args: unknown[]): void {
+  if (!isDevRuntime()) return;
+  console.log(`[Attribution Debug][temporary] ${message}`, ...args);
 }
 
 export class AppsFlyerService {
@@ -134,6 +144,9 @@ export class AppsFlyerService {
     if (!uid) return;
     if (uid === this.lastKnownUID) return;
 
+    if (this.isDev) {
+      attributionDebugLog("AppsFlyer UID obtained:", uid);
+    }
     this.lastKnownUID = uid;
     this.uidListeners.forEach((listener) => listener(uid));
   }
@@ -247,7 +260,13 @@ export class AppsFlyerService {
       onDeepLinkListener: false,
       manualStart: true,
     });
+    if (this.isDev) {
+      attributionDebugLog("AppsFlyer initSdk completed.");
+    }
     client.startSdk();
+    if (this.isDev) {
+      attributionDebugLog("AppsFlyer startSdk called.");
+    }
     this.initialized = true;
     void this.publishCurrentAppsFlyerUID().then((uid) => {
       if (!uid) {
